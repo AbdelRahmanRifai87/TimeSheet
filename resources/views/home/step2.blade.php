@@ -34,6 +34,7 @@
                     placeholder="Select date range (YYYY-MM-DD to YYYY-MM-DD)">
                 <div class="text-red-500 text-xs mt-1" id="dateRangeError"></div>
             </div>
+            <input type="hidden" id="selectedOptionsInput" name="selected_options" value="[]">
 
             <div class="flex justify-end mt-4">
                 <button id="addSelectionBtn" type="button"

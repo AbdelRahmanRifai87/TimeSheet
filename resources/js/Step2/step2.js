@@ -178,6 +178,14 @@ document.addEventListener("DOMContentLoaded", function () {
             e.preventDefault();
             return;
         }
+        // Get the selectedOptions array from the SelectionManager
+        const selectedOptions = selectionManager.getSelections();
+
+        // Update the hidden input field with the selectedOptions array as JSON
+        const selectedOptionsInput = document.getElementById(
+            "selectedOptionsInput"
+        );
+        selectedOptionsInput.value = JSON.stringify(selectedOptions);
         showToast("Step 2 validated! Proceeding to next step...", "success");
         // Clear selections from localStorage
         selectionManager.clearSelections();

@@ -27,22 +27,15 @@ Route::get('/home/step2', function () {
 })->name('home.step2.get');
 
 Route::post('/home/step2', function (\Illuminate\Http\Request $request) {
-    $validated = $request->validate([
-        'shift_types' => 'required|array|min:1',
-        'location_id' => 'required|exists:locations,id',
-        'date_range' => 'required|string',
+   $validated = $request->validate([
+        'selected_options' => 'required|json',
     ]);
-    $previousDateRange = session('step2.date_range');
-    $newDateRange = $validated['date_range'];
-    if ($previousDateRange && $previousDateRange !== $newDateRange) {
-        session()->forget('step3.shift_schedule');
-    }
 
-    session([
-        'step2.shift_types' => $validated['shift_types'],
-        'step2.location_id' => $validated['location_id'],
-        'step2.date_range' => $validated['date_range'],
-    ]);
+    // Decode the selected_options JSON array
+    $selectedOptions = json_decode($request->input('selected_options'), true);
+
+    // Process the selected options (e.g., save to session or database)
+    session(['step2.selected_options' => $selectedOptions]);
 
     return redirect('/details/step3');
 })->name('home.step2.submit');
