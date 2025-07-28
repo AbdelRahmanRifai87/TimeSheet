@@ -21,7 +21,7 @@ class ShiftTypeController extends Controller
     {
         try {
             $validated = $request->validate([
-                'name' => 'required|string|max:255',
+                'name' => 'required|string|max:255|unique:shift_types,name',
                 'description' => 'nullable|string',
             ]);
             $ShiftType = ShiftType::create($validated);

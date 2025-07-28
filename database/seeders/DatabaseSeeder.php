@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             DayTypeSeeder::class,
             RateSeeder::class,
             PublicHolidaySeeder::class,
+            LocationSeeder::class,
         ]);
     }
 }

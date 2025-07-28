@@ -23,31 +23,28 @@ Route::get('/dataentry', [
 ])->name('dataentry.index_api');
 
 Route::get('/home/step2', function () {
-    return view('home.step2');
+     $locations = \App\Models\Location::all(); // Fetch all locations from the database
+    return view('home.step2', compact('locations')); // Pass $locations to the view
 })->name('home.step2.get');
 
 Route::post('/home/step2', function (\Illuminate\Http\Request $request) {
    $validated = $request->validate([
-        'selected_options' => 'required|json',
+        'selected_locations' => 'required|json',
     ]);
 
-    // Decode the selected_options JSON array
-    $selectedOptions = json_decode($request->input('selected_options'), true);
+    // Decode the selected_locations JSON array
+    $selectedLocations = json_decode($request->input('selected_locations'), true);
 
-    // Process the selected options (e.g., save to session or database)
-    session(['step2.selected_options' => $selectedOptions]);
+    // Save the selected locations in the session
+    session(['step2.selected_locations' => $selectedLocations]);
 
     return redirect('/details/step3');
 })->name('home.step2.submit');
 
 Route::get('/details/step3', function () {
-    $shiftTypeIds = session('step2.shift_types', []);
-    $shiftTypes = \App\Models\ShiftType::whereIn('id', $shiftTypeIds)->get();
-    $locationId = session('step2.location_id');
-    $dateRange = session('step2.date_range');
-    $shiftSchedule = session('step3.shift_schedule', []);
+  $selectedLocations = session('step2.selected_locations', []);
     // Pass these to your Blade view
-    return view('details.step3', compact('shiftTypes', 'locationId', 'dateRange', 'shiftSchedule'));
+    return view('details.step3', compact('selectedLocations'));
 })->name('details.step3');
 
 Route::post('/details/step3', function (\Illuminate\Http\Request $request) {

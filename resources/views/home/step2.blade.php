@@ -2,62 +2,161 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-2xl mx-auto p-6">
+    <div class="max-w-2xl mx-auto p-6 overflow-y-auto">
         <h2 class="text-2xl font-bold mb-6">Step 2: Home</h2>
         <form id="step2Form" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
             @csrf
-            <!-- 2.1 Multi-select Shift Types -->
-            <div>
-                <label for="shiftTypes" class="block text-sm font-medium mb-1">Select Shift Types </label>
-                <select id="shiftTypes" name="shift_types[]" multiple
-                    class="form-multiselect w-full border border-gray-300 rounded px-3 py-2">
-                    <!-- Options will be loaded by JS -->
-                </select>
-                <div class="text-red-500 text-xs mt-1" id="shiftTypesError"></div>
-            </div>
-            <!-- 2.3 Location Dropdown -->
-            <div>
-                <label for="location" class="block text-sm font-medium mb-1">Select Location </label>
-                <select id="location" name="location_id" multiple
-                    class="form-select w-full border border-gray-300 rounded px-3 py-2">
 
-                    <!-- Options will be loaded by JS -->
-                </select>
-                <div class="text-red-500 text-xs mt-1" id="locationError"></div>
-            </div>
-            <!-- 2.3 Date Range -->
 
-            <div>
-                <label for="dateRange" class="block text-sm font-medium mb-1">Date Range </label>
-                <input type="text" id="dateRange" name="date_range"
-                    class="form-input w-full border border-gray-300 rounded px-3 py-2"
-                    placeholder="Select date range (YYYY-MM-DD to YYYY-MM-DD)">
-                <div class="text-red-500 text-xs mt-1" id="dateRangeError"></div>
-            </div>
-            <input type="hidden" id="selectedOptionsInput" name="selected_options" value="[]">
+            @foreach ($locations as $location)
+                <div class="border border-gray-300 rounded p-4 mb-4">
+                    <!-- Location Header -->
+                    <div class="flex justify-between items-center cursor-pointer" onclick="toggleForm('{{ $location->id }}')">
+                        <h3 class="text-lg font-semibold">{{ $location->name }}</h3>
+                        <span id="arrow_{{ $location->id }}" class="text-sm text-gray-500">
+                            <!-- Down arrow by default -->
+                            <i class="fas fa-chevron-down"></i>
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600">{{ $location->address }}</p>
 
-            <div class="flex justify-end mt-4">
-                <button id="addSelectionBtn" type="button"
-                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400">
-                    Add
+                    <!-- Hidden Form -->
+                    <div id="form_{{ $location->id }}" class="hidden mt-4">
+                        <!-- Shift Types Dropdown -->
+                        <div>
+                            <div class="flex justify-between items-center">
+                                <label for="shiftTypes_{{ $location->id }}" class="block text-sm font-medium mb-1">Select
+                                    Shift
+                                    Types</label>
+                                <button type="button"
+                                    class="bg-blue-500 text-white mb-1 px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 mt-2 add-shift-type-btn"
+                                    data-location-id="{{ $location->id }}">
+                                    Add Shift Type
+                                </button>
+                            </div>
+                            <select id="shiftTypes_{{ $location->id }}" name="shift_types[{{ $location->id }}][]" multiple
+                                class="form-multiselect w-full border border-gray-300 rounded px-3 py-2">
+                                <!-- Options will be loaded by JS -->
+                            </select>
+                            <div class="text-red-500 text-xs mt-1" id="shiftTypesError_{{ $location->id }}"></div>
+                        </div>
+
+                        <!-- Date Range Input -->
+                        <div class="mt-4">
+                            <label for="dateRange_{{ $location->id }}" class="block text-sm font-medium mb-1">Date
+                                Range</label>
+                            <input type="text" id="dateRange_{{ $location->id }}"
+                                name="date_range[{{ $location->id }}]"
+                                class="form-input w-full border border-gray-300 rounded px-3 py-2"
+                                placeholder="Select date range (YYYY-MM-DD to YYYY-MM-DD)">
+                            <div class="text-red-500 text-xs mt-1" id="dateRangeError_{{ $location->id }}"></div>
+                        </div>
+                        <div class="flex justify-end mt-4">
+                            <button type="button" id="saveBtn_{{ $location->id }}"
+                                class="bg-blue-600 text-white px-4 py-2 rounded">
+                                Save
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            @endforeach
+            <!-- Hidden input to store selected locations -->
+            <input type="hidden" id="selectedLocationsInput" name="selected_locations" value="[]">
+
+            <div class="flex justify-between mt-4">
+                <!-- Back Button -->
+                <button type="button" id="backBtn"
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded border">
+                    Back
+                </button>
+
+                <!-- Next Button -->
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded border">
+                    Next
                 </button>
             </div>
+        </form><!-- Modal for Adding Shift Type -->
+        <div id="addShiftTypeModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+            <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+                <h2 class="text-lg font-bold mb-4">Add Shift Type</h2>
+                <form id="addShiftTypeForm">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border border-gray-300 px-4 py-2 text-left">Name</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Day Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Night Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Saturday Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Sunday Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Public Holiday Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="text" id="shiftTypeName" name="name"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <textarea id="shiftTypeDescription" name="description"
+                                        class="form-textarea w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="dayRate" name="day_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="nightRate" name="night_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="saturdayRate" name="saturday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="sundayRate" name="sunday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="publicHolidayRate" name="public_holiday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-
-            <button type="button" id="backBtn"
-                class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded border ml-2">Back</button>
-            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded border">Next</button>
-
-        </form>
-        <div class="mt-6">
-            <h3 class="text-lg font-semibold mb-2">Selected Options</h3>
-            <div id="summarySection" class="bg-gray-100 border border-gray-300 rounded p-4">
-
+                    <!-- Modal Actions -->
+                    <div class="flex justify-end mt-4">
+                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                        <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+
+
+
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+        // Toggle visibility of the form for a specific location and update the arrow icon
+        // function toggleForm(locationId) {
+        //     const form = document.getElementById(`form_${locationId}`);
+        //     const arrow = document.getElementById(`arrow_${locationId}`);
+
+        //     // Toggle the hidden class
+        //     form.classList.toggle('hidden');
+
+        //     // Update the arrow icon
+        //     if (form.classList.contains('hidden')) {
+        //         arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Down arrow
+        //     } else {
+        //         arrow.innerHTML = '<i class="fas fa-chevron-up"></i>'; // Up arrow
+        //     }
+        // }
+        const locations = @json($locations);
         window.staticJwt = @json(env('STATIC_JWT'));
         window.selectedShiftTypes = @json(session('step2.shift_types', []));
         window.selectedLocationId = @json(session('step2.location_id', ''));
