@@ -2,16 +2,28 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-2xl mx-auto p-6 overflow-y-auto">
+    <div class="max-w-4xl mx-auto p-6 overflow-y-auto">
         <h2 class="text-2xl font-bold mb-6">Step 2: Home</h2>
         <form id="step2Form" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
             @csrf
+            <div class="flex justify-between mt-4">
+                <!-- Back Button -->
+                <button type="button" id="backBtn"
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded border">
+                    Back
+                </button>
 
+                <!-- Next Button -->
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded border">
+                    Next
+                </button>
+            </div>
 
             @foreach ($locations as $location)
                 <div class="border border-gray-300 rounded p-4 mb-4">
                     <!-- Location Header -->
-                    <div class="flex justify-between items-center cursor-pointer" onclick="toggleForm('{{ $location->id }}')">
+                    <div class="flex justify-between items-center cursor-pointer"
+                        onclick="toggleForm('{{ $location->id }}')">
                         <h3 class="text-lg font-semibold">{{ $location->name }}</h3>
                         <span id="arrow_{{ $location->id }}" class="text-sm text-gray-500">
                             <!-- Down arrow by default -->
@@ -57,6 +69,95 @@
                                 Save
                             </button>
                         </div>
+                        <!-- New Shift Details Section -->
+                        <div class="mt-4 border p-2 rounded bg-gray-50 hidden" id="batchForm_{{ $location->id }}">
+                            <h3 class="text-lg font-semibold mb-2">Shift Details</h3>
+                            <div class="flex flex-wrap gap-4 items-end">
+                                <div class="flex flex-wrap gap-4 w-full">
+                                    <!-- Shift Type Dropdown -->
+                                    <div class="flex-1">
+                                        <label class="block mb-1 font-semibold">Shift Type</label>
+                                        <select id="batchShiftType_{{ $location->id }}"
+                                            class="border rounded px-2 py-1 w-full">
+                                            <option value="">Select</option>
+                                            <!-- Options will be loaded by JS -->
+                                        </select>
+                                    </div>
+
+                                    <!-- From Time -->
+                                    <div class="flex-1">
+                                        <label class="block mb-1 font-semibold">From</label>
+                                        <input type="time" id="batchFrom_{{ $location->id }}"
+                                            class="border rounded px-2 py-1 w-full" />
+                                    </div>
+
+                                    <!-- To Time -->
+                                    <div class="flex-1">
+                                        <label class="block mb-1 font-semibold">To</label>
+                                        <input type="time" id="batchTo_{{ $location->id }}"
+                                            class="border rounded px-2 py-1 w-full" />
+                                    </div>
+
+                                    <!-- Number of Employees -->
+                                    <div class="flex-1">
+                                        <label class="block mb-1 font-semibold"># Employees</label>
+                                        <input type="number" id="batchEmployees_{{ $location->id }}"
+                                            class="border rounded px-2 py-1 w-full" min="1" value="1" />
+                                    </div>
+                                </div>
+                                <!-- Days Multi-select -->
+                                <div class="w-full flex flex-col">
+                                    <label class="block  font-semibold">Days</label>
+                                    <select id="batchDays_{{ $location->id }}" class="border rounded px-2 py-1 w-full"
+                                        multiple size="7"></select>
+                                    <div class="w-full mt-1 flex gap-2">
+                                        <button type="button" id="addShiftBtn_{{ $location->id }}"
+                                            class="bg-blue-600 text-white px-4 py-2 rounded">Add Shift</button>
+                                        <button type="button" id="updateShiftBtn_{{ $location->id }}"
+                                            class="bg-blue-600 text-white px-4 py-2 rounded">Update Shift</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4 mt-2 flex items-center gap-4">
+                                <label>Filter by Day:</label>
+                                <select id="filterDay_{{ $location->id }}" class="border rounded px-2 py-1">
+                                    <option value="">All</option>
+                                    <option value="monday">Monday</option>
+                                    <option value="tuesday">Tuesday</option>
+                                    <option value="wednesday">Wednesday</option>
+                                    <option value="thursday">Thursday</option>
+                                    <option value="friday">Friday</option>
+                                    <option value="saturday">Saturday</option>
+                                    <option value="sunday">Sunday</option>
+                                </select>
+                                <label class="ml-4">Filter by Shift Type:</label>
+                                <select id="filterShiftType_{{ $location->id }}" class="border rounded px-2 py-1">
+                                    <option value="">All</option>
+                                    <!-- Shift types will be dynamically populated -->
+                                </select>
+                            </div>
+
+
+                            <!-- Shift Details Table -->
+                            <table class="min-w-full border mt-4" id="shiftTable_{{ $location->id }}">
+                                <thead>
+                                    <tr>
+                                        <th class="border px-2 py-1">Day</th>
+                                        <th class="border px-2 py-1">Shift Type</th>
+                                        <th class="border px-2 py-1">From</th>
+                                        <th class="border px-2 py-1">To</th>
+                                        <th class="border px-2 py-1"># Employees</th>
+                                        <th class="border px-2 py-1">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Rows will be rendered by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+
 
                     </div>
                 </div>
@@ -64,20 +165,10 @@
             <!-- Hidden input to store selected locations -->
             <input type="hidden" id="selectedLocationsInput" name="selected_locations" value="[]">
 
-            <div class="flex justify-between mt-4">
-                <!-- Back Button -->
-                <button type="button" id="backBtn"
-                    class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded border">
-                    Back
-                </button>
 
-                <!-- Next Button -->
-                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded border">
-                    Next
-                </button>
-            </div>
         </form><!-- Modal for Adding Shift Type -->
-        <div id="addShiftTypeModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+        <div id="addShiftTypeModal"
+            class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
             <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
                 <h2 class="text-lg font-bold mb-4">Add Shift Type</h2>
                 <form id="addShiftTypeForm">
@@ -132,11 +223,31 @@
                         <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
                         <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
                     </div>
+
+
                 </form>
             </div>
         </div>
     </div>
-
+    <!-- Modal for Selecting Shifts -->
+    <div id="selectShiftModal"
+        class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-3/4 max-w-4xl">
+            <div class="p-4 border-b">
+                <h3 class="text-lg font-semibold">Select Shifts to Update</h3>
+            </div>
+            <div class="p-4">
+                <!-- Table for displaying existing shifts -->
+                <div id="selectShiftTableContainer" class="overflow-auto max-h-64">
+                    <!-- Table will be dynamically populated by JavaScript -->
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end gap-2">
+                <button id="cancelSelectShiftBtn" class="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+                <button id="confirmSelectShiftBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Confirm</button>
+            </div>
+        </div>
+    </div>
 
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>

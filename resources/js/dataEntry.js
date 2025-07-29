@@ -50,7 +50,6 @@ function createLocationRow(location) {
         <td class='px-4 py-2 border-b border'>${location.address || ""}</td>
         <td class='px-4 py-2 border-b border'>${location.city || ""}</td>
         <td class='px-4 py-2 border-b border'>${location.state || ""}</td>
-        <td class='px-4 py-2 border-b border'>${location.province || ""}</td>
         <td class='px-4 py-2 border-b border text-center'><button type="button" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs border remove-location">Remove</button></td>
     `;
     return tr;
