@@ -66,13 +66,15 @@
                         <div class="flex justify-end mt-4">
                             <button type="button" id="saveBtn_{{ $location->id }}"
                                 class="bg-blue-600 text-white px-4 py-2 rounded">
-                                Save
+                                Continue to details
+
+                                <i class="fas fa-check ml-2 hidden" id="checkIcon_{{ $location->id }}"></i>
                             </button>
                         </div>
                         <!-- New Shift Details Section -->
                         <div class="mt-4 border p-2 rounded bg-gray-50 hidden" id="batchForm_{{ $location->id }}">
                             <h3 class="text-lg font-semibold mb-2">Shift Details</h3>
-                            <div class="flex flex-wrap gap-4 items-end">
+                            {{-- <div class="flex flex-wrap gap-4 items-end">
                                 <div class="flex flex-wrap gap-4 w-full">
                                     <!-- Shift Type Dropdown -->
                                     <div class="flex-1">
@@ -108,6 +110,17 @@
                                 <!-- Days Multi-select -->
                                 <div class="w-full flex flex-col">
                                     <label class="block  font-semibold">Days</label>
+                                    <div id="daysButtonsContainer" class="flex gap-2 mb-2 ">
+                                        <button type="button" id="weekdaysBtn"
+                                            class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">Weekdays</button>
+                                        |
+                                        <button type="button" id="weekendsBtn"
+                                            class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">Weekends</button>
+                                        |
+                                        <button type="button" id="allDaysBtn"
+                                            class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">All
+                                            Days</button>
+                                    </div>
                                     <select id="batchDays_{{ $location->id }}" class="border rounded px-2 py-1 w-full"
                                         multiple size="7"></select>
                                     <div class="w-full mt-1 flex gap-2">
@@ -117,7 +130,7 @@
                                             class="bg-blue-600 text-white px-4 py-2 rounded">Update Shift</button>
                                     </div>
                                 </div>
-                            </div>
+                            </div> --}}
 
                             <div class="mb-4 mt-2 flex items-center gap-4">
                                 <label>Filter by Day:</label>
@@ -148,7 +161,7 @@
                                         <th class="border px-2 py-1">From</th>
                                         <th class="border px-2 py-1">To</th>
                                         <th class="border px-2 py-1"># Employees</th>
-                                        <th class="border px-2 py-1">Delete</th>
+                                        <th class="border px-2 py-1">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -161,12 +174,88 @@
 
                     </div>
                 </div>
+                <!-- Modal for Batch Form -->
+                <div id="batchFormModal_{{ $location->id }}"
+                    class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-lg shadow-lg w-3/4 max-w-4xl p-6 relative">
+                        <!-- Close Button -->
+                        <button type="button" id="closeBatchFormModal_{{ $location->id }}"
+                            class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                            &times;
+                        </button>
+
+                        <!-- Batch Form Content -->
+                        <h3 class="text-lg font-semibold mb-4">Batch Form</h3>
+                        <div class="flex flex-wrap gap-4 items-end">
+                            <div class="flex flex-wrap gap-4 w-full">
+                                <!-- Shift Type Dropdown -->
+                                <div class="flex-1">
+                                    <label class="block mb-1 font-semibold">Shift Type</label>
+                                    <select id="batchShiftType_{{ $location->id }}"
+                                        class="border rounded px-2 py-1 w-full">
+                                        <option value="">Select</option>
+                                        <!-- Options will be loaded by JS -->
+                                    </select>
+                                </div>
+
+                                <!-- From Time -->
+                                <div class="flex-1">
+                                    <label class="block mb-1 font-semibold">From</label>
+                                    <input type="time" id="batchFrom_{{ $location->id }}"
+                                        class="border rounded px-2 py-1 w-full" />
+                                </div>
+
+                                <!-- To Time -->
+                                <div class="flex-1">
+                                    <label class="block mb-1 font-semibold">To</label>
+                                    <input type="time" id="batchTo_{{ $location->id }}"
+                                        class="border rounded px-2 py-1 w-full" />
+                                </div>
+
+                                <!-- Number of Employees -->
+                                <div class="flex-1">
+                                    <label class="block mb-1 font-semibold"># Employees</label>
+                                    <input type="number" id="batchEmployees_{{ $location->id }}"
+                                        class="border rounded px-2 py-1 w-full" min="1" value="1" />
+                                </div>
+                            </div>
+
+                            <!-- Days Multi-select -->
+                            <div class="w-full flex flex-col">
+                                <label class="block font-semibold">Days</label>
+                                <div id="daysButtonsContainer" class="flex gap-2 mb-2">
+                                    <button type="button" id="weekdaysBtn"
+                                        class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">Weekdays</button>
+                                    <button type="button" id="weekendsBtn"
+                                        class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">Weekends</button>
+                                    <button type="button" id="allDaysBtn"
+                                        class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">All
+                                        Days</button>
+                                </div>
+                                <select id="batchDays_{{ $location->id }}" class="border rounded px-2 py-1 w-full"
+                                    multiple size="7"></select>
+                            </div>
+                        </div>
+
+                        <!-- Modal Actions -->
+                        <div class="flex justify-end mt-4">
+                            <button type="button" id="cancelBatchFormBtn_{{ $location->id }}"
+                                class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                            <button type="button" id="saveBatchFormBtn_{{ $location->id }}"
+                                class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+                        </div>
+                    </div>
+                </div>
             @endforeach
             <!-- Hidden input to store selected locations -->
             <input type="hidden" id="selectedLocationsInput" name="selected_locations" value="[]">
 
 
-        </form><!-- Modal for Adding Shift Type -->
+        </form>
+
+
+
+        <!-- Modal for Adding Shift Type -->
         <div id="addShiftTypeModal"
             class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
             <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">

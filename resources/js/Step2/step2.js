@@ -8,6 +8,7 @@ import {
 import { SelectionManager } from "./SelectionManager";
 
 const records = {}; // Keyed by location ID
+let previousFormData = {}; // Store previous form data for each location
 
 locations.forEach((location) => {
     records[location.id] = []; // Initialize an empty array for each location
@@ -17,6 +18,19 @@ let filterDayValue = "";
 let filterShiftTypeValue = "";
 
 // const selectionManager = new SelectionManager();
+
+// Show the Batch Form Modal
+function showBatchFormModal(locationId) {
+    const modal = document.getElementById(`batchFormModal_${locationId}`);
+    modal.classList.remove("hidden");
+}
+
+// Hide the Batch Form Modal
+function hideBatchFormModal(locationId) {
+    console.log(`Hiding modal for location ${locationId}`);
+    const modal = document.getElementById(`batchFormModal_${locationId}`);
+    modal.classList.add("hidden");
+}
 
 // Populate filter dropdowns
 function populateFilters() {
@@ -102,7 +116,7 @@ function renderTable(locationId) {
     );
     // Group records by shift type
     const groupedRecords = filteredRecords.reduce((acc, rec) => {
-        const key = `${rec.shiftType}-${rec.from}-${rec.to}`;
+        const key = `${rec.shiftType}-${rec.from}-${rec.to}-${rec.employees}`;
         if (!acc[key]) {
             acc[key] = { ...rec, days: [rec.day] }; // Initialize with the first day
         } else {
@@ -120,7 +134,16 @@ function renderTable(locationId) {
             <td class="border px-2 py-1">${rec.to}</td>
             <td class="border px-2 py-1">${rec.employees}</td>
             <td class="border px-2 py-1 text-center">
-                <button type="button" class="text-red-600 remove-record-btn" data-idx="${
+             <!-- Add Button -->
+                <button type="button" class="text-green-600 add-row-btn" title="Add Row">
+                    <i class="fas fa-plus"></i>
+                </button>
+
+                <!-- Update Button -->
+                <button type="button" class="text-blue-600 update-row-btn" title="Update Row">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="text-red-600 remove-record-btn" data-key="${
                     rec.shiftType
                 }-${rec.from}-${rec.to}">
                     <i class="fas fa-trash"></i>
@@ -128,6 +151,21 @@ function renderTable(locationId) {
             </td>
         `;
         tbody.appendChild(tr);
+    });
+
+    // Add event listeners for Add, Update, and Delete buttons
+    tbody.querySelectorAll(".add-row-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            const clickedRow = this.closest("tr");
+            addRow(locationId, clickedRow);
+        });
+    });
+
+    tbody.querySelectorAll(".update-row-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            const clickedRow = this.closest("tr");
+            updateRow(locationId, clickedRow);
+        });
     });
 
     // Add event listeners for delete buttons
@@ -147,33 +185,175 @@ function renderTable(locationId) {
         });
     });
 }
+function addRow(locationId, clickedRow) {
+    // Get the values from the clicked row
+    const from = clickedRow.querySelector("td:nth-child(3)").textContent.trim();
+    const to = clickedRow.querySelector("td:nth-child(4)").textContent.trim();
+    const employees = clickedRow
+        .querySelector("td:nth-child(5)")
+        .textContent.trim();
+
+    // Validate that the required fields are filled
+    if (!from || !to || !employees || parseInt(employees, 10) <= 0) {
+        showToast(
+            "Please fill in the 'From', 'To', and '# Employees' fields by updating the row first.",
+            "error"
+        );
+        return; // Stop execution if validation fails
+    }
+
+    const distinctDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+    // Get the shift type from the clicked row
+    const shiftType = clickedRow
+        .querySelector("td:nth-child(2)")
+        .textContent.trim();
+
+    // Add a record for each day to the records array
+    distinctDays.forEach((day) => {
+        records[locationId].push({
+            day: day, // Add each day as a separate record
+            shiftType: shiftType, // Same shift type as the clicked row
+            from: "", // Empty from time
+            to: "", // Empty to time
+            employees: 0, // Default employees to 0
+        });
+    });
+
+    // Re-render the table to include the new row
+    renderTable(locationId);
+}
+function updateRow(locationId, clickedRow) {
+    const modal = document.getElementById(`batchFormModal_${locationId}`);
+
+    // Get values from the clicked row
+    const day = clickedRow.querySelector("td:nth-child(1)").textContent.trim();
+    const shiftType = clickedRow
+        .querySelector("td:nth-child(2)")
+        .textContent.trim();
+    const fromTime = clickedRow
+        .querySelector("td:nth-child(3)")
+        .textContent.trim();
+    const toTime = clickedRow
+        .querySelector("td:nth-child(4)")
+        .textContent.trim();
+    const employees = clickedRow
+        .querySelector("td:nth-child(5)")
+        .textContent.trim();
+    console.log(`Updating row for location ${locationId}:`, {
+        day,
+        shiftType,
+        fromTime,
+        toTime,
+        employees,
+    });
+
+    // Pre-fill the modal fields
+    const daysField = document.getElementById(`batchDays_${locationId}`);
+    const shiftTypeField = document.getElementById(
+        `batchShiftType_${locationId}`
+    );
+    const fromField = document.getElementById(`batchFrom_${locationId}`);
+    const toField = document.getElementById(`batchTo_${locationId}`);
+    const employeesField = document.getElementById(
+        `batchEmployees_${locationId}`
+    );
+    console.log("Modal fields:", {
+        daysField,
+        shiftTypeField,
+        fromField,
+        toField,
+        employeesField,
+    });
+
+    if (
+        !daysField ||
+        !shiftTypeField ||
+        !fromField ||
+        !toField ||
+        !employeesField
+    ) {
+        console.error("One or more modal fields are missing.");
+        return;
+    }
+    // Split the day string into an array of individual days
+    const dayArray = day.split(",").map((d) => d.trim());
+
+    if (daysField.choicesInstance) {
+        daysField.choicesInstance.removeActiveItems(); // Clear existing selections
+        dayArray.forEach((d) => {
+            daysField.choicesInstance.setChoiceByValue(d); // Set each day value
+        });
+    }
+    // Set the shift type in the dropdown
+    Array.from(shiftTypeField.options).forEach((option) => {
+        if (option.textContent.trim() === shiftType) {
+            option.selected = true;
+        }
+    });
+    // make the select tag of shift tyoe disabled
+    shiftTypeField.disabled = true;
+    fromField.value = fromTime; // Set the from time value
+    toField.value = toTime; // Set the to time value
+    employeesField.value = employees; // Set the employees value
+
+    // Show the modal
+    modal.classList.remove("hidden");
+
+    previousFormData = {
+        dayArray,
+        shiftType,
+        fromTime,
+        toTime,
+        employees,
+    };
+}
+function attachRowEventListeners(locationId) {
+    const tableBody = document.querySelector(`#shiftTable_${locationId} tbody`);
+
+    // Add Row Button
+    tableBody.querySelectorAll(".add-row-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            const clickedRow = this.closest("tr");
+            addRow(locationId, clickedRow);
+        });
+    });
+
+    // Update Row Button
+    tableBody.querySelectorAll(".update-row-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            const clickedRow = this.closest("tr");
+            updateRow(locationId, clickedRow);
+        });
+    });
+
+    // Delete Row Button
+    tableBody.querySelectorAll(".remove-record-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            const clickedRow = this.closest("tr");
+            clickedRow.remove();
+        });
+    });
+}
 function populateBatchDays(locationId) {
     const daysSelect = document.getElementById(`batchDays_${locationId}`);
+    const weekdaysBtn = document.getElementById("weekdaysBtn");
+    const weekendsBtn = document.getElementById("weekendsBtn");
+    const allDaysBtn = document.getElementById("allDaysBtn");
+
     if (daysSelect) {
         // Check if Choices.js is already initialized on this element
-        console.log(
-            "Initializing Choices.js for days select element:",
-            daysSelect
-        );
         if (daysSelect.choicesInstance) {
-            console.log(
-                "Destroying existing Choices.js instance for days select element:",
-                daysSelect
-            );
             daysSelect.choicesInstance.destroy(); // Destroy the existing instance
             delete daysSelect.choicesInstance;
         }
-        console.log(
-            "Creating new Choices.js instance for days select element:",
-            daysSelect
-        );
 
         // Initialize Choices.js for the days field
         const choicesInstance = new Choices(daysSelect, {
-            removeItemButton: true, // Allow users to remove selected items
+            removeItemButton: true,
             placeholder: true,
             placeholderValue: "Select days",
-            searchEnabled: false, // Disable search for predefined options
+            searchEnabled: false,
         });
 
         // Store the Choices.js instance on the element for future reference
@@ -181,13 +361,13 @@ function populateBatchDays(locationId) {
 
         // Populate the days field with options
         const daysOptions = [
-            { value: "monday", label: "Monday" },
-            { value: "tuesday", label: "Tuesday" },
-            { value: "wednesday", label: "Wednesday" },
-            { value: "thursday", label: "Thursday" },
-            { value: "friday", label: "Friday" },
-            { value: "saturday", label: "Saturday" },
-            { value: "sunday", label: "Sunday" },
+            { value: "Mon", label: "Monday" },
+            { value: "Tue", label: "Tuesday" },
+            { value: "Wed", label: "Wednesday" },
+            { value: "Thu", label: "Thursday" },
+            { value: "Fri", label: "Friday" },
+            { value: "Sat", label: "Saturday" },
+            { value: "Sun", label: "Sunday" },
         ];
 
         daysOptions.forEach((day) => {
@@ -199,7 +379,51 @@ function populateBatchDays(locationId) {
                 },
             ]);
         });
+
+        // Add event listeners for the buttons
+        weekdaysBtn.addEventListener("click", () => {
+            selectDays(choicesInstance, ["Mon", "Tue", "Wed", "Thu", "Fri"]);
+        });
+
+        weekendsBtn.addEventListener("click", () => {
+            selectDays(choicesInstance, ["Sat", "Sun"]);
+        });
+
+        allDaysBtn.addEventListener("click", () => {
+            selectDays(choicesInstance, [
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+                "Sun",
+            ]);
+        });
     }
+}
+function selectDays(choicesInstance, days) {
+    // Clear all previously selected options
+    choicesInstance.removeActiveItems();
+
+    // Programmatically select the corresponding days
+    days.forEach((day) => {
+        choicesInstance.setChoiceByValue(day);
+    });
+
+    // Trigger an update to reflect the changes in the UI
+    choicesInstance._render();
+}
+function unselectAllChoices(choicesInstance) {
+    // Unselect all pre-selected options in the Choices.js instance
+    choicesInstance._currentState.items.forEach((item) => {
+        if (item.selected) {
+            item.selected = false; // Set the selected attribute to false
+        }
+    });
+
+    // Trigger an update to reflect the changes in the UI
+    choicesInstance._render();
 }
 locations.forEach((location) => {
     populateBatchDays(location.id);
@@ -219,6 +443,11 @@ function populateBatchShiftTypes(locationId) {
     const filterShiftTypeSelect = document.getElementById(
         `filterShiftType_${locationId}`
     );
+
+    // Debugging: Log the elements
+    console.log("shiftTypesSelect:", shiftTypesSelect);
+    console.log("batchShiftTypeSelect:", batchShiftTypeSelect);
+    console.log("filterShiftTypeSelect:", filterShiftTypeSelect);
     batchShiftTypeSelect.innerHTML = ""; // Clear existing options
     filterShiftTypeSelect.innerHTML = `<option value="">All</option>`; // Clear and add "All" option
 
@@ -708,15 +937,7 @@ function initializeShiftTable(locationId) {
     );
     console.log("Selected Shift Types:", selectedShiftTypes);
 
-    const distinctDays = [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
-    ];
+    const distinctDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     console.log("records before", records);
 
     // Get the existing records for the location
@@ -951,6 +1172,11 @@ function initializeSaveButtons() {
                 if (!isValid) {
                     return; // Stop execution if validation fails
                 }
+                // remove hidden class from the check icon
+                const checkIcon = document.getElementById(
+                    `checkIcon_${location.id}`
+                );
+                checkIcon.classList.remove("hidden");
 
                 // Get selected shift types
                 const selectedShiftTypes = Array.from(
@@ -1000,6 +1226,167 @@ function initializeSaveButtons() {
             });
         }
     });
+}
+function saveBatchForm(locationId, previousFormData) {
+    // Get modal field values
+    const shiftTypeID = document.getElementById(
+        `batchShiftType_${locationId}`
+    ).value;
+    const shiftType = getShiftTypeTextById(locationId, shiftTypeID);
+    const from = document.getElementById(`batchFrom_${locationId}`).value;
+    const to = document.getElementById(`batchTo_${locationId}`).value;
+    const employees =
+        parseInt(
+            document.getElementById(`batchEmployees_${locationId}`).value,
+            10
+        ) || 0;
+    const selectedDays = Array.from(
+        document.getElementById(`batchDays_${locationId}`).selectedOptions
+    ).map((opt) => opt.value);
+    console.log("Selected data:", {
+        locationId,
+        shiftType,
+        from,
+        to,
+        employees,
+        selectedDays,
+    });
+
+    // Validation
+    if (!shiftType || !from || !to || selectedDays.length === 0) {
+        showToast("Please fill in all required fields.", "error");
+        return;
+    }
+
+    if (employees < 1) {
+        showToast("Number of employees must be at least 1.", "error");
+        return;
+    }
+
+    // console.log("Records before checking for duplicates:", records[locationId]);
+
+    console.log("records before deleting", records[locationId]);
+
+    records[locationId] = records[locationId].filter(
+        (rec) =>
+            // Keep records that do not match the selected shift type with empty fields
+
+            !(
+                (
+                    rec.shiftType === shiftType &&
+                    (rec.from === from || rec.from === "") &&
+                    (rec.to === to || rec.to === "") &&
+                    (rec.employees === employees || rec.employees === 0)
+                )
+                // (rec.employees === employees || rec.employees === 0)
+                // (rec.employees === employees || rec.employees === 0) &&
+
+                // !selectedDays.includes(rec.day)
+            ) // Keep records with non-empty fields
+    );
+    console.log("Filtered records for location:", records[locationId]);
+    const duplicateIndex = records[locationId].findIndex(
+        (rec) =>
+            selectedDays.includes(rec.day) &&
+            rec.shiftType === shiftType &&
+            rec.from === from &&
+            rec.to === to &&
+            rec.employees === employees
+    );
+
+    if (duplicateIndex !== -1) {
+        const duplicate = records[locationId][duplicateIndex];
+        console.error(
+            "Duplicate record found at index:",
+            duplicateIndex,
+            duplicate
+        );
+        showToast(
+            `A record with the same day, shift type, and time already exists.`,
+            "error"
+        );
+        return; // Stop execution if a duplicate is found
+    }
+
+    // Add records for new days in selectedDays that are not in previousFormData.dayArray
+    selectedDays.forEach((day) => {
+        if (!previousFormData.dayArray.includes(day)) {
+            records[locationId].push({
+                day,
+                shiftType,
+                from,
+                to,
+                employees,
+            });
+            console.log(`Added new record for day ${day}:`, {
+                day,
+                shiftType,
+                from,
+                to,
+                employees,
+            });
+        }
+    });
+
+    let recordFound = false;
+
+    previousFormData.dayArray.forEach((day) => {
+        const record = records[locationId].find(
+            (rec) =>
+                rec.day === day &&
+                rec.shiftType === previousFormData.shiftType &&
+                rec.from === previousFormData.fromTime &&
+                rec.to === previousFormData.toTime &&
+                rec.employees === parseInt(previousFormData.employees, 10)
+        );
+
+        if (record) {
+            if (
+                record.shiftType === shiftType &&
+                record.day === day &&
+                record.from === from &&
+                record.to === to &&
+                record.employees === employees
+            ) {
+                console.log(`Skipping record for day ${day}:`, record);
+                return; // Skip updating this record
+            }
+            // Update the record's attributes
+            record.from = from;
+            record.to = to;
+            record.employees = employees;
+            console.log(`Updated record for day ${day}:`, record);
+            recordFound = true;
+        }
+    });
+
+    if (!recordFound) {
+        // Add new records if no matching record exists
+        selectedDays.forEach((day) => {
+            records[locationId].push({
+                day,
+                shiftType,
+                from,
+                to,
+                employees,
+            });
+            console.log(`Added new record for day ${day}:`, {
+                day,
+                shiftType,
+                from,
+                to,
+                employees,
+            });
+        });
+    }
+
+    showToast("Shift saved successfully!", "success");
+
+    // Close the modal
+    hideBatchFormModal(locationId);
+
+    // Re-render the table
+    renderTable(locationId);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1064,6 +1451,30 @@ document.addEventListener("DOMContentLoaded", function () {
                 } | Shift Types: ${shiftTypes.join(
                     ", "
                 )} | Date Range: ${dateRange}`;
+
+                // remove hidden class from the check icon
+                const checkIcon = document.getElementById(
+                    `checkIcon_${location.id}`
+                );
+                checkIcon.classList.remove("hidden");
+
+                // Add logs between function calls to identify the error
+                console.log("Calling showBatchForm...");
+                showBatchForm(location.id);
+
+                console.log("Calling populateBatchShiftTypes...");
+                populateBatchShiftTypes(location.id);
+
+                console.log("Calling initializeTimePickers...");
+                initializeTimePickers(location.id);
+
+                // console.log("Calling populateBatchDays...");
+                // populateBatchDays(location.id);
+
+                console.log("Calling initializeShiftTable...");
+                initializeShiftTable(location.id);
+
+                console.log("All functions executed successfully.");
             }
         });
 
@@ -1202,6 +1613,42 @@ document.addEventListener("DOMContentLoaded", function () {
                     filterShiftTypeValue
                 );
                 renderTable(location.id); // Pass the location ID to render the correct table
+            });
+        }
+    });
+    // Add Event Listeners for Modal Actions
+    locations.forEach((location) => {
+        const locationId = location.id;
+
+        // Close Button
+        const closeBtn = document.getElementById(
+            `closeBatchFormModal_${locationId}`
+        );
+        if (closeBtn) {
+            closeBtn.addEventListener("click", () =>
+                hideBatchFormModal(locationId)
+            );
+        }
+
+        // Cancel Button
+        const cancelBtn = document.getElementById(
+            `cancelBatchFormBtn_${locationId}`
+        );
+        if (cancelBtn) {
+            cancelBtn.addEventListener("click", () =>
+                hideBatchFormModal(locationId)
+            );
+        }
+
+        // Save Button (for now, just hide the modal)
+        const saveBtn = document.getElementById(
+            `saveBatchFormBtn_${locationId}`
+        );
+        if (saveBtn) {
+            saveBtn.addEventListener("click", () => {
+                // Pass the previous data to saveBatchForm
+                console.log("Previous Form Data:", previousFormData);
+                saveBatchForm(location.id, previousFormData);
             });
         }
     });
