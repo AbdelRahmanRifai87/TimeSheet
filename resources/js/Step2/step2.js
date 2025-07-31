@@ -92,6 +92,11 @@ function initializeTimePickers(locationId) {
 }
 
 function renderTable(locationId) {
+    console.log(
+        `Rendering table for location ${locationId} with records:`,
+        records[locationId]
+    );
+
     // Remove duplicates from the records array
     const uniqueRecords = [];
     const seen = new Set();
@@ -133,7 +138,7 @@ function renderTable(locationId) {
             <td class="border px-2 py-1">${rec.from}</td>
             <td class="border px-2 py-1">${rec.to}</td>
             <td class="border px-2 py-1">${rec.employees}</td>
-            <td class="border px-2 py-1 text-center">
+            <td class="border px-2 py-1 text-center flex justify-center items-center gap-3">
              <!-- Add Button -->
                 <button type="button" class="text-green-600 add-row-btn" title="Add Row">
                     <i class="fas fa-plus"></i>
@@ -279,11 +284,33 @@ function updateRow(locationId, clickedRow) {
     // Split the day string into an array of individual days
     const dayArray = day.split(",").map((d) => d.trim());
 
-    if (daysField.choicesInstance) {
-        daysField.choicesInstance.removeActiveItems(); // Clear existing selections
-        dayArray.forEach((d) => {
-            daysField.choicesInstance.setChoiceByValue(d); // Set each day value
+    // Update the custom dropdown for batch days
+    const options = Array.from(daysField.options);
+    options.forEach((option) => {
+        option.selected = dayArray.includes(option.value);
+    });
+
+    // Update the custom dropdown checkboxes
+    const dropdownWrapper = daysField.parentElement.querySelector(".relative");
+    if (dropdownWrapper) {
+        const checkboxes = dropdownWrapper.querySelectorAll(
+            ".batch-day-checkbox"
+        );
+        checkboxes.forEach((checkbox) => {
+            checkbox.checked = dayArray.includes(checkbox.value);
         });
+
+        // Update the dropdown button text
+        const selectedOptions = options
+            .filter((opt) => opt.selected)
+            .map((opt) => opt.textContent);
+        const dropdownButton = dropdownWrapper.querySelector("button span");
+        if (dropdownButton) {
+            dropdownButton.textContent =
+                selectedOptions.length > 0
+                    ? selectedOptions.join(", ")
+                    : "Select Days";
+        }
     }
     // Set the shift type in the dropdown
     Array.from(shiftTypeField.options).forEach((option) => {
@@ -335,31 +362,95 @@ function attachRowEventListeners(locationId) {
         });
     });
 }
-function populateBatchDays(locationId) {
-    const daysSelect = document.getElementById(`batchDays_${locationId}`);
-    const weekdaysBtn = document.getElementById("weekdaysBtn");
-    const weekendsBtn = document.getElementById("weekendsBtn");
-    const allDaysBtn = document.getElementById("allDaysBtn");
 
-    if (daysSelect) {
-        // Check if Choices.js is already initialized on this element
-        if (daysSelect.choicesInstance) {
-            daysSelect.choicesInstance.destroy(); // Destroy the existing instance
-            delete daysSelect.choicesInstance;
-        }
+function initializeCustomDropdownForBatchDays(locationId, selectElement) {
+    const options = Array.from(selectElement.options);
 
-        // Initialize Choices.js for the days field
-        const choicesInstance = new Choices(daysSelect, {
-            removeItemButton: true,
-            placeholder: true,
-            placeholderValue: "Select days",
-            searchEnabled: false,
+    // Create a custom dropdown
+    const dropdownWrapper = document.createElement("div");
+    dropdownWrapper.className = "relative";
+
+    const dropdownButton = document.createElement("button");
+    dropdownButton.type = "button";
+    dropdownButton.className =
+        "bg-gray-200 px-4 py-2 rounded w-full text-left flex justify-between items-center";
+    dropdownButton.innerHTML = `<span>Select Days</span><i class="fas fa-chevron-down"></i>`;
+
+    const dropdownMenu = document.createElement("div");
+    dropdownMenu.className =
+        "absolute bg-white border rounded shadow hidden w-full z-10 flex flex-wrap gap-4 p-2";
+
+    // Populate the dropdown menu with checkboxes
+    options.forEach((option) => {
+        const label = document.createElement("label");
+        label.className =
+            "flex items-center gap-2 bg-gray-100 px-3 py-2 rounded hover:bg-gray-200 cursor-pointer shadow-sm";
+        label.style.minWidth = "120px";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = option.value;
+        checkbox.className = "mr-2 batch-day-checkbox";
+        checkbox.checked = option.selected;
+
+        checkbox.addEventListener("change", () => {
+            option.selected = checkbox.checked;
+
+            // Update the button text
+            const selectedOptions = options
+                .filter((opt) => opt.selected)
+                .map((opt) => opt.textContent);
+            dropdownButton.querySelector("span").textContent =
+                selectedOptions.length > 0
+                    ? selectedOptions.join(", ")
+                    : "Select Days";
+
+            // Trigger the change event on the select element
+            const event = new Event("change");
+            selectElement.dispatchEvent(event);
         });
 
-        // Store the Choices.js instance on the element for future reference
-        daysSelect.choicesInstance = choicesInstance;
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(option.textContent));
+        dropdownMenu.appendChild(label);
+    });
 
-        // Populate the days field with options
+    // Toggle dropdown visibility
+    dropdownButton.addEventListener("click", () => {
+        dropdownMenu.classList.toggle("hidden");
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+        if (
+            !dropdownWrapper.contains(e.target) &&
+            !dropdownMenu.classList.contains("hidden")
+        ) {
+            dropdownMenu.classList.add("hidden");
+        }
+    });
+
+    // Replace the select element with the custom dropdown
+    selectElement.style.display = "none";
+    dropdownWrapper.appendChild(dropdownButton);
+    dropdownWrapper.appendChild(dropdownMenu);
+    selectElement.parentNode.insertBefore(
+        dropdownWrapper,
+        selectElement.nextSibling
+    );
+}
+
+function populateBatchDays(locationId) {
+    const daysSelect = document.getElementById(`batchDays_${locationId}`);
+    const weekdaysBtn = document.getElementById(`weekdaysBtn_${locationId}`);
+    const weekendsBtn = document.getElementById(`weekendsBtn_${locationId}`);
+    const allDaysBtn = document.getElementById(`allDaysBtn_${locationId}`);
+
+    if (daysSelect) {
+        // Clear existing options
+        daysSelect.innerHTML = "";
+
+        // Add options for days
         const daysOptions = [
             { value: "Mon", label: "Monday" },
             { value: "Tue", label: "Tuesday" },
@@ -371,63 +462,91 @@ function populateBatchDays(locationId) {
         ];
 
         daysOptions.forEach((day) => {
-            choicesInstance.setChoices([
-                {
-                    value: day.value,
-                    label: day.label,
-                    selected: false,
-                },
-            ]);
+            const opt = document.createElement("option");
+            opt.value = day.value;
+            opt.textContent = day.label;
+            daysSelect.appendChild(opt);
         });
+
+        // Initialize the custom dropdown for batch days
+        initializeCustomDropdownForBatchDays(locationId, daysSelect);
 
         // Add event listeners for the buttons
-        weekdaysBtn.addEventListener("click", () => {
-            selectDays(choicesInstance, ["Mon", "Tue", "Wed", "Thu", "Fri"]);
-        });
+        if (weekdaysBtn) {
+            weekdaysBtn.addEventListener("click", () => {
+                selectDays(daysSelect, ["Mon", "Tue", "Wed", "Thu", "Fri"]);
+            });
+        }
 
-        weekendsBtn.addEventListener("click", () => {
-            selectDays(choicesInstance, ["Sat", "Sun"]);
-        });
+        if (weekendsBtn) {
+            weekendsBtn.addEventListener("click", () => {
+                selectDays(daysSelect, ["Sat", "Sun"]);
+            });
+        }
 
-        allDaysBtn.addEventListener("click", () => {
-            selectDays(choicesInstance, [
-                "Mon",
-                "Tue",
-                "Wed",
-                "Thu",
-                "Fri",
-                "Sat",
-                "Sun",
-            ]);
-        });
+        if (allDaysBtn) {
+            allDaysBtn.addEventListener("click", () => {
+                selectDays(daysSelect, [
+                    "Mon",
+                    "Tue",
+                    "Wed",
+                    "Thu",
+                    "Fri",
+                    "Sat",
+                    "Sun",
+                ]);
+            });
+        }
     }
 }
-function selectDays(choicesInstance, days) {
-    // Clear all previously selected options
-    choicesInstance.removeActiveItems();
+function selectDays(selectElement, days) {
+    const options = Array.from(selectElement.options);
 
-    // Programmatically select the corresponding days
-    days.forEach((day) => {
-        choicesInstance.setChoiceByValue(day);
+    // Clear all selections
+    options.forEach((option) => {
+        option.selected = false;
     });
 
-    // Trigger an update to reflect the changes in the UI
-    choicesInstance._render();
-}
-function unselectAllChoices(choicesInstance) {
-    // Unselect all pre-selected options in the Choices.js instance
-    choicesInstance._currentState.items.forEach((item) => {
-        if (item.selected) {
-            item.selected = false; // Set the selected attribute to false
+    // Select the specified days
+    options.forEach((option) => {
+        if (days.includes(option.value)) {
+            option.selected = true;
         }
     });
 
-    // Trigger an update to reflect the changes in the UI
-    choicesInstance._render();
+    // Update the custom dropdown checkboxes
+    const dropdownWrapper =
+        selectElement.parentElement.querySelector(".relative");
+    if (dropdownWrapper) {
+        const checkboxes = dropdownWrapper.querySelectorAll(
+            ".batch-day-checkbox"
+        );
+        checkboxes.forEach((checkbox) => {
+            checkbox.checked = days.includes(checkbox.value);
+        });
+
+        // Update the dropdown button text
+        const selectedOptions = options
+            .filter((opt) => opt.selected)
+            .map((opt) => opt.textContent);
+        const dropdownButton = dropdownWrapper.querySelector("button span");
+        if (dropdownButton) {
+            dropdownButton.textContent =
+                selectedOptions.length > 0
+                    ? selectedOptions.join(", ")
+                    : "Select Days";
+        }
+    }
+
+    // Trigger the change event on the select element
+    const event = new Event("change");
+    selectElement.dispatchEvent(event);
 }
+
 locations.forEach((location) => {
     populateBatchDays(location.id);
 });
+
 function showBatchForm(locationId) {
     const batchForm = document.getElementById(`batchForm_${locationId}`);
     batchForm.classList.remove("hidden");
@@ -678,74 +797,240 @@ function closeAddShiftTypeModal() {
 //         `;
 //     });
 // }
+function initializeCustomDropdown(locationId, selectElement) {
+    const options = Array.from(selectElement.options);
+
+    // Create a custom dropdown
+    const dropdownWrapper = document.createElement("div");
+    dropdownWrapper.className = "relative";
+
+    const dropdownButton = document.createElement("button");
+    dropdownButton.type = "button";
+    dropdownButton.className =
+        "bg-white text-gray-700 px-4 py-2 rounded w-full text-left flex justify-between items-center border border-gray-300 shadow-sm hover:bg-gray-100";
+    dropdownButton.innerHTML = `<span>Select Shift Types</span><i class="fas fa-chevron-down"></i>`;
+
+    const dropdownMenu = document.createElement("div");
+    dropdownMenu.className =
+        "absolute bg-white border rounded shadow-lg hidden w-full z-10 flex flex-wrap gap-4 p-2";
+
+    // Populate the dropdown menu with checkboxes
+    options.forEach((option) => {
+        const label = document.createElement("label");
+        label.className =
+            "flex items-center gap-2 bg-gray-100 px-3 py-2 rounded hover:bg-gray-200 cursor-pointer shadow-sm";
+        label.style.minWidth = "120px"; // Set a minimum width for each option
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = option.value;
+        checkbox.className = "mr-2 shift-type-checkbox";
+        checkbox.checked = option.selected;
+
+        checkbox.addEventListener("change", () => {
+            option.selected = checkbox.checked;
+
+            // Update the button text
+            const selectedOptions = options
+                .filter((opt) => opt.selected)
+                .map((opt) => opt.textContent);
+            dropdownButton.querySelector("span").textContent =
+                selectedOptions.length > 0
+                    ? selectedOptions.join(", ")
+                    : "Select Shift Types";
+            // Trigger the change event on the select element
+            const event = new Event("change");
+            selectElement.dispatchEvent(event);
+        });
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(option.textContent));
+        dropdownMenu.appendChild(label);
+    });
+
+    // Toggle dropdown visibility
+    dropdownButton.addEventListener("click", () => {
+        dropdownMenu.classList.toggle("hidden");
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+        if (
+            !dropdownWrapper.contains(e.target) &&
+            !dropdownMenu.classList.contains("hidden")
+        ) {
+            dropdownMenu.classList.add("hidden");
+        }
+    });
+
+    // Replace the select element with the custom dropdown
+    selectElement.style.display = "none";
+    dropdownWrapper.appendChild(dropdownButton);
+    dropdownWrapper.appendChild(dropdownMenu);
+    selectElement.parentNode.insertBefore(
+        dropdownWrapper,
+        selectElement.nextSibling
+    );
+    // Add event listener to the select element to handle changes
+    selectElement.addEventListener("change", () => {
+        console.log(`Shift types updated for location ${locationId}`);
+        initializeShiftTable(locationId); // Update the Shift Details section
+
+        // Update the <p> tag beside the address
+        const addressElement = document
+            .querySelector(`#form_${locationId}`)
+            .parentElement.querySelector("p");
+
+        if (addressElement) {
+            const selectedShiftTypes = Array.from(
+                selectElement.selectedOptions
+            ).map((option) => option.textContent);
+
+            // Extract the existing date range from the <p> tag
+            const currentText = addressElement.textContent;
+            const dateRangeMatch = currentText.match(/Date Range: (.+)$/);
+            const existingDateRange = dateRangeMatch
+                ? dateRangeMatch[1]
+                : "Not Set";
+
+            // Update the <p> tag with the new shift types and preserve the date range
+            addressElement.textContent = `${
+                locations.find((loc) => loc.id === locationId).address
+            } | Shift Types: ${selectedShiftTypes.join(
+                ", "
+            )} | Date Range: ${existingDateRange}`;
+            // Update localStorage with the new shift types
+            const savedData = localStorage.getItem(`location_${locationId}`);
+            const locationData = savedData
+                ? JSON.parse(savedData)
+                : { shiftTypes: [], dateRange: existingDateRange };
+
+            locationData.shiftTypes = selectedShiftTypes; // Update shift types
+            localStorage.setItem(
+                `location_${locationId}`,
+                JSON.stringify(locationData)
+            );
+        }
+    });
+}
 
 async function loadStep2Options() {
     try {
+        // Fetch shift types and locations from the API
         const [shiftTypes, locations] = await Promise.all([
             apiService.getShiftTypes(),
             apiService.getLocations(),
         ]);
-        // Populate shift types for each location
+
+        // Iterate over each location to populate shift types
         locations.forEach((location) => {
             const shiftTypesSelect = document.getElementById(
                 `shiftTypes_${location.id}`
             );
-            shiftTypes.forEach((st) => {
-                const opt = document.createElement("option");
-                opt.value = st.id;
-                opt.textContent = st.name;
-                shiftTypesSelect.appendChild(opt);
-            });
-
-            // Store the Choices.js instance in a global object
-            if (!window.choicesInstances) {
-                window.choicesInstances = {};
-            }
-            console.log("the shiftypes select element", shiftTypesSelect);
-            window.choicesInstances[location.id] = new Choices(
-                shiftTypesSelect,
-                {
-                    removeItemButton: true,
-                    placeholder: true,
-                    placeholderValue: "Select shift types",
-                    searchPlaceholderValue: "Type to search...",
-                    noResultsText: "No shift types found",
-                    noChoicesText: "No shift types available",
-                    itemSelectText: "",
-                    shouldSort: false,
-                    addItems: true, // Allow adding items dynamically
-                    duplicateItemsAllowed: false, // Prevent duplicate items
-                }
-            );
-
-            // Initialize Flatpickr for the date range input
             const dateRangeInput = document.getElementById(
                 `dateRange_${location.id}`
             );
+            // Add event listener for date range changes
+            dateRangeInput.addEventListener("change", () => {
+                console.log(`Date range updated for location ${location.id}`);
+
+                // Update the <p> tag beside the address
+                const addressElement = document
+                    .querySelector(`#form_${location.id}`)
+                    .parentElement.querySelector("p");
+
+                if (addressElement) {
+                    const selectedShiftTypes = Array.from(
+                        shiftTypesSelect.selectedOptions
+                    ).map((option) => option.textContent);
+
+                    // Update the <p> tag with the new date range and preserve the shift types
+                    addressElement.textContent = `${
+                        locations.find((loc) => loc.id === location.id).address
+                    } | Shift Types: ${selectedShiftTypes.join(
+                        ", "
+                    )} | Date Range: ${dateRangeInput.value}`;
+
+                    // Update localStorage with the new date range
+                    const savedData = localStorage.getItem(
+                        `location_${location.id}`
+                    );
+                    const locationData = savedData
+                        ? JSON.parse(savedData)
+                        : { shiftTypes: selectedShiftTypes, dateRange: "" };
+
+                    locationData.dateRange = dateRangeInput.value; // Update the date range
+                    localStorage.setItem(
+                        `location_${location.id}`,
+                        JSON.stringify(locationData)
+                    );
+                }
+            });
+
+            // Clear existing options
+            shiftTypesSelect.innerHTML = "";
+
+            // Populate the select element with shift types
+            shiftTypes.forEach((st) => {
+                const opt = document.createElement("option");
+                opt.value = st.id; // Use the shift type ID as the value
+                opt.textContent = st.name; // Use the shift type name as the label
+                shiftTypesSelect.appendChild(opt);
+            });
+
+            // Handle pre-selected options (if saved in localStorage)
+            const savedData = localStorage.getItem(`location_${location.id}`);
+            if (savedData) {
+                const { shiftTypes: savedShiftTypes } = JSON.parse(savedData);
+
+                // Pre-select saved shift types
+                if (
+                    Array.isArray(savedShiftTypes) &&
+                    savedShiftTypes.length > 0
+                ) {
+                    Array.from(shiftTypesSelect.options).forEach((option) => {
+                        if (savedShiftTypes.includes(option.textContent)) {
+                            option.selected = true;
+                        }
+                    });
+                }
+            }
+
+            // Initialize custom dropdown behavior (if needed)
+            initializeCustomDropdown(location.id, shiftTypesSelect);
+            // Initialize Flatpickr for the date range input
             flatpickr(dateRangeInput, {
-                mode: "range", // Enable date range selection
-                dateFormat: "Y-m-d", // Include time in the format
+                mode: "range",
+                dateFormat: "Y-m-d",
+                allowInput: true,
+                onClose: function (selectedDates, dateStr, instance) {
+                    // Ensure at least two dates are selected
+                    if (selectedDates.length === 2) {
+                        const startDate = selectedDates[0];
+                        const endDate = selectedDates[1];
+
+                        // Calculate the difference in days
+                        const diffInDays = Math.ceil(
+                            (endDate - startDate) / (1000 * 60 * 60 * 24)
+                        );
+
+                        // Check if the range is less than 7 days
+                        if (diffInDays < 7) {
+                            showToast(
+                                "The selected date range must be at least 7 days.",
+                                "error"
+                            );
+
+                            // Clear the input field or reset the selection
+                            instance.clear();
+                        }
+                    }
+                },
+                onChange: function (selectedDates, dateStr, instance) {
+                    console.log("Selected Date Range:", dateStr);
+                },
             });
         });
-        // // Populate locations
-        // const locationSelect = document.getElementById("location");
-        // locations.forEach((loc) => {
-        //     const opt = document.createElement("option");
-        //     opt.value = loc.id;
-        //     opt.textContent = loc.name;
-        //     locationSelect.appendChild(opt);
-        // });
-        // locationChoices = new Choices(locationSelect, {
-        //     searchPlaceholderValue: "Type to search...",
-        //     removeItemButton: true,
-        //     searchEnabled: true,
-        //     itemSelectText: "",
-        //     shouldSort: false,
-        //     placeholder: true,
-        //     placeholderValue: "Select Location",
-        //     noResultsText: "No locations found",
-        //     noChoicesText: "No locations available",
-        // });
     } catch (error) {
         showToast(
             extractAxiosErrorMsg(error, "Failed to load options."),
@@ -948,13 +1233,32 @@ function initializeShiftTable(locationId) {
         selectedShiftTypes.includes(rec.shiftType)
     );
 
-    // Add new records for shift types that are newly selected
+    // Check which shift types already have at least one non-empty record
+    const shiftTypesWithRecords = new Set();
+    updatedRecords.forEach((rec) => {
+        if (rec.from !== "" || rec.to !== "" || rec.employees !== 0) {
+            shiftTypesWithRecords.add(rec.shiftType);
+        }
+    });
+
+    console.log(
+        "Shift types with existing records:",
+        Array.from(shiftTypesWithRecords)
+    );
+
+    // Only add empty records for shift types that don't have any records yet
     distinctDays.forEach((day) => {
         selectedShiftTypes.forEach((shiftType) => {
+            // Only add empty records if this shift type has no records at all
+            const shiftTypeExists = updatedRecords.some(
+                (rec) => rec.shiftType === shiftType
+            );
+
             const exists = updatedRecords.some(
                 (rec) => rec.day === day && rec.shiftType === shiftType
             );
-            if (!exists) {
+
+            if (!exists && !shiftTypesWithRecords.has(shiftType)) {
                 updatedRecords.push({
                     day,
                     shiftType,
@@ -1227,6 +1531,7 @@ function initializeSaveButtons() {
         }
     });
 }
+
 function saveBatchForm(locationId, previousFormData) {
     // Get modal field values
     const shiftTypeID = document.getElementById(
@@ -1243,6 +1548,7 @@ function saveBatchForm(locationId, previousFormData) {
     const selectedDays = Array.from(
         document.getElementById(`batchDays_${locationId}`).selectedOptions
     ).map((opt) => opt.value);
+
     console.log("Selected data:", {
         locationId,
         shiftType,
@@ -1263,105 +1569,226 @@ function saveBatchForm(locationId, previousFormData) {
         return;
     }
 
-    // console.log("Records before checking for duplicates:", records[locationId]);
-
-    console.log("records before deleting", records[locationId]);
-
-    records[locationId] = records[locationId].filter(
-        (rec) =>
-            // Keep records that do not match the selected shift type with empty fields
-
-            !(
-                (
-                    rec.shiftType === shiftType &&
-                    (rec.from === from || rec.from === "") &&
-                    (rec.to === to || rec.to === "") &&
-                    (rec.employees === employees || rec.employees === 0)
-                )
-                // (rec.employees === employees || rec.employees === 0)
-                // (rec.employees === employees || rec.employees === 0) &&
-
-                // !selectedDays.includes(rec.day)
-            ) // Keep records with non-empty fields
-    );
-    console.log("Filtered records for location:", records[locationId]);
-    const duplicateIndex = records[locationId].findIndex(
-        (rec) =>
-            selectedDays.includes(rec.day) &&
-            rec.shiftType === shiftType &&
-            rec.from === from &&
-            rec.to === to &&
-            rec.employees === employees
-    );
-
-    if (duplicateIndex !== -1) {
-        const duplicate = records[locationId][duplicateIndex];
-        console.error(
-            "Duplicate record found at index:",
-            duplicateIndex,
-            duplicate
-        );
-        showToast(
-            `A record with the same day, shift type, and time already exists.`,
-            "error"
-        );
-        return; // Stop execution if a duplicate is found
-    }
-
-    // Add records for new days in selectedDays that are not in previousFormData.dayArray
+    // Check for duplicates before any operations
+    const duplicateDays = [];
     selectedDays.forEach((day) => {
-        if (!previousFormData.dayArray.includes(day)) {
-            records[locationId].push({
-                day,
-                shiftType,
-                from,
-                to,
-                employees,
-            });
-            console.log(`Added new record for day ${day}:`, {
-                day,
-                shiftType,
-                from,
-                to,
-                employees,
-            });
+        const hasDuplicate = records[locationId].some(
+            (rec) =>
+                rec.day === day &&
+                rec.from === from &&
+                rec.to === to &&
+                rec.shiftType === shiftType &&
+                // Skip the record we're currently editing
+                !(
+                    previousFormData &&
+                    previousFormData.dayArray.includes(day) &&
+                    rec.shiftType === previousFormData.shiftType &&
+                    rec.from === previousFormData.fromTime &&
+                    rec.to === previousFormData.toTime
+                )
+        );
+
+        if (hasDuplicate) {
+            duplicateDays.push(day);
         }
     });
 
-    let recordFound = false;
+    if (duplicateDays.length > 0) {
+        showToast(
+            `Duplicate records found for days: ${duplicateDays.join(
+                ", "
+            )}. Cannot add records with the same day, from, and to times.`,
+            "error"
+        );
+        return;
+    }
 
-    previousFormData.dayArray.forEach((day) => {
-        const record = records[locationId].find(
+    // STEP 1: Handle direct updates - if we're editing an existing record
+    if (previousFormData && previousFormData.shiftType) {
+        // Find the records matching the previous form data
+        const recordsToUpdate = records[locationId].filter(
             (rec) =>
-                rec.day === day &&
                 rec.shiftType === previousFormData.shiftType &&
                 rec.from === previousFormData.fromTime &&
                 rec.to === previousFormData.toTime &&
-                rec.employees === parseInt(previousFormData.employees, 10)
+                rec.employees === parseInt(previousFormData.employees, 10) &&
+                previousFormData.dayArray.includes(rec.day)
         );
 
-        if (record) {
-            if (
-                record.shiftType === shiftType &&
-                record.day === day &&
-                record.from === from &&
-                record.to === to &&
-                record.employees === employees
-            ) {
-                console.log(`Skipping record for day ${day}:`, record);
-                return; // Skip updating this record
-            }
-            // Update the record's attributes
-            record.from = from;
-            record.to = to;
-            record.employees = employees;
-            console.log(`Updated record for day ${day}:`, record);
-            recordFound = true;
-        }
-    });
+        // If we found records to update
+        if (recordsToUpdate.length > 0) {
+            console.log("Records to update:", recordsToUpdate);
 
-    if (!recordFound) {
-        // Add new records if no matching record exists
+            // Check for matching records BEFORE updating anything
+            const matchingRecords = records[locationId].filter(
+                (rec) =>
+                    rec.shiftType === shiftType &&
+                    rec.from === from &&
+                    rec.to === to &&
+                    rec.employees === employees &&
+                    !selectedDays.includes(rec.day) &&
+                    !recordsToUpdate.includes(rec)
+            );
+
+            if (matchingRecords.length > 0) {
+                // Show modal asking if user wants to merge
+                const daysText = matchingRecords.map((r) => r.day).join(", ");
+                const modalHtml = `
+                    <div>
+                        <p>Found records with the same attributes but different days:</p>
+                        <p><strong>Days:</strong> ${daysText}</p>
+                        <p>Would you like to merge these records?</p>
+                    </div>
+                `;
+
+                showModal(
+                    modalHtml,
+                    function onConfirm(close) {
+                        // IF USER CONFIRMS, update and merge
+
+                        // 1. Remove the records to update
+                        records[locationId] = records[locationId].filter(
+                            (rec) => !recordsToUpdate.includes(rec)
+                        );
+
+                        // 2. Remove matching records
+                        records[locationId] = records[locationId].filter(
+                            (rec) => !matchingRecords.includes(rec)
+                        );
+
+                        // 3. Add all merged days
+                        const allDays = [
+                            ...selectedDays,
+                            ...matchingRecords.map((r) => r.day),
+                        ];
+
+                        allDays.forEach((day) => {
+                            records[locationId].push({
+                                day,
+                                shiftType,
+                                from,
+                                to,
+                                employees,
+                            });
+                        });
+
+                        renderTable(locationId);
+                        close();
+                        showToast("Records merged successfully!", "success");
+                        hideBatchFormModal(locationId);
+
+                        localStorage.setItem(
+                            `records_${locationId}`,
+                            JSON.stringify(records[locationId])
+                        );
+                    },
+                    function onCancel(close) {
+                        // CANCEL SHOULD NOT MODIFY ANYTHING
+                        if (typeof close === "function") {
+                            close();
+                        }
+                        showToast("Operation cancelled", "info");
+                        hideBatchFormModal(locationId);
+                    }
+                );
+            } else {
+                // No matching records, proceed with normal update
+                records[locationId] = records[locationId].filter(
+                    (rec) => !recordsToUpdate.includes(rec)
+                );
+
+                // Add new records with the updated values
+                selectedDays.forEach((day) => {
+                    records[locationId].push({
+                        day,
+                        shiftType,
+                        from,
+                        to,
+                        employees,
+                    });
+                });
+
+                showToast("Shift updated successfully!", "success");
+                hideBatchFormModal(locationId);
+                renderTable(locationId);
+                localStorage.setItem(
+                    `records_${locationId}`,
+                    JSON.stringify(records[locationId])
+                );
+            }
+            return; // Important: stop execution here
+        }
+    }
+
+    // STEP 2: Handle adding new records (no previous data)
+
+    // Check for matching records BEFORE adding anything
+    const matchingRecords = records[locationId].filter(
+        (rec) =>
+            rec.shiftType === shiftType &&
+            rec.from === from &&
+            rec.to === to &&
+            rec.employees === employees &&
+            !selectedDays.includes(rec.day)
+    );
+
+    if (matchingRecords.length > 0) {
+        // Show modal asking if user wants to merge
+        const daysText = matchingRecords.map((r) => r.day).join(", ");
+        const modalHtml = `
+            <div>
+                <p>Found records with the same attributes but different days:</p>
+                <p><strong>Days:</strong> ${daysText}</p>
+                <p>Would you like to merge these records?</p>
+            </div>
+        `;
+
+        showModal(
+            modalHtml,
+            function onConfirm(close) {
+                // IF USER CONFIRMS, add and merge
+
+                // 1. Remove matching records
+                records[locationId] = records[locationId].filter(
+                    (rec) => !matchingRecords.includes(rec)
+                );
+
+                // 2. Add all merged days
+                const allDays = [
+                    ...selectedDays,
+                    ...matchingRecords.map((r) => r.day),
+                ];
+
+                allDays.forEach((day) => {
+                    records[locationId].push({
+                        day,
+                        shiftType,
+                        from,
+                        to,
+                        employees,
+                    });
+                });
+
+                renderTable(locationId);
+                close();
+                showToast("Records merged successfully!", "success");
+                hideBatchFormModal(locationId);
+                localStorage.setItem(
+                    `records_${locationId}`,
+                    JSON.stringify(records[locationId])
+                );
+            },
+            function onCancel(close) {
+                // CANCEL SHOULD NOT MODIFY ANYTHING
+                if (typeof close === "function") {
+                    close();
+                }
+                showToast("Operation cancelled", "info");
+                hideBatchFormModal(locationId);
+            }
+        );
+    } else {
+        // No matching records, proceed with adding new records
         selectedDays.forEach((day) => {
             records[locationId].push({
                 day,
@@ -1370,23 +1797,16 @@ function saveBatchForm(locationId, previousFormData) {
                 to,
                 employees,
             });
-            console.log(`Added new record for day ${day}:`, {
-                day,
-                shiftType,
-                from,
-                to,
-                employees,
-            });
         });
+
+        showToast("Shift added successfully!", "success");
+        hideBatchFormModal(locationId);
+        renderTable(locationId);
+        localStorage.setItem(
+            `records_${locationId}`,
+            JSON.stringify(records[locationId])
+        );
     }
-
-    showToast("Shift saved successfully!", "success");
-
-    // Close the modal
-    hideBatchFormModal(locationId);
-
-    // Re-render the table
-    renderTable(locationId);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1415,30 +1835,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Populate shift types
                 if (Array.isArray(shiftTypes) && shiftTypes.length > 0) {
-                    // Set the `selected` attribute for matching options
+                    // Iterate over the options in the select element
                     Array.from(shiftTypesSelect.options).forEach((option) => {
+                        // Check if the option's text matches any of the saved shift types
                         if (shiftTypes.includes(option.textContent)) {
-                            console.log(
-                                "Selecting option:",
-                                option.textContent
-                            );
-
-                            option.selected = true;
+                            option.selected = true; // Mark the option as selected
                         }
                     });
-                    // mape the shiftTypes to their values and not their text content using the opton in the select element
 
-                    const shiftTypesValues = Array.from(
+                    // Update the dropdown button text to reflect the selected options
+                    const selectedOptions = Array.from(
                         shiftTypesSelect.selectedOptions
-                    ).map((option) => option.value);
-
-                    // Use setChoiceByValue to select the saved shift types
-                    const choicesInstance =
-                        window.choicesInstances[location.id];
-                    if (choicesInstance) {
-                        choicesInstance.setChoiceByValue(shiftTypesValues);
+                    ).map((option) => option.textContent);
+                    const dropdownButton =
+                        shiftTypesSelect.parentElement.querySelector(
+                            "button span"
+                        );
+                    if (dropdownButton) {
+                        dropdownButton.textContent =
+                            selectedOptions.length > 0
+                                ? selectedOptions.join(", ")
+                                : "Select Shift Types";
                     }
                 }
+                console.log("Shift Types Select Element:", shiftTypesSelect);
 
                 // Populate date range
                 if (dateRange) {
@@ -1487,16 +1907,26 @@ document.addEventListener("DOMContentLoaded", function () {
         const form = document.getElementById(`form_${locationId}`);
         const arrow = document.getElementById(`arrow_${locationId}`);
 
-        // Toggle the hidden class
-        form.classList.toggle("hidden");
-
         // Update the arrow icon
-        if (form.classList.contains("hidden")) {
+        if (form.classList.contains("max-h-0")) {
+            form.classList.remove("max-h-0");
+            form.classList.add("max-h-[500px]");
             arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Down arrow
         } else {
+            form.classList.remove("max-h-[500px]");
+            form.classList.add("max-h-0");
             arrow.innerHTML = '<i class="fas fa-chevron-up"></i>'; // Up arrow
         }
     };
+    // Add to DOMContentLoaded event handler
+    locations.forEach((location) => {
+        // Load records from localStorage if available
+        const savedRecords = localStorage.getItem(`records_${location.id}`);
+        if (savedRecords) {
+            records[location.id] = JSON.parse(savedRecords);
+            renderTable(location.id);
+        }
+    });
 
     // window.openAddShiftTypeModal = function (locationId) {
     //     const modal = document.getElementById("addShiftTypeModal");

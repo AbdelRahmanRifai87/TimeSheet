@@ -22,18 +22,20 @@
             @foreach ($locations as $location)
                 <div class="border border-gray-300 rounded p-4 mb-4">
                     <!-- Location Header -->
-                    <div class="flex justify-between items-center cursor-pointer"
-                        onclick="toggleForm('{{ $location->id }}')">
-                        <h3 class="text-lg font-semibold">{{ $location->name }}</h3>
-                        <span id="arrow_{{ $location->id }}" class="text-sm text-gray-500">
-                            <!-- Down arrow by default -->
-                            <i class="fas fa-chevron-down"></i>
-                        </span>
+                    <div class="cursor-pointer" onclick="toggleForm('{{ $location->id }}')">
+                        <div class="flex justify-between items-center ">
+                            <h3 class="text-lg font-semibold">{{ $location->name }}</h3>
+                            <span id="arrow_{{ $location->id }}" class="text-sm text-gray-500">
+                                <!-- Down arrow by default -->
+                                <i class="fas fa-chevron-down"></i>
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600">{{ $location->address }}</p>
                     </div>
-                    <p class="text-sm text-gray-600">{{ $location->address }}</p>
 
                     <!-- Hidden Form -->
-                    <div id="form_{{ $location->id }}" class="hidden mt-4">
+                    <div id="form_{{ $location->id }}"
+                        class="overflow-hidden max-h-0 transition-all duration-300 ease-in-out mt-4">
                         <!-- Shift Types Dropdown -->
                         <div>
                             <div class="flex justify-between items-center">
@@ -136,13 +138,13 @@
                                 <label>Filter by Day:</label>
                                 <select id="filterDay_{{ $location->id }}" class="border rounded px-2 py-1">
                                     <option value="">All</option>
-                                    <option value="monday">Monday</option>
-                                    <option value="tuesday">Tuesday</option>
-                                    <option value="wednesday">Wednesday</option>
-                                    <option value="thursday">Thursday</option>
-                                    <option value="friday">Friday</option>
-                                    <option value="saturday">Saturday</option>
-                                    <option value="sunday">Sunday</option>
+                                    <option value="Mon">Monday</option>
+                                    <option value="Tue">Tuesday</option>
+                                    <option value="Wed">Wednesday</option>
+                                    <option value="Thu">Thursday</option>
+                                    <option value="Fri">Friday</option>
+                                    <option value="Sat">Saturday</option>
+                                    <option value="Sun">Sunday</option>
                                 </select>
                                 <label class="ml-4">Filter by Shift Type:</label>
                                 <select id="filterShiftType_{{ $location->id }}" class="border rounded px-2 py-1">
@@ -224,11 +226,11 @@
                             <div class="w-full flex flex-col">
                                 <label class="block font-semibold">Days</label>
                                 <div id="daysButtonsContainer" class="flex gap-2 mb-2">
-                                    <button type="button" id="weekdaysBtn"
+                                    <button type="button" id="weekdaysBtn_{{ $location->id }}"
                                         class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">Weekdays</button>
-                                    <button type="button" id="weekendsBtn"
+                                    <button type="button" id="weekendsBtn_{{ $location->id }}"
                                         class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">Weekends</button>
-                                    <button type="button" id="allDaysBtn"
+                                    <button type="button" id="allDaysBtn_{{ $location->id }}"
                                         class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">All
                                         Days</button>
                                 </div>
