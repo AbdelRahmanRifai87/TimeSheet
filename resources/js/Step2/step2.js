@@ -9,6 +9,15 @@ import { SelectionManager } from "./SelectionManager";
 
 const records = {}; // Keyed by location ID
 let previousFormData = {}; // Store previous form data for each location
+let shiftTypes = []; // Initialize shiftTypes as an empty array
+async function loadShiftTypes() {
+    try {
+        shiftTypes = await apiService.getShiftTypes(); // Fetch shift types from the API
+        console.log("Shift types loaded:", shiftTypes);
+    } catch (error) {
+        console.error("Failed to load shift types:", error);
+    }
+}
 
 locations.forEach((location) => {
     records[location.id] = []; // Initialize an empty array for each location
@@ -133,26 +142,46 @@ function renderTable(locationId) {
     Object.values(groupedRecords).forEach((rec, idx) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="border px-2 py-1">${rec.days.join(", ")}</td>
-            <td class="border px-2 py-1">${rec.shiftType}</td>
-            <td class="border px-2 py-1">${rec.from}</td>
-            <td class="border px-2 py-1">${rec.to}</td>
-            <td class="border px-2 py-1">${rec.employees}</td>
-            <td class="border px-2 py-1 text-center flex justify-center items-center gap-3">
-             <!-- Add Button -->
+            <td class="border px-2 py-1 align-top">
+            <div class=" w-full flex justify-around items-end">
+            ${rec.days
+                .map(
+                    (day) =>
+                        `<span class="inline-block bg-[#337ab7] text-white flex-1 text-center px-2 py-1 rounded text-s mr-2">${day}</span>`
+                )
+                .join("")}
+                </div>
+                </td>
+            <td class="border text-center leading-[180%] px-2 py-1 align-top">${
+                rec.shiftType
+            }</td>
+            <td class="border text-center leading-[180%] px-2 py-1 align-top">25-7-1 to 25-7-31</td>
+
+            <td class="border text-center leading-[180%] px-2 py-1 align-top">${
+                rec.from
+            }</td>
+            <td class="border text-center leading-[180%] px-2 py-1 align-top">${
+                rec.to
+            }</td>
+            <td class="border text-center leading-[180%] px-2 py-1 align-top">${
+                rec.employees
+            }</td>
+            <td class="border px-2 py-1 ">
+            <div class="text-center flex justify-center items-start gap-3 align-top">
+                <!-- Add Button -->
                 <button type="button" class="text-green-600 add-row-btn" title="Add Row">
                     <i class="fas fa-plus"></i>
                 </button>
 
                 <!-- Update Button -->
                 <button type="button" class="text-blue-600 update-row-btn" title="Update Row">
-                    <i class="fas fa-edit"></i>
+                    <i class="fas fa-edit text-yellow-600 "></i>
                 </button>
                 <button type="button" class="text-red-600 remove-record-btn" data-key="${
                     rec.shiftType
                 }-${rec.from}-${rec.to}">
-                    <i class="fas fa-trash"></i>
-                </button>
+                    <i class="fa-solid fa-trash-can text-[#cf4c3f]"></i>
+                </button></div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -169,7 +198,7 @@ function renderTable(locationId) {
     tbody.querySelectorAll(".update-row-btn").forEach((btn) => {
         btn.addEventListener("click", function () {
             const clickedRow = this.closest("tr");
-            updateRow(locationId, clickedRow);
+            NewUpdateRow(locationId, clickedRow);
         });
     });
 
@@ -178,6 +207,31 @@ function renderTable(locationId) {
         btn.addEventListener("click", function () {
             const key = btn.dataset.key;
             const [shiftType, from, to] = key.split("-");
+
+            // Check if this is the last record for the shift type
+            const remainingRecords = records[locationId].filter(
+                (rec) => rec.shiftType === shiftType
+            );
+            const groupedRecords = remainingRecords.reduce((acc, rec) => {
+                const key = `${rec.from}-${rec.to}-${rec.employees}`;
+                if (!acc[key]) {
+                    acc[key] = { ...rec, days: [rec.day] }; // Initialize with the first day
+                } else {
+                    acc[key].days.push(rec.day); // Add the day to the existing group
+                }
+                return acc;
+            }, {});
+            console.log("Remaining records for shift type:", groupedRecords);
+            console.log("the length of groupedRecords:", groupedRecords.length);
+            if (Object.keys(groupedRecords).length === 1) {
+                // Prevent deletion and show an error message
+                showToast(
+                    `Cannot delete the last record for shift type: ${shiftType}.`,
+                    "error"
+                );
+                return;
+            }
+
             records[locationId] = records[locationId].filter(
                 (rec) =>
                     !(
@@ -185,6 +239,11 @@ function renderTable(locationId) {
                         rec.from === from &&
                         rec.to === to
                     )
+            );
+            // Update localStorage after removing the record
+            localStorage.setItem(
+                `records_${locationId}`,
+                JSON.stringify(records[locationId])
             );
             renderTable(locationId); // Re-render the table
         });
@@ -207,7 +266,15 @@ function addRow(locationId, clickedRow) {
         return; // Stop execution if validation fails
     }
 
-    const distinctDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const distinctDays = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ];
 
     // Get the shift type from the clicked row
     const shiftType = clickedRow
@@ -227,6 +294,147 @@ function addRow(locationId, clickedRow) {
 
     // Re-render the table to include the new row
     renderTable(locationId);
+}
+function NewUpdateRow(locationId, clickedRow) {
+    // Unlock the row for editing
+    const dayCell = clickedRow.querySelector("td:nth-child(1)");
+    const shiftTypeCell = clickedRow.querySelector("td:nth-child(2)");
+    const fromCell = clickedRow.querySelector("td:nth-child(3)");
+    const toCell = clickedRow.querySelector("td:nth-child(4)");
+    const employeesCell = clickedRow.querySelector("td:nth-child(5)");
+    const actionsCell = clickedRow.querySelector("td:nth-child(6)");
+
+    // Days Cell: Render checkboxes for days
+    const days = ["Mon", "Tues", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    dayCell.innerHTML = days
+        .map(
+            (day) =>
+                `<label class="inline-block px-2 py-1 rounded cursor-pointer">
+                    <input type="checkbox" value="${day}" class="day-checkbox"> 
+                    <span class="day-label inline-block bg-gray-300 opacity-50 text-center px-2 py-1 rounded">${day}</span>
+                </label>`
+        )
+        .join("");
+
+    // Add buttons for Weekdays, Weekends, and All Days
+    const buttons = `
+        <div class="mt-2">
+            <button type="button" class="btn-weekdays">Weekdays</button>
+            <button type="button" class="btn-weekends">Weekends</button>
+            <button type="button" class="btn-all-days">All Days</button>
+        </div>
+    `;
+    dayCell.innerHTML += buttons;
+
+    // Shift Type Cell: Render dropdown
+    shiftTypeCell.innerHTML = `
+        <select class="shift-type-dropdown">
+            ${shiftTypes
+                .map(
+                    (type) => `<option value="${type.id}">${type.name}</option>`
+                )
+                .join("")}
+        </select>
+    `;
+
+    // From and To Cells: Render Flatpickr inputs
+    fromCell.innerHTML = `<input type="text" class="flatpickr-from" />`;
+    toCell.innerHTML = `<input type="text" class="flatpickr-to" />`;
+
+    flatpickr(fromCell.querySelector(".flatpickr-from"), {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+        time_24hr: true,
+    });
+
+    flatpickr(toCell.querySelector(".flatpickr-to"), {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+        time_24hr: true,
+    });
+
+    // Employees Cell: Render number input
+    employeesCell.innerHTML = `<input type="number" class="employees-input" min="1" value="1" />`;
+
+    // Actions Cell: Add Confirm button
+    actionsCell.innerHTML = `
+        <button type="button" class="btn-confirm">Confirm</button>
+    `;
+
+    // Add event listeners for buttons
+    const weekdaysBtn = dayCell.querySelector(".btn-weekdays");
+    const weekendsBtn = dayCell.querySelector(".btn-weekends");
+    const allDaysBtn = dayCell.querySelector(".btn-all-days");
+    const confirmBtn = actionsCell.querySelector(".btn-confirm");
+
+    weekdaysBtn.addEventListener("click", () => {
+        NewselectDays(dayCell, [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+        ]);
+    });
+
+    weekendsBtn.addEventListener("click", () => {
+        NewselectDays(dayCell, ["Saturday", "Sunday"]);
+    });
+
+    allDaysBtn.addEventListener("click", () => {
+        NewselectDays(dayCell, days);
+    });
+
+    confirmBtn.addEventListener("click", () => {
+        saveRowEdits(locationId, clickedRow);
+    });
+}
+
+function NewselectDays(dayCell, days) {
+    const checkboxes = dayCell.querySelectorAll(".day-checkbox");
+    checkboxes.forEach((checkbox) => {
+        checkbox.checked = days.includes(checkbox.value);
+    });
+}
+
+function saveRowEdits(locationId, clickedRow) {
+    const dayCell = clickedRow.querySelector("td:nth-child(1)");
+    const shiftTypeCell = clickedRow.querySelector("td:nth-child(2)");
+    const fromCell = clickedRow.querySelector("td:nth-child(3)");
+    const toCell = clickedRow.querySelector("td:nth-child(4)");
+    const employeesCell = clickedRow.querySelector("td:nth-child(5)");
+
+    const selectedDays = Array.from(dayCell.querySelectorAll(".day-checkbox"))
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => checkbox.value);
+
+    const shiftType = shiftTypeCell.querySelector(".shift-type-dropdown").value;
+    const from = fromCell.querySelector(".flatpickr-from").value;
+    const to = toCell.querySelector(".flatpickr-to").value;
+    const employees = employeesCell.querySelector(".employees-input").value;
+
+    // Validate inputs
+    if (!selectedDays.length || !shiftType || !from || !to || employees <= 0) {
+        showToast("Please fill in all required fields.", "error");
+        return;
+    }
+
+    // Save the edits to the records array
+    selectedDays.forEach((day) => {
+        records[locationId].push({
+            day,
+            shiftType,
+            from,
+            to,
+            employees,
+        });
+    });
+
+    // Re-render the table
+    renderTable(locationId);
+    showToast("Row updated successfully!", "success");
 }
 function updateRow(locationId, clickedRow) {
     const modal = document.getElementById(`batchFormModal_${locationId}`);
@@ -281,8 +489,12 @@ function updateRow(locationId, clickedRow) {
         console.error("One or more modal fields are missing.");
         return;
     }
+    // Ensure the day string is properly formatted
+    const formattedDay = day.replace(/([A-Za-z]{3})(?=[A-Za-z]{3})/g, "$1,");
+    console.log("Formatted day string:", formattedDay);
     // Split the day string into an array of individual days
-    const dayArray = day.split(",").map((d) => d.trim());
+    const dayArray = formattedDay.split(",").map((d) => d.trim());
+    console.log("Day array:", dayArray);
 
     // Update the custom dropdown for batch days
     const options = Array.from(daysField.options);
@@ -917,10 +1129,8 @@ function initializeCustomDropdown(locationId, selectElement) {
 async function loadStep2Options() {
     try {
         // Fetch shift types and locations from the API
-        const [shiftTypes, locations] = await Promise.all([
-            apiService.getShiftTypes(),
-            apiService.getLocations(),
-        ]);
+        const locations = await apiService.getLocations();
+        console.log("shiftTyyuoes in loadStep2Options:", shiftTypes);
 
         // Iterate over each location to populate shift types
         locations.forEach((location) => {
@@ -930,6 +1140,7 @@ async function loadStep2Options() {
             const dateRangeInput = document.getElementById(
                 `dateRange_${location.id}`
             );
+            console.log(dateRangeInput);
             // Add event listener for date range changes
             dateRangeInput.addEventListener("change", () => {
                 console.log(`Date range updated for location ${location.id}`);
@@ -1001,7 +1212,7 @@ async function loadStep2Options() {
             // Initialize Flatpickr for the date range input
             flatpickr(dateRangeInput, {
                 mode: "range",
-                dateFormat: "Y-m-d",
+                dateFormat: "y-m-d",
                 allowInput: true,
                 onClose: function (selectedDates, dateStr, instance) {
                     // Ensure at least two dates are selected
@@ -1809,8 +2020,9 @@ function saveBatchForm(locationId, previousFormData) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
     // Load step 2 options and then populate saved data
+    await loadShiftTypes();
     loadStep2Options().then(() => {
         locations.forEach((location) => {
             const shiftTypesSelect = document.getElementById(
@@ -1910,12 +2122,20 @@ document.addEventListener("DOMContentLoaded", function () {
         // Update the arrow icon
         if (form.classList.contains("max-h-0")) {
             form.classList.remove("max-h-0");
-            form.classList.add("max-h-[500px]");
-            arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Down arrow
+            // form.classList.add("mt-4");
+
+            form.classList.add("max-h-[1000px]");
+
+            arrow.innerHTML = '<i class="fas fa-chevron-up"></i>'; // Down arrow
+            form.classList.add("p-2");
         } else {
-            form.classList.remove("max-h-[500px]");
+            // form.classList.remove("mt-4");
+
             form.classList.add("max-h-0");
-            arrow.innerHTML = '<i class="fas fa-chevron-up"></i>'; // Up arrow
+            form.classList.remove("max-h-[1000px]");
+
+            arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Up arrow
+            form.classList.remove("p-2");
         }
     };
     // Add to DOMContentLoaded event handler

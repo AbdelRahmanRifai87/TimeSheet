@@ -54,7 +54,7 @@ class AuthController extends Controller
                     null,
                     null,
                     false,    // Secure
-                    true,    // HttpOnly
+                    false,    // HttpOnly
                     false,
                     "Lax"
                 )

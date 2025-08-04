@@ -46,11 +46,11 @@ function createLocationRow(location) {
     tr.setAttribute("data-id", location.id);
     tr.className = "hover:bg-gray-50 border";
     tr.innerHTML = `
-        <td class='px-4 py-2 border-b border'>${location.name}</td>
-        <td class='px-4 py-2 border-b border'>${location.address || ""}</td>
-        <td class='px-4 py-2 border-b border'>${location.city || ""}</td>
-        <td class='px-4 py-2 border-b border'>${location.state || ""}</td>
-        <td class='px-4 py-2 border-b border text-center'><button type="button" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs border remove-location">Remove</button></td>
+        <td class='px-2 py-1 border-b border'>${location.name}</td>
+        <td class='px-2 py-1 border-b border'>${location.address || ""}</td>
+        <td class='px-2 py-1 border-b border'>${location.city || ""}</td>
+        <td class='px-2 py-1 border-b border'>${location.state || ""}</td>
+        <td class='px-2 py-1 border-b border text-center'><button type="button" class=" text-white px-3 py-1  text-xs  remove-location"><i class="fa-solid fa-trash-can text-[#cf4c3f]"></i></button></button></td>
     `;
     return tr;
 }
@@ -60,10 +60,10 @@ function createShiftTypeRow(shiftType, dayTypes) {
     tr.setAttribute("data-id", shiftType.id);
     tr.className = "hover:bg-gray-50 border";
     tr.innerHTML = `
-        <td class='px-4 py-2 border-b border'><input type="text" name="shift_type_name[]" class="form-input w-full border border-gray-300 rounded px-3 py-2" value="${
+        <td class='px-2 py-1 border-b border'><input type="text" name="shift_type_name[]" class="form-input w-full border border-gray-300 rounded px-2 py-1" value="${
             shiftType.name
         }" required></td>
-        <td class='px-4 py-2 border-b border'><input type="text" name="shift_type_description[]" class="form-input w-full border border-gray-300 rounded px-3 py-2" value="${
+        <td class='px-2 py-1 border-b border'><input type="text" name="shift_type_description[]" class="form-input w-full border border-gray-300 rounded px-2 py-1" value="${
             shiftType.description || ""
         }"></td>
         ${dayTypes
@@ -71,18 +71,18 @@ function createShiftTypeRow(shiftType, dayTypes) {
                 const rate = (shiftType.rates || []).find(
                     (r) => r.day_type_id === dt.id
                 );
-                return `<td class='px-4 py-2 border-b border'><input type="number" step="0.01" name="rate_${
+                return `<td class='px-2 py-1 border-b border'><input type="number" step="0.01" name="rate_${
                     shiftType.id
                 }_${
                     dt.id
-                }" class="form-input w-full border border-gray-300 rounded px-3 py-2" value="${
+                }" class="form-input w-full border border-gray-300 rounded px-2 py-1" value="${
                     rate ? rate.rate : ""
                 }"  ${
                     rate && rate.id ? `data-rate-id="${rate.id}"` : ""
                 } required></td>`;
             })
             .join("")}
-        <td class='px-4 py-2 border-b border text-center'><button type="button" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs border remove-shift">Remove</button></td>
+        <td class='px-2 py-1 border-b border text-center'><button type="button" class="  text-white   text-xs  remove-shift"><i class="fa-solid fa-trash-can text-[#cf4c3f]"></i></button></td>
     `;
     return tr;
 }

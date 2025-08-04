@@ -10,7 +10,7 @@
         }
     </style>
     <div class="max-w-4xl mx-auto p-6">
-        <h2 class="text-2xl font-bold mb-6">Step 3: Shift Details</h2>
+        <h2 class="text-2xl font-bold  mb-6">Step 3: Shift Details</h2>
         <form id="step3Form" method="POST" action="{{ route('details.step3.submit') }}">
             @csrf
             <div class="mb-4">
@@ -27,7 +27,7 @@
                         <label class="block mb-1 font-semibold">Shift Type</label>
                         <select id="batchShiftType" class="border rounded px-2 py-1 ">
                             <option value="">Select</option>
-                            @foreach($shiftTypes as $st)
+                            @foreach ($shiftTypes as $st)
                                 <option value="{{ $st->id }}">{{ $st->name }}</option>
                             @endforeach
                         </select>
@@ -45,7 +45,8 @@
                     <!-- Number of Employees -->
                     <div>
                         <label class="block mb-1 font-semibold"># Employees</label>
-                        <input type="number" id="batchEmployees" class="border rounded px-2 py-1" min="1" value="1" />
+                        <input type="number" id="batchEmployees" class="border rounded px-2 py-1" min="1"
+                            value="1" />
                     </div>
                     <!-- Days Multi-select -->
                     <div class="w-full flex flex-col">

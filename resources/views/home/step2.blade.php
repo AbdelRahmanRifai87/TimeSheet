@@ -2,29 +2,33 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-4xl mx-auto p-6 overflow-y-auto">
-        <h2 class="text-2xl font-bold mb-6">Step 2: Home</h2>
-        <form id="step2Form" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
-            @csrf
-            <div class="flex justify-between mt-4">
-                <!-- Back Button -->
-                <button type="button" id="backBtn"
-                    class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded border">
-                    Back
-                </button>
+    <div class="w-[70%] ml-[20%] p-6 overflow-y-auto bg-white-100">
 
-                <!-- Next Button -->
-                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded border">
-                    Next
-                </button>
+        <form id="step2Form" class="" method="POST" action="{{ route('home.step2.submit') }}">
+            @csrf
+            <div class="flex justify-between items-center ">
+                <h2 class="text-3xl  text-[#2679b5]">Step 2: Home</h2>
+                <div class="flex justify-end gap-4 mt-4">
+                    <!-- Back Button -->
+                    <button type="button" id="backBtn"
+                        class="bg-[#428bca] hover:bg-blue-600 text-white px-3  rounded border">
+                        Add/Edit Locations
+                    </button>
+
+                    <!-- Next Button -->
+                    <button type="submit" class="bg-[#87b87f] hover:bg-lime-700 text-white px-6 py-2 rounded border">
+                        Add/Edit Shift Types
+                    </button>
+                </div>
             </div>
+            <h2 class="text-2xl text-[#2679b5] mt-2">Locations:</h2>
 
             @foreach ($locations as $location)
-                <div class="border border-gray-300 rounded p-4 mb-4">
+                <div class="border border-gray-300 rounded  mt-2 mb-6 bg-gray-100">
                     <!-- Location Header -->
-                    <div class="cursor-pointer" onclick="toggleForm('{{ $location->id }}')">
-                        <div class="flex justify-between items-center ">
-                            <h3 class="text-lg font-semibold">{{ $location->name }}</h3>
+                    <div class="cursor-pointer p-2" onclick="toggleForm('{{ $location->id }}')">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-lg text-[#2679b5] ">{{ $location->name }}</h3>
                             <span id="arrow_{{ $location->id }}" class="text-sm text-gray-500">
                                 <!-- Down arrow by default -->
                                 <i class="fas fa-chevron-down"></i>
@@ -35,15 +39,16 @@
 
                     <!-- Hidden Form -->
                     <div id="form_{{ $location->id }}"
-                        class="overflow-hidden max-h-0 transition-all duration-300 ease-in-out mt-4">
+                        class="overflow-hidden max-h-0 transition-all duration-700 ease-in-out bg-white ">
                         <!-- Shift Types Dropdown -->
                         <div>
                             <div class="flex justify-between items-center">
-                                <label for="shiftTypes_{{ $location->id }}" class="block text-sm font-medium mb-1">Select
+                                <label for="shiftTypes_{{ $location->id }}"
+                                    class="block text-sm  mb-1 text-[#2679b5]">Select
                                     Shift
                                     Types</label>
                                 <button type="button"
-                                    class="bg-blue-500 text-white mb-1 px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 mt-2 add-shift-type-btn"
+                                    class="bg-[#428bca] text-white mb-1 px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 mt-2 add-shift-type-btn"
                                     data-location-id="{{ $location->id }}">
                                     Add Shift Type
                                 </button>
@@ -57,7 +62,7 @@
 
                         <!-- Date Range Input -->
                         <div class="mt-4">
-                            <label for="dateRange_{{ $location->id }}" class="block text-sm font-medium mb-1">Date
+                            <label for="dateRange_{{ $location->id }}" class="block text-sm text-[#2679b5] mb-1">Date
                                 Range</label>
                             <input type="text" id="dateRange_{{ $location->id }}"
                                 name="date_range[{{ $location->id }}]"
@@ -67,15 +72,15 @@
                         </div>
                         <div class="flex justify-end mt-4">
                             <button type="button" id="saveBtn_{{ $location->id }}"
-                                class="bg-blue-600 text-white px-4 py-2 rounded">
+                                class="bg-[#337ab7] text-white px-4 py-2 rounded">
                                 Continue to details
 
                                 <i class="fas fa-check ml-2 hidden" id="checkIcon_{{ $location->id }}"></i>
                             </button>
                         </div>
                         <!-- New Shift Details Section -->
-                        <div class="mt-4 border p-2 rounded bg-gray-50 hidden" id="batchForm_{{ $location->id }}">
-                            <h3 class="text-lg font-semibold mb-2">Shift Details</h3>
+                        <div class="mt-4 border  rounded  hidden" id="batchForm_{{ $location->id }}">
+                            <h3 class="text-lg text-[#2679b5] mb-2 bg-gray-100 p-2">Shift Details</h3>
                             {{-- <div class="flex flex-wrap gap-4 items-end">
                                 <div class="flex flex-wrap gap-4 w-full">
                                     <!-- Shift Type Dropdown -->
@@ -134,7 +139,7 @@
                                 </div>
                             </div> --}}
 
-                            <div class="mb-4 mt-2 flex items-center gap-4">
+                            <div class="mb-4 mt-2 flex items-center gap-4 p-2">
                                 <label>Filter by Day:</label>
                                 <select id="filterDay_{{ $location->id }}" class="border rounded px-2 py-1">
                                     <option value="">All</option>
@@ -160,6 +165,8 @@
                                     <tr>
                                         <th class="border px-2 py-1">Day</th>
                                         <th class="border px-2 py-1">Shift Type</th>
+                                        <th class="border px-2 py-1">Date Range</th>
+
                                         <th class="border px-2 py-1">From</th>
                                         <th class="border px-2 py-1">To</th>
                                         <th class="border px-2 py-1"># Employees</th>
@@ -179,20 +186,24 @@
                 <!-- Modal for Batch Form -->
                 <div id="batchFormModal_{{ $location->id }}"
                     class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
-                    <div class="bg-white rounded-lg shadow-lg w-3/4 max-w-4xl p-6 relative">
-                        <!-- Close Button -->
-                        <button type="button" id="closeBatchFormModal_{{ $location->id }}"
-                            class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">
-                            &times;
-                        </button>
+                    <div class="relative bg-white rounded-lg shadow-lg w-3/4 max-w-4xl p-6">
 
-                        <!-- Batch Form Content -->
-                        <h3 class="text-lg font-semibold mb-4">Batch Form</h3>
+                        <div class=" ">
+                            <!-- Close Button -->
+                            <button type="button" id="closeBatchFormModal_{{ $location->id }}"
+                                class="absolute text-3xl top-2 right-2 text-gray-500 hover:text-gray-700">
+                                &times;
+                            </button>
+
+                            <!-- Batch Form Content -->
+                            <h3 class=" text-lg mb-4 text-[#2679b5]">Batch Form</h3>
+                        </div>
+
                         <div class="flex flex-wrap gap-4 items-end">
                             <div class="flex flex-wrap gap-4 w-full">
                                 <!-- Shift Type Dropdown -->
                                 <div class="flex-1">
-                                    <label class="block mb-1 font-semibold">Shift Type</label>
+                                    <label class="block mb-1  text-[#2679b5]">Shift Type</label>
                                     <select id="batchShiftType_{{ $location->id }}"
                                         class="border rounded px-2 py-1 w-full">
                                         <option value="">Select</option>
@@ -202,21 +213,21 @@
 
                                 <!-- From Time -->
                                 <div class="flex-1">
-                                    <label class="block mb-1 font-semibold">From</label>
+                                    <label class="block mb-1  text-[#2679b5]">From</label>
                                     <input type="time" id="batchFrom_{{ $location->id }}"
                                         class="border rounded px-2 py-1 w-full" />
                                 </div>
 
                                 <!-- To Time -->
                                 <div class="flex-1">
-                                    <label class="block mb-1 font-semibold">To</label>
+                                    <label class="block mb-1  text-[#2679b5]">To</label>
                                     <input type="time" id="batchTo_{{ $location->id }}"
                                         class="border rounded px-2 py-1 w-full" />
                                 </div>
 
                                 <!-- Number of Employees -->
                                 <div class="flex-1">
-                                    <label class="block mb-1 font-semibold"># Employees</label>
+                                    <label class="block mb-1  text-[#2679b5]"># Employees</label>
                                     <input type="number" id="batchEmployees_{{ $location->id }}"
                                         class="border rounded px-2 py-1 w-full" min="1" value="1" />
                                 </div>
@@ -224,14 +235,14 @@
 
                             <!-- Days Multi-select -->
                             <div class="w-full flex flex-col">
-                                <label class="block font-semibold">Days</label>
-                                <div id="daysButtonsContainer" class="flex gap-2 mb-2">
+                                <label class="block text-[#2679b5]">Days</label>
+                                <div id="daysButtonsContainer" class="flex gap-1 mb-1 mt-2">
                                     <button type="button" id="weekdaysBtn_{{ $location->id }}"
-                                        class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">Weekdays</button>
+                                        class="btn bg-[#428bca] hover:bg-[#337ab7] text-white   py-1 px-2 rounded">Weekdays</button>
                                     <button type="button" id="weekendsBtn_{{ $location->id }}"
-                                        class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">Weekends</button>
+                                        class="btn bg-[#428bca] hover:bg-[#337ab7] text-white py-1 px-2 rounded">Weekends</button>
                                     <button type="button" id="allDaysBtn_{{ $location->id }}"
-                                        class="btn hover:bg-blue-500 hover:text-white text-black font-bold py-1 px-2 rounded">All
+                                        class="btn bg-[#428bca] hover:bg-[#337ab7] text-white   py-1 px-2 rounded">All
                                         Days</button>
                                 </div>
                                 <select id="batchDays_{{ $location->id }}" class="border rounded px-2 py-1 w-full"
@@ -244,8 +255,10 @@
                             <button type="button" id="cancelBatchFormBtn_{{ $location->id }}"
                                 class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
                             <button type="button" id="saveBatchFormBtn_{{ $location->id }}"
-                                class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+                                class="bg-[#87b87f] hover:bg-lime-700 text-white px-4 py-2 rounded">Save <i
+                                    class="fa-solid fa-arrow-right ml-1"></i></button>
                         </div>
+
                     </div>
                 </div>
             @endforeach

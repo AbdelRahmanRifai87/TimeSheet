@@ -3,10 +3,10 @@
 
 @section('content')
     <div class="max-w-5xl p-6 mx-auto px-10">
-        <h2 class="text-2xl font-bold mb-6">Step 1: Data Entry</h2>
+        <h2 class="text-2xl text-[#2679b5] mb-6">Step 1: Data Entry</h2>
 
         {{-- Editable Shift Types & Rates Table --}}
-        <h4 class="text-lg font-semibold mb-2">Shift Types & Rates</h4>
+        <h4 class="text-lg  text-[#2679b5]  mb-2">Shift Types & Rates</h4>
         <form id="shiftRatesForm" class="mb-8">
             <div class="overflow-x-auto rounded-lg shadow w-full border">
                 <table class="min-w-full bg-white border border-gray-200 w-full" id="shiftRatesTable">
@@ -15,13 +15,13 @@
                             <th class="px-2 py-2 border-b border text-left">Shift Type</th>
                             <th class="px-4 py-2 border-b border text-left">Description</th>
                             @foreach ($dayTypes as $dayType)
-                                <th class="px-4 py-2 border-b border text-left">{{ $dayType->name }} Rate</th>
+                                <th class="px-4 py-2 border-b border text-left">{{ ucfirst($dayType->name) }} Rate</th>
                             @endforeach
-                            <th class="px-4 py-2 border-b border text-left">Actions</th>
+                            <th class="px-2 py-1 border-b border text-left">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($shiftTypes as $shiftType)
+                        {{-- @foreach ($shiftTypes as $shiftType)
                             <tr data-id="{{ $shiftType->id }}" class="hover:bg-gray-50 border">
                                 <td class="px-4 py-2 border-b border"><input type="text" name="shift_type_name[]"
                                         class="form-input w-full border border-gray-300 rounded px-3 py-2"
@@ -43,15 +43,15 @@
                                         class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs border remove-shift">Remove</button>
                                 </td>
                             </tr>
-                        @endforeach
+                        @endforeach --}}
                     </tbody>
                 </table>
             </div>
             <div class="flex gap-2 mt-4">
-                <button type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded border"
+                <button type="button" class="bg-[#428bca] hover:bg-blue-700 text-white px-4 py-2 rounded border"
                     id="addShiftType">Add Shift Type</button>
                 <button type="button"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 border"
+                    class="bg-[#87b87f] hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 border"
                     id="saveShiftRates">
                     <span>Save Shift Types & Rates</span>
                     <svg id="saveLoadingSpinner" class="hidden animate-spin h-5 w-5 text-white"
@@ -69,7 +69,7 @@
 
 
         {{-- Locations Table --}}
-        <h4 class="text-lg font-semibold mb-2">Locations</h4>
+        <h4 class="text-2xl text-[#2679b5] mb-3">Locations</h4>
         <div class="overflow-x-auto rounded-lg shadow mb-8 border">
             <table class="min-w-full bg-white border border-gray-200" id="locationsTable">
                 <thead class="bg-gray-100">
@@ -82,7 +82,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($locations as $location)
+                    {{-- @foreach ($locations as $location)
                         <tr data-id="{{ $location->id }}" class="hover:bg-gray-50 border">
                             <td class="px-4 py-2 border-b border">{{ $location->name }}</td>
                             <td class="px-4 py-2 border-b border">{{ $location->address }}</td>
@@ -92,7 +92,7 @@
                                     class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs border remove-location">Remove</button>
                             </td>
                         </tr>
-                    @endforeach
+                    @endforeach --}}
                 </tbody>
             </table>
         </div>
@@ -102,7 +102,7 @@
 
         {{-- Flex row for button and any other controls --}}
         <div class="flex items-center gap-4 mb-4">
-            <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded border"
+            <button type="button" class="bg-[#428bca] hover:bg-blue-700 text-white px-4 py-2 rounded border"
                 id="showLocationModal">
                 Add New Location
             </button>
@@ -185,8 +185,8 @@
 
 
         {{-- Next Step Button --}}
-        <a href="#" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded border"
-            id="nextStepBtn">Next</a>
+        <a href="#" class="bg-[#87b87f] hover:bg-green-700 text-white px-6 py-2 rounded border"
+            id="nextStepBtn">Next <i class="fa-solid fa-arrow-right ml-1"></i></a>
     </div>
 
 
