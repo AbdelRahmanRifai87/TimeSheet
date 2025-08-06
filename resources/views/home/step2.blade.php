@@ -3,15 +3,14 @@
 
 @section('content')
     <div class="w-[70%] ml-[20%] p-6 overflow-y-auto bg-white-100">
-
-        <form id="step2Form" class="" method="POST" action="{{ route('home.step2.submit') }}">
-            @csrf
-            <div class="flex justify-between items-center ">
-                <h2 class="text-3xl  text-[#2679b5]">Step 2: Home</h2>
-                <div class="flex justify-end gap-4 mt-4">
+    <form id="step2Form" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
+        @csrf
+        <div class="flex justify-end gap-4 mt-4">
+            <!-- Back Button -->
+             <div class="flex gap justify-end gap-4 ">
                     <!-- Back Button -->
                     <button type="button" id="backBtn"
-                        class="bg-[#428bca] hover:bg-blue-600 text-white px-3  rounded border">
+                        class="bg-[#428bca] hover:bg-blue-600 text-white px-3 rounded border">
                         Add/Edit Locations
                     </button>
 
@@ -20,6 +19,7 @@
                         Add/Edit Shift Types
                     </button>
                 </div>
+            </div>
             </div>
             <h2 class="text-2xl text-[#2679b5] mt-2">Locations:</h2>
 
