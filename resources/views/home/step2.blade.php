@@ -41,46 +41,41 @@
                     <div id="form_{{ $location->id }}"
                         class="overflow-hidden max-h-0 transition-all duration-700 ease-in-out bg-white ">
                         <!-- Shift Types Dropdown -->
-                        <div>
-                            <div class="flex justify-between items-center">
-                                <label for="shiftTypes_{{ $location->id }}"
+
+                        <div class="flex justify-end items-center mr-5">
+                            {{-- <label for="shiftTypes_{{ $location->id }}"
                                     class="block text-sm  mb-1 text-[#2679b5]">Select
                                     Shift
-                                    Types</label>
-                                <button type="button"
-                                    class="bg-[#428bca] text-white mb-1 px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 mt-2 add-shift-type-btn"
-                                    data-location-id="{{ $location->id }}">
-                                    Add Shift Type
-                                </button>
-                            </div>
-                            <select id="shiftTypes_{{ $location->id }}" name="shift_types[{{ $location->id }}][]" multiple
+                                    Types</label> --}}
+
+                        </div>
+                        {{-- <select id="shiftTypes_{{ $location->id }}" name="shift_types[{{ $location->id }}][]" multiple
                                 class="form-multiselect w-full border border-gray-300 rounded px-3 py-2">
                                 <!-- Options will be loaded by JS -->
-                            </select>
-                            <div class="text-red-500 text-xs mt-1" id="shiftTypesError_{{ $location->id }}"></div>
-                        </div>
+                            </select> --}}
+                        {{-- <div class="text-red-500 text-xs mt-1" id="shiftTypesError_{{ $location->id }}"></div> --}}
 
-                        <!-- Date Range Input -->
+
+                        {{-- <!-- Date Range Input -->
                         <div class="mt-4">
                             <label for="dateRange_{{ $location->id }}" class="block text-sm text-[#2679b5] mb-1">Date
                                 Range</label>
-                            <input type="text" id="dateRange_{{ $location->id }}"
-                                name="date_range[{{ $location->id }}]"
+                            <input type="text" id="dateRange_{{ $location->id }}" name="date_range[{{ $location->id }}]"
                                 class="form-input w-full border border-gray-300 rounded px-3 py-2"
                                 placeholder="Select date range (YYYY-MM-DD to YYYY-MM-DD)">
                             <div class="text-red-500 text-xs mt-1" id="dateRangeError_{{ $location->id }}"></div>
-                        </div>
-                        <div class="flex justify-end mt-4">
+                        </div> --}}
+                        {{-- <div class="flex justify-end mt-4">
                             <button type="button" id="saveBtn_{{ $location->id }}"
                                 class="bg-[#337ab7] text-white px-4 py-2 rounded">
                                 Continue to details
 
                                 <i class="fas fa-check ml-2 hidden" id="checkIcon_{{ $location->id }}"></i>
                             </button>
-                        </div>
+                        </div> --}}
                         <!-- New Shift Details Section -->
-                        <div class="mt-4 border  rounded  hidden" id="batchForm_{{ $location->id }}">
-                            <h3 class="text-lg text-[#2679b5] mb-2 bg-gray-100 p-2">Shift Details</h3>
+                        <div class="mt-1   rounded mx-5  " id="batchForm_{{ $location->id }}">
+                            {{-- <h3 class="text-lg text-[#2679b5] mb-2 bg-gray-100 p-2">Shift Details</h3> --}}
                             {{-- <div class="flex flex-wrap gap-4 items-end">
                                 <div class="flex flex-wrap gap-4 w-full">
                                     <!-- Shift Type Dropdown -->
@@ -138,29 +133,37 @@
                                     </div>
                                 </div>
                             </div> --}}
+                            <div class="flex justify-between items-center mt-2 mr-5">
 
-                            <div class="mb-4 mt-2 flex items-center gap-4 p-2">
-                                <label>Filter by Day:</label>
-                                <select id="filterDay_{{ $location->id }}" class="border rounded px-2 py-1">
-                                    <option value="">All</option>
-                                    <option value="Mon">Monday</option>
-                                    <option value="Tue">Tuesday</option>
-                                    <option value="Wed">Wednesday</option>
-                                    <option value="Thu">Thursday</option>
-                                    <option value="Fri">Friday</option>
-                                    <option value="Sat">Saturday</option>
-                                    <option value="Sun">Sunday</option>
-                                </select>
-                                <label class="ml-4">Filter by Shift Type:</label>
-                                <select id="filterShiftType_{{ $location->id }}" class="border rounded px-2 py-1">
-                                    <option value="">All</option>
-                                    <!-- Shift types will be dynamically populated -->
-                                </select>
+
+                                <div class="  flex items-center gap-4 p-2">
+                                    <label>Filter by Day:</label>
+                                    <select id="filterDay_{{ $location->id }}" class="border rounded px-2 py-1">
+                                        <option value="">All</option>
+                                        <option value="Mon">Monday</option>
+                                        <option value="Tue">Tuesday</option>
+                                        <option value="Wed">Wednesday</option>
+                                        <option value="Thu">Thursday</option>
+                                        <option value="Fri">Friday</option>
+                                        <option value="Sat">Saturday</option>
+                                        <option value="Sun">Sunday</option>
+                                    </select>
+                                    <label class="ml-4">Filter by Shift Type:</label>
+                                    <select id="filterShiftType_{{ $location->id }}" class="border rounded px-2 py-1">
+                                        <option value="">All</option>
+                                        <!-- Shift types will be dynamically populated -->
+                                    </select>
+                                </div>
+                                <button type="button"
+                                    class="bg-[#428bca] text-white  px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400  add-shift-type-btn"
+                                    data-location-id="{{ $location->id }}">
+                                    Add Shift Type
+                                </button>
                             </div>
 
 
                             <!-- Shift Details Table -->
-                            <table class="min-w-full border mt-4" id="shiftTable_{{ $location->id }}">
+                            <table class="min-w-full border mt-1" id="shiftTable_{{ $location->id }}">
                                 <thead>
                                     <tr>
                                         <th class="border px-2 py-1">Day</th>

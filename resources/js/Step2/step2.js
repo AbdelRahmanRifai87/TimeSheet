@@ -110,16 +110,16 @@ function renderTable(locationId) {
     const uniqueRecords = [];
     const seen = new Set();
 
-    records[locationId].forEach((rec) => {
-        const recordKey = `${rec.day}-${rec.shiftType}-${rec.from}-${rec.to}`;
-        if (!seen.has(recordKey)) {
-            seen.add(recordKey);
-            uniqueRecords.push(rec);
-        }
-    });
+    // records[locationId].forEach((rec) => {
+    //     const recordKey = `${rec.day}-${rec.shiftType}-${rec.from}-${rec.to}`;
+    //     if (!seen.has(recordKey)) {
+    //         seen.add(recordKey);
+    //         uniqueRecords.push(rec);
+    //     }
+    // });
 
-    // Update the records array with unique records
-    records[locationId] = uniqueRecords;
+    // // Update the records array with unique records
+    // records[locationId] = uniqueRecords;
     const tbody = document.querySelector(`#shiftTable_${locationId} tbody`);
     tbody.innerHTML = "";
 
@@ -130,7 +130,7 @@ function renderTable(locationId) {
     );
     // Group records by shift type
     const groupedRecords = filteredRecords.reduce((acc, rec) => {
-        const key = `${rec.shiftType}-${rec.from}-${rec.to}-${rec.employees}`;
+        const key = `${rec.shiftType}-${rec.from}-${rec.to}-${rec.employees}-${rec.groupedId}`;
         if (!acc[key]) {
             acc[key] = { ...rec, days: [rec.day] }; // Initialize with the first day
         } else {
@@ -141,45 +141,41 @@ function renderTable(locationId) {
 
     Object.values(groupedRecords).forEach((rec, idx) => {
         const tr = document.createElement("tr");
+        tr.setAttribute("data-id", rec.groupedId); // Add the unique ID as a data attribute
+        console.log("the id in data-id attribute is", tr.dataset.id);
+        // Render all days, highlighting selected days in blue and others in gray
+        const allDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const dayCellContent = allDays
+            .map((day) =>
+                rec.days.includes(day)
+                    ? `<span class="inline-block bg-[#337ab7] text-white flex-1 day-label text-center px-2 py-1 rounded text-s ">${day}</span>`
+                    : `<span class="inline-block bg-gray-300 opacity-50 flex-1 day-label text-center px-2 py-1 rounded text-s ">${day}</span>`
+            )
+            .join("");
         tr.innerHTML = `
-            <td class="border px-2 py-1 align-top">
-            <div class=" w-full flex justify-around items-end">
-            ${rec.days
-                .map(
-                    (day) =>
-                        `<span class="inline-block bg-[#337ab7] text-white flex-1 text-center px-2 py-1 rounded text-s mr-2">${day}</span>`
-                )
-                .join("")}
-                </div>
+            <td class="border px-2 py-1 align-top w-[28%]">
+            <div class=" w-full flex flex-wrap justify-around items-end gap-2">
+            ${dayCellContent}</div>
+                   
                 </td>
-            <td class="border text-center leading-[180%] px-2 py-1 align-top">${
-                rec.shiftType
-            }</td>
-            <td class="border text-center leading-[180%] px-2 py-1 align-top">25-7-1 to 25-7-31</td>
+            <td class="border text-center leading-[180%] w-[15%] px-2 py-1 align-top">${rec.shiftType}</td>
+            <td class="border text-center leading-[180%] w-[15%] px-2 py-1 align-top">25-7-1 to 25-7-31</td>
 
-            <td class="border text-center leading-[180%] px-2 py-1 align-top">${
-                rec.from
-            }</td>
-            <td class="border text-center leading-[180%] px-2 py-1 align-top">${
-                rec.to
-            }</td>
-            <td class="border text-center leading-[180%] px-2 py-1 align-top">${
-                rec.employees
-            }</td>
-            <td class="border px-2 py-1 ">
+            <td class="border text-center leading-[180%] w-[10%] px-2 py-1 align-top">${rec.from}</td>
+            <td class="border text-center leading-[180%] w-[10%] px-2 py-1 align-top">${rec.to}</td>
+            <td class="border text-center leading-[180%] w-[10%] px-2 py-1 align-top">${rec.employees}</td>
+            <td class="border w-[7%] px-2 py-1 ">
             <div class="text-center flex justify-center items-start gap-3 align-top">
                 <!-- Add Button -->
                 <button type="button" class="text-green-600 add-row-btn" title="Add Row">
-                    <i class="fas fa-plus"></i>
+                    <i class="fa-solid fa-clone"></i>
                 </button>
 
                 <!-- Update Button -->
                 <button type="button" class="text-blue-600 update-row-btn" title="Update Row">
                     <i class="fas fa-edit text-yellow-600 "></i>
                 </button>
-                <button type="button" class="text-red-600 remove-record-btn" data-key="${
-                    rec.shiftType
-                }-${rec.from}-${rec.to}">
+                <button type="button" class="text-red-600 remove-record-btn" data-key="${rec.shiftType}-${rec.from}-${rec.to}">
                     <i class="fa-solid fa-trash-can text-[#cf4c3f]"></i>
                 </button></div>
             </td>
@@ -223,14 +219,6 @@ function renderTable(locationId) {
             }, {});
             console.log("Remaining records for shift type:", groupedRecords);
             console.log("the length of groupedRecords:", groupedRecords.length);
-            if (Object.keys(groupedRecords).length === 1) {
-                // Prevent deletion and show an error message
-                showToast(
-                    `Cannot delete the last record for shift type: ${shiftType}.`,
-                    "error"
-                );
-                return;
-            }
 
             records[locationId] = records[locationId].filter(
                 (rec) =>
@@ -250,137 +238,384 @@ function renderTable(locationId) {
     });
 }
 function addRow(locationId, clickedRow) {
-    // Get the values from the clicked row
-    const from = clickedRow.querySelector("td:nth-child(3)").textContent.trim();
-    const to = clickedRow.querySelector("td:nth-child(4)").textContent.trim();
-    const employees = clickedRow
-        .querySelector("td:nth-child(5)")
-        .textContent.trim();
+    // Get the `groupedId` of the clicked row to find its position in the `records` array
+    const groupedId = clickedRow.dataset.id;
 
-    // Validate that the required fields are filled
-    if (!from || !to || !employees || parseInt(employees, 10) <= 0) {
-        showToast(
-            "Please fill in the 'From', 'To', and '# Employees' fields by updating the row first.",
-            "error"
-        );
-        return; // Stop execution if validation fails
+    // Find the index of the record in the `records` array
+    const recordIndex = records[locationId].findIndex(
+        (rec) => rec.groupedId === groupedId
+    );
+
+    if (recordIndex === -1) {
+        console.error(`Record with groupedId ${groupedId} not found.`);
+        return;
     }
 
-    const distinctDays = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ];
-
-    // Get the shift type from the clicked row
+    // Get the values from the clicked row
+    const days = clickedRow.querySelector("td:nth-child(1)").textContent.trim();
     const shiftType = clickedRow
         .querySelector("td:nth-child(2)")
         .textContent.trim();
+    const dateRange = clickedRow
+        .querySelector("td:nth-child(3)")
+        .textContent.trim();
+    const from = clickedRow.querySelector("td:nth-child(4)").textContent.trim();
+    const to = clickedRow.querySelector("td:nth-child(5)").textContent.trim();
+    const employees = clickedRow
+        .querySelector("td:nth-child(6)")
+        .textContent.trim();
+    const selectedDays = Array.from(
+        clickedRow.querySelectorAll("td:nth-child(1) .day-label")
+    )
+        .filter((dayLabel) => dayLabel.classList.contains("bg-[#337ab7]"))
+        .map((dayLabel) => dayLabel.textContent.trim());
 
-    // Add a record for each day to the records array
-    distinctDays.forEach((day) => {
-        records[locationId].push({
-            day: day, // Add each day as a separate record
-            shiftType: shiftType, // Same shift type as the clicked row
-            from: "", // Empty from time
-            to: "", // Empty to time
-            employees: 0, // Default employees to 0
-        });
-    });
+    if (selectedDays.length === 0) {
+        console.warn(
+            "No selected days found. Check the row structure or class name."
+        );
+        console.log("Clicked Row:", clickedRow);
+        console.log(
+            "Day Labels:",
+            clickedRow.querySelectorAll("td:nth-child(1) .day-label")
+        );
+        return;
+    }
 
-    // Re-render the table to include the new row
+    // Generate a unique ID for the grouped records
+    const recordId = generateRecordId();
+
+    // Create the new record object
+    const newRecords = selectedDays.map((day) => ({
+        id: generateRecordId(), // Add the unique ID
+        groupedId: recordId, // Use the same ID for grouping
+        day,
+        shiftType,
+        from,
+        to,
+        employees,
+        dateRange,
+    }));
+
+    // Insert the new records directly after the clicked record in the `records` array
+    records[locationId].splice(recordIndex + 1, 0, ...newRecords);
+
+    console.log("Records after adding duplicate:", records[locationId]);
+
+    // Re-render the table to reflect the new record
     renderTable(locationId);
+
+    showToast("Row duplicated successfully!", "success");
 }
 function NewUpdateRow(locationId, clickedRow) {
+    clickedRow.classList.add("shadow-lg", "bg-gray-100");
+    clickedRow.style.boxShadow =
+        "0px 4px 6px rgba(0, 0, 0, 0.1), 0px -4px 6px rgba(0, 0, 0, 0.1), 4px 0px 6px rgba(0, 0, 0, 0.1), -4px 0px 6px rgba(0, 0, 0, 0.1)";
+    console.log("id of the clicked row is", clickedRow.dataset.id);
+    // Default values
+    const defaultShiftType = "Default";
+    const defaultDateRange = "25-1-1 to 25-1-30";
+    const defaultFrom = "00:00";
+    const defaultTo = "23:59";
+    const defaultEmployees = 1;
+
     // Unlock the row for editing
     const dayCell = clickedRow.querySelector("td:nth-child(1)");
     const shiftTypeCell = clickedRow.querySelector("td:nth-child(2)");
-    const fromCell = clickedRow.querySelector("td:nth-child(3)");
-    const toCell = clickedRow.querySelector("td:nth-child(4)");
-    const employeesCell = clickedRow.querySelector("td:nth-child(5)");
-    const actionsCell = clickedRow.querySelector("td:nth-child(6)");
+    const dateRangeCell = clickedRow.querySelector("td:nth-child(3)");
+
+    const fromCell = clickedRow.querySelector("td:nth-child(4)");
+    const toCell = clickedRow.querySelector("td:nth-child(5)");
+    const employeesCell = clickedRow.querySelector("td:nth-child(6)");
+    const actionsCell = clickedRow.querySelector("td:nth-child(7)");
+
+    // Extract previous values from the clicked row
+    const previousDays = Array.from(dayCell.querySelectorAll(".day-label"))
+        .filter((span) => span.classList.contains("bg-[#337ab7]")) // Check for selected styling
+        .map((span) => span.textContent.trim()); // Extract the text content of selected days
+    const previousShiftType = shiftTypeCell.textContent.trim();
+    const previousDateRange = dateRangeCell.textContent.trim();
+    const previousFrom = fromCell.textContent.trim();
+    const previousTo = toCell.textContent.trim();
+    const previousEmployees = employeesCell.textContent.trim();
+
+    const previousFormData = {
+        id: clickedRow.dataset.id, // Use the unique ID from the row
+        dayArray: previousDays,
+        shiftType: previousShiftType,
+        dateRange: previousDateRange,
+        fromTime: previousFrom,
+        toTime: previousTo,
+        employees: previousEmployees,
+    };
+    console.log("Previous Form Data:", previousFormData);
+
+    // Check if the row is still in its default state
+    const isDefaultRow =
+        previousShiftType === defaultShiftType &&
+        previousDateRange === defaultDateRange &&
+        previousFrom === defaultFrom &&
+        previousTo === defaultTo &&
+        parseInt(previousEmployees, 10) === defaultEmployees;
+
+    // Apply default values if the row is still default
+    const shiftType = isDefaultRow ? defaultShiftType : previousShiftType;
+    const dateRange = isDefaultRow ? defaultDateRange : previousDateRange;
+    const from = isDefaultRow ? defaultFrom : previousFrom;
+    const to = isDefaultRow ? defaultTo : previousTo;
+    const employees = isDefaultRow ? defaultEmployees : previousEmployees;
 
     // Days Cell: Render checkboxes for days
-    const days = ["Mon", "Tues", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    dayCell.innerHTML = days
-        .map(
-            (day) =>
-                `<label class="inline-block px-2 py-1 rounded cursor-pointer">
-                    <input type="checkbox" value="${day}" class="day-checkbox"> 
-                    <span class="day-label inline-block bg-gray-300 opacity-50 text-center px-2 py-1 rounded">${day}</span>
-                </label>`
-        )
-        .join("");
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-    // Add buttons for Weekdays, Weekends, and All Days
-    const buttons = `
-        <div class="mt-2">
-            <button type="button" class="btn-weekdays">Weekdays</button>
-            <button type="button" class="btn-weekends">Weekends</button>
-            <button type="button" class="btn-all-days">All Days</button>
-        </div>
-    `;
-    dayCell.innerHTML += buttons;
+    dayCell.innerHTML = ` <div class="flex flex-col gap-1 mt-2 items-start">    
+     <div class=" flex justify-center gap-2">
+        <button type="button" class="btn-weekdays bg-blue-400 hover:bg-blue-500 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300">Weekdays</button>
+        <button type="button" class="btn-weekends bg-blue-400 hover:bg-blue-500 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300">Weekends</button>
+        <button type="button" class="btn-all-days bg-blue-400 hover:bg-blue-500 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300">All Days</button>
+    </div>                
+    <div class=" w-full mb-3 flex flex-wrap gap-2 justify-between items-end">
+            ${days
+                .map(
+                    (day) =>
+                        `<span class="day-label ${
+                            previousDays.includes(day)
+                                ? "bg-[#337ab7] text-white"
+                                : "bg-gray-300 opacity-50"
+                        } inline-block flex-1 text-center px-2 py-1 rounded text-s  cursor-pointer">${day}</span>`
+                )
+                .join("")}</div>
+              
+    
+    </div>`;
+
+    // Add event listeners to day boxes to toggle styles
+    const dayBoxes = dayCell.querySelectorAll(".day-label");
+    dayBoxes.forEach((dayBox) => {
+        dayBox.addEventListener("click", () => {
+            if (dayBox.classList.contains("bg-[#337ab7]")) {
+                // Deselect the day (change to gray with low opacity)
+                dayBox.className =
+                    "day-label inline-block flex-1 bg-gray-300 opacity-50 text-center px-2 py-1 rounded cursor-pointer";
+            } else {
+                // Select the day (change to blue)
+                dayBox.className =
+                    "day-label inline-block flex-1 bg-[#337ab7] text-white text-center px-2 py-1 rounded cursor-pointer";
+            }
+        });
+    });
 
     // Shift Type Cell: Render dropdown
     shiftTypeCell.innerHTML = `
-        <select class="shift-type-dropdown">
-            ${shiftTypes
-                .map(
-                    (type) => `<option value="${type.id}">${type.name}</option>`
-                )
-                .join("")}
+       <select class="shift-type-dropdown w-full border rounded px-2 py-1">
+           ${shiftTypes
+               .map(
+                   (type) =>
+                       `<option value="${type.id}" ${
+                           type.name === shiftType ? "selected" : ""
+                       }>${type.name}</option>`
+               )
+               .join("")}
         </select>
     `;
 
-    // From and To Cells: Render Flatpickr inputs
-    fromCell.innerHTML = `<input type="text" class="flatpickr-from" />`;
-    toCell.innerHTML = `<input type="text" class="flatpickr-to" />`;
+    // Date Range Cell: Render Flatpickr input
+    dateRangeCell.innerHTML = `<div class="flex justify-center w-full h-[100%] items-center gap-2">
+    <input type="text" class="flatpickr-date-range w-full text-center  border rounded px-2 py-1" value="${dateRange}"  />
+    </div   >`;
+    flatpickr(dateRangeCell.querySelector(".flatpickr-date-range"), {
+        mode: "range",
+        dateFormat: "y-m-d",
+        allowInput: true,
+        onClose: function (selectedDates, dateStr, instance) {
+            // Ensure at least two dates are selected
+            if (selectedDates.length === 2) {
+                const startDate = selectedDates[0];
+                const endDate = selectedDates[1];
 
-    flatpickr(fromCell.querySelector(".flatpickr-from"), {
-        enableTime: true,
-        noCalendar: true,
-        dateFormat: "H:i",
-        time_24hr: true,
+                // Calculate the difference in days
+                const diffInDays = Math.ceil(
+                    (endDate - startDate) / (1000 * 60 * 60 * 24)
+                );
+
+                // Check if the range is less than 7 days
+                if (diffInDays < 7) {
+                    showToast(
+                        "The selected date range must be at least 7 days.",
+                        "error"
+                    );
+
+                    // Clear the input field or reset the selection
+                    instance.clear();
+                }
+            }
+        },
     });
 
-    flatpickr(toCell.querySelector(".flatpickr-to"), {
+    let activeInput = null; // Track the currently active input field
+    console.log("Previous From:", previousFrom);
+
+    // From and To Cells: Render Flatpickr inputs
+    fromCell.innerHTML = `<div class="flex w-full mx-auto justify-center items-center gap-2">
+    <input type="number" class="flatpickr-from w-full  border text-center rounded px-2 py-1"  value="${from}" />
+
+    </div>`;
+    toCell.innerHTML = `<div class="flex justify-center w-full items-center gap-2">
+    <input type="text" class="flatpickr-to w-full text-center border rounded px-2 py-1" value="${to}" />
+
+    </div>`;
+
+    const fromFlatpickr = flatpickr(fromCell.querySelector(".flatpickr-from"), {
         enableTime: true,
         noCalendar: true,
         dateFormat: "H:i",
         time_24hr: true,
+        scrollInput: true,
+        onOpen: function (selectedDates, dateStr, instance) {
+            // Add instruction below the Flatpickr popup
+            const instruction = document.createElement("div");
+            instruction.className =
+                "flatpickr-instruction text-xs text-gray-500 mt-2";
+            instruction.textContent = "Click on hours or minutes and scroll";
+            instance.calendarContainer.appendChild(instruction);
+            // Prevent background scrolling when Flatpickr is open
+            document.body.style.overflow = "hidden";
+        },
+        onClose: function (selectedDates, dateStr, instance) {
+            // Remove the instruction when the popup closes
+            const instruction = instance.calendarContainer.querySelector(
+                ".flatpickr-instruction"
+            );
+            if (instruction) {
+                instruction.remove();
+            }
+            // Restore background scrolling when Flatpickr is closed
+            document.body.style.overflow = "";
+        },
+        defaultDate: previousFrom,
+    });
+
+    const toFlatpickr = flatpickr(toCell.querySelector(".flatpickr-to"), {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+        time_24hr: true,
+        onOpen: function (selectedDates, dateStr, instance) {
+            // Add instruction below the Flatpickr popup
+            const instruction = document.createElement("div");
+            instruction.className =
+                "flatpickr-instruction text-xs text-gray-500 mt-2";
+            instruction.textContent = "Click on hours or minutes and scroll .";
+            instance.calendarContainer.appendChild(instruction);
+            // Prevent background scrolling when Flatpickr is open
+            document.body.style.overflow = "hidden";
+        },
+        onClose: function (selectedDates, dateStr, instance) {
+            // Remove the instruction when the popup closes
+            const instruction = instance.calendarContainer.querySelector(
+                ".flatpickr-instruction"
+            );
+            if (instruction) {
+                instruction.remove();
+            }
+            // Restore background scrolling when Flatpickr is closed
+            document.body.style.overflow = "";
+        },
+        defaultDate: previousTo,
+    });
+    // Add focus event listeners to track the active input field
+    fromCell.querySelector(".flatpickr-from").addEventListener("focus", (e) => {
+        activeInput = e.target; // Set the active input field
+    });
+    toCell.querySelector(".flatpickr-to").addEventListener("focus", (e) => {
+        activeInput = e.target; // Set the active input field
+    });
+
+    // Add blur event listeners to clear the active input field
+    fromCell.querySelector(".flatpickr-from").addEventListener("blur", () => {
+        activeInput = null; // Clear the active input field
+    });
+    toCell.querySelector(".flatpickr-to").addEventListener("blur", () => {
+        activeInput = null; // Clear the active input field
+    });
+
+    // Global wheel event listener to update the active input field
+    document.addEventListener("wheel", (e) => {
+        if (!activeInput) return; // If no active input, do nothing
+
+        e.preventDefault(); // Prevent page scrolling
+        const currentValue = activeInput.value.split(":"); // Split the value into hours and minutes
+        let hours = parseInt(currentValue[0] || "0", 10);
+        let minutes = parseInt(currentValue[1] || "0", 10);
+
+        if (e.shiftKey) {
+            // Scroll affects minutes when Shift key is pressed
+            minutes = e.deltaY < 0 ? minutes + 1 : minutes - 1;
+            if (minutes >= 60) {
+                minutes = 0;
+                hours = hours + 1;
+            } else if (minutes < 0) {
+                minutes = 59;
+                hours = hours - 1;
+            }
+        } else {
+            // Scroll affects hours by default
+            hours = e.deltaY < 0 ? hours + 1 : hours - 1;
+        }
+
+        // Ensure the value stays within the valid range
+        if (hours >= 0 && hours <= 23) {
+            activeInput.value = `${String(hours).padStart(2, "0")}:${String(
+                minutes
+            ).padStart(2, "0")}`;
+            if (activeInput.classList.contains("flatpickr-from")) {
+                fromFlatpickr.setDate(activeInput.value, true); // Update Flatpickr value
+            } else if (activeInput.classList.contains("flatpickr-to")) {
+                toFlatpickr.setDate(activeInput.value, true); // Update Flatpickr value
+            }
+        }
     });
 
     // Employees Cell: Render number input
-    employeesCell.innerHTML = `<input type="number" class="employees-input" min="1" value="1" />`;
+    employeesCell.innerHTML = `<div class="flex w-full  justify-center items-center ">
+    <input type="number" class="employees-input w-full border text-center rounded px-2 py-1" min="1" value="${
+        employees || 1
+    }" step="1"  />
+    </div>`;
+    // Add wheel event listener for scrolling functionality
+    const employeesInput = employeesCell.querySelector(".employees-input");
+    employeesInput.addEventListener("wheel", (e) => {
+        e.preventDefault(); // Prevent page scrolling
+        const currentValue = parseInt(employeesInput.value || "1", 10);
+        const newValue = e.deltaY < 0 ? currentValue + 1 : currentValue - 1;
+
+        // Ensure the value stays within the valid range (minimum 1)
+        if (newValue >= 1) {
+            employeesInput.value = newValue;
+        }
+    });
 
     // Actions Cell: Add Confirm button
     actionsCell.innerHTML = `
-        <button type="button" class="btn-confirm">Confirm</button>
-    `;
+    <div class="flex justify-center items-center gap-2">
+        <button type="button" class="btn-confirm bg-[#87b87f] hover:bg-lime-700 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300"><i class="fas fa-check"></i></button>
+        <button type="button" class="btn-cancel bg-red-500 hover:bg-red-600 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300"><i class="fas fa-times"></i></button>
+    </div>
+`;
 
     // Add event listeners for buttons
     const weekdaysBtn = dayCell.querySelector(".btn-weekdays");
     const weekendsBtn = dayCell.querySelector(".btn-weekends");
     const allDaysBtn = dayCell.querySelector(".btn-all-days");
     const confirmBtn = actionsCell.querySelector(".btn-confirm");
+    const cancelBtn = actionsCell.querySelector(".btn-cancel");
 
     weekdaysBtn.addEventListener("click", () => {
-        NewselectDays(dayCell, [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-        ]);
+        NewselectDays(dayCell, ["Mon", "Tue", "Wed", "Thu", "Fri"]);
     });
 
     weekendsBtn.addEventListener("click", () => {
-        NewselectDays(dayCell, ["Saturday", "Sunday"]);
+        NewselectDays(dayCell, ["Sat", "Sun"]);
     });
 
     allDaysBtn.addEventListener("click", () => {
@@ -388,53 +623,194 @@ function NewUpdateRow(locationId, clickedRow) {
     });
 
     confirmBtn.addEventListener("click", () => {
-        saveRowEdits(locationId, clickedRow);
+        saveRowEdits(locationId, previousFormData, clickedRow);
+    });
+    cancelBtn.addEventListener("click", () => {
+        // Restore the row to its original state
+        dayCell.innerHTML = previousDays
+            .map(
+                (day) =>
+                    `<span class="inline-block bg-[#337ab7] text-white text-center px-2 py-1 rounded">${day}</span>`
+            )
+            .join("");
+
+        shiftTypeCell.textContent = previousShiftType;
+        dateRangeCell.textContent = previousDateRange;
+        fromCell.textContent = previousFrom;
+        toCell.textContent = previousTo;
+        employeesCell.textContent = previousEmployees;
+
+        // Remove the shadow and background color added during editing
+        clickedRow.classList.remove("shadow-lg", "bg-gray-100");
+        renderTable(locationId); // Re-render the table to reflect changes
     });
 }
 
 function NewselectDays(dayCell, days) {
-    const checkboxes = dayCell.querySelectorAll(".day-checkbox");
-    checkboxes.forEach((checkbox) => {
-        checkbox.checked = days.includes(checkbox.value);
+    const dayBoxes = dayCell.querySelectorAll(".day-label");
+    dayBoxes.forEach((dayBox) => {
+        if (days.includes(dayBox.textContent)) {
+            // Select the day (change to blue)
+            dayBox.className =
+                "day-label inline-block flex-1 bg-[#337ab7] text-white text-center px-2 py-1 rounded cursor-pointer";
+        } else {
+            // Deselect the day (change to gray with low opacity)
+            dayBox.className =
+                "day-label inline-block flex-1 bg-gray-300 opacity-50 text-center px-2 py-1 rounded cursor-pointer";
+        }
     });
 }
 
-function saveRowEdits(locationId, clickedRow) {
+function saveRowEdits(locationId, previousFormData, clickedRow) {
     const dayCell = clickedRow.querySelector("td:nth-child(1)");
     const shiftTypeCell = clickedRow.querySelector("td:nth-child(2)");
-    const fromCell = clickedRow.querySelector("td:nth-child(3)");
-    const toCell = clickedRow.querySelector("td:nth-child(4)");
-    const employeesCell = clickedRow.querySelector("td:nth-child(5)");
+    const dateRangeCell = clickedRow.querySelector("td:nth-child(3)");
 
-    const selectedDays = Array.from(dayCell.querySelectorAll(".day-checkbox"))
-        .filter((checkbox) => checkbox.checked)
-        .map((checkbox) => checkbox.value);
+    const fromCell = clickedRow.querySelector("td:nth-child(4)");
+    const toCell = clickedRow.querySelector("td:nth-child(5)");
+    const employeesCell = clickedRow.querySelector("td:nth-child(6)");
 
-    const shiftType = shiftTypeCell.querySelector(".shift-type-dropdown").value;
+    const selectedDays = Array.from(dayCell.querySelectorAll(".day-label"))
+        .filter((dayLabel) => dayLabel.classList.contains("bg-[#337ab7]"))
+        .map((dayLabel) => dayLabel.textContent.trim());
+
+    const shiftTypeId = shiftTypeCell.querySelector(
+        ".shift-type-dropdown"
+    ).value;
+    const shiftType = getShiftTypeTextById(locationId, shiftTypeId);
+
+    const dateRange = dateRangeCell.querySelector(
+        ".flatpickr-date-range"
+    ).value;
     const from = fromCell.querySelector(".flatpickr-from").value;
     const to = toCell.querySelector(".flatpickr-to").value;
     const employees = employeesCell.querySelector(".employees-input").value;
+    console.log(`Saving edits for location ${locationId}:`, {
+        selectedDays,
+        shiftType,
+        from,
+        to,
+        employees,
+    });
+    const rowId = clickedRow.dataset.id; // Get the unique ID from the row
 
     // Validate inputs
-    if (!selectedDays.length || !shiftType || !from || !to || employees <= 0) {
+    if (
+        !selectedDays.length ||
+        !shiftType ||
+        !from ||
+        !to ||
+        employees <= 0 ||
+        !dateRange
+    ) {
         showToast("Please fill in all required fields.", "error");
         return;
     }
+    console.log("records before delete:", records[locationId]);
 
-    // Save the edits to the records array
+    // Delete records with the same previous data but different days
+    records[locationId] = records[locationId].filter((rec) => {
+        // Normalize values for comparison
+        const normalizedDay = rec.day.trim();
+        console.log("Normalized day:", normalizedDay);
+        // const normalizedShiftType = rec.shiftType.trim();
+        // const normalizedFrom = rec.from.trim();
+        // const normalizedTo = rec.to.trim();
+        // const normalizedEmployees = parseInt(rec.employees, 10);
+
+        // const previousShiftType = previousFormData.shiftType.trim();
+        // const previousFromTime = previousFormData.fromTime.trim();
+        // const previousToTime = previousFormData.toTime.trim();
+        // const previousEmployees = parseInt(previousFormData.employees, 10);
+
+        // const isSameData =
+        //     normalizedShiftType === previousShiftType &&
+        //     normalizedFrom === previousFromTime &&
+        //     normalizedTo === previousToTime &&
+        //     normalizedEmployees === previousEmployees;
+
+        // const isDifferentDay =
+        //     !selectedDays.includes(normalizedDay) && rowId !== rec.groupedId;
+        const toDelete =
+            rec.groupedId === rowId && !selectedDays.includes(normalizedDay);
+
+        // Keep the record if it doesn't match the previous data or has the same day
+        return !toDelete;
+    });
+    console.log("records after delete:", records[locationId]);
+
+    // Update the existing record in the `records` array
+
+    console.log("Previous form data:", previousFormData);
+    console.log("Selected days:", selectedDays);
     selectedDays.forEach((day) => {
-        records[locationId].push({
-            day,
-            shiftType,
-            from,
-            to,
-            employees,
+        console.log(`Updating record for day: ${day}`);
+        console.log("Records for location:", records[locationId]);
+
+        const existingRecord = records[locationId].find((rec) => {
+            // Normalize values for comparison
+            const normalizedDay = rec.day.trim();
+            const normalizedShiftType = rec.shiftType.trim();
+            const normalizedFrom = rec.from.trim();
+            const normalizedTo = rec.to.trim();
+            const normalizedEmployees = parseInt(rec.employees, 10);
+
+            const previousShiftType = previousFormData.shiftType.trim();
+            const previousFromTime = previousFormData.fromTime.trim();
+            const previousToTime = previousFormData.toTime.trim();
+            const previousEmployees = parseInt(previousFormData.employees, 10);
+
+            return (
+                normalizedDay === day &&
+                normalizedShiftType === previousShiftType &&
+                normalizedFrom === previousFromTime &&
+                normalizedTo === previousToTime &&
+                normalizedEmployees === previousEmployees
+            );
         });
+
+        console.log("Existing record found:", existingRecord);
+
+        if (existingRecord) {
+            // Update the existing record with new values
+            //update update the shift type
+            existingRecord.shiftType = shiftType;
+            existingRecord.dateRange = dateRange;
+            existingRecord.from = from;
+            existingRecord.to = to;
+            existingRecord.employees = employees;
+        } else {
+            // Add a new record for the updated day
+            records[locationId].push({
+                groupedId: rowId, // Use the unique ID from the previous form data
+                id: generateRecordId(), // Add the unique ID
+                day,
+                shiftType,
+                from,
+                to,
+                employees,
+                dateRange,
+            });
+            console.log("New record added:", {
+                groupedId: rowId,
+                id: generateRecordId(),
+                day,
+                shiftType,
+                from,
+                to,
+                employees,
+                dateRange,
+            });
+        }
     });
 
     // Re-render the table
     renderTable(locationId);
     showToast("Row updated successfully!", "success");
+}
+
+function generateRecordId() {
+    return `record_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 function updateRow(locationId, clickedRow) {
     const modal = document.getElementById(`batchFormModal_${locationId}`);
@@ -782,10 +1158,12 @@ function populateBatchShiftTypes(locationId) {
     batchShiftTypeSelect.innerHTML = ""; // Clear existing options
     filterShiftTypeSelect.innerHTML = `<option value="">All</option>`; // Clear and add "All" option
 
-    Array.from(shiftTypesSelect.selectedOptions).forEach((option) => {
+    console.log("Available shift types:", shiftTypes);
+
+    Array.from(shiftTypes).forEach((option) => {
         const opt = document.createElement("option");
-        opt.value = option.value;
-        opt.textContent = option.textContent;
+        opt.value = option.id;
+        opt.textContent = option.name;
         batchShiftTypeSelect.appendChild(opt);
 
         // Add to filter dropdown
@@ -796,23 +1174,28 @@ function populateBatchShiftTypes(locationId) {
     });
 }
 function getShiftTypeTextById(locationId, shiftTypeId) {
-    const shiftTypesSelect = document.getElementById(
-        `shiftTypes_${locationId}`
+    // const shiftTypesSelect = document.getElementById(
+    //     `shiftTypes_${locationId}`
+    // );
+    // if (!shiftTypesSelect) {
+    //     console.error(
+    //         `Shift types select element not found for location: ${locationId}`
+    //     );
+    //     return null;
+    // }
+    console.log(
+        `Getting shift type text for ID: ${shiftTypeId} at location: ${locationId} from these shift types:`,
+        shiftTypes
     );
-    if (!shiftTypesSelect) {
-        console.error(
-            `Shift types select element not found for location: ${locationId}`
-        );
-        return null;
-    }
 
     // Find the option with the matching value (ID)
-    const option = Array.from(shiftTypesSelect.options).find(
-        (opt) => opt.value === shiftTypeId
+    const option = Array.from(shiftTypes).find(
+        (shiftType) => String(shiftType.id) === String(shiftTypeId)
     );
+    console.log("Found option:", option);
 
     // Return the text content if found, otherwise return null
-    return option ? option.textContent : null;
+    return option ? option.name : null;
 }
 
 function addShift(locationId) {
@@ -913,6 +1296,36 @@ function addShift(locationId) {
 
     showToast("Shift added successfully!", "success");
     renderTable(locationId);
+}
+function addDefaultShiftRow(locationId) {
+    // Define default values
+    const defaultDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const defaultShiftType = "Default";
+    const defaultDateRange = "25-1-1 to 25-1-30";
+    const defaultFrom = "00:00";
+    const defaultTo = "23:59";
+    const defaultEmployees = 1;
+    const recordId = generateRecordId(); // Generate a unique ID
+
+    // Add a default record to the `records` array
+    defaultDays.forEach((day) => {
+        records[locationId].push({
+            groupedId: recordId,
+            id: generateRecordId(), // Add the unique ID
+            day,
+            shiftType: defaultShiftType,
+            from: defaultFrom,
+            to: defaultTo,
+            employees: defaultEmployees,
+            dateRange: defaultDateRange,
+        });
+    });
+    console.log("records after adding default shift row:", records[locationId]);
+
+    // Re-render the table to reflect the new record
+    renderTable(locationId);
+
+    showToast("Default shift row added successfully!", "success");
 }
 
 function openAddShiftTypeModal(locationId) {
@@ -1130,6 +1543,7 @@ async function loadStep2Options() {
     try {
         // Fetch shift types and locations from the API
         const locations = await apiService.getLocations();
+        console.log("Locations:", locations);
         console.log("shiftTyyuoes in loadStep2Options:", shiftTypes);
 
         // Iterate over each location to populate shift types
@@ -1137,6 +1551,23 @@ async function loadStep2Options() {
             const shiftTypesSelect = document.getElementById(
                 `shiftTypes_${location.id}`
             );
+            const filterShiftTypeSelect = document.getElementById(
+                `filterShiftType_${location.id}`
+            );
+
+            console.log("filterShiftTypeSelect:", filterShiftTypeSelect);
+
+            filterShiftTypeSelect.innerHTML = `<option value="">All</option>`; // Clear and add "All" option
+
+            console.log("Available shift types:", shiftTypes);
+
+            Array.from(shiftTypes).forEach((option) => {
+                // Add to filter dropdown
+                const filterOpt = document.createElement("option");
+                filterOpt.value = option.id;
+                filterOpt.textContent = option.name;
+                filterShiftTypeSelect.appendChild(filterOpt);
+            });
             const dateRangeInput = document.getElementById(
                 `dateRange_${location.id}`
             );
@@ -1743,43 +2174,53 @@ function initializeSaveButtons() {
     });
 }
 
-function saveBatchForm(locationId, previousFormData) {
+function saveBatchForm(locationId, previousFormData, clickedRow) {
+    console.log("Saving batch form for location:", locationId);
     // Get modal field values
-    const shiftTypeID = document.getElementById(
-        `batchShiftType_${locationId}`
-    ).value;
-    const shiftType = getShiftTypeTextById(locationId, shiftTypeID);
-    const from = document.getElementById(`batchFrom_${locationId}`).value;
-    const to = document.getElementById(`batchTo_${locationId}`).value;
-    const employees =
-        parseInt(
-            document.getElementById(`batchEmployees_${locationId}`).value,
-            10
-        ) || 0;
-    const selectedDays = Array.from(
-        document.getElementById(`batchDays_${locationId}`).selectedOptions
-    ).map((opt) => opt.value);
+    const shiftTypeCell = clickedRow.querySelector("td:nth-child(2)");
 
-    console.log("Selected data:", {
-        locationId,
+    const dayCell = clickedRow.querySelector("td:nth-child(1)");
+
+    const dateRangeCell = clickedRow.querySelector("td:nth-child(3)");
+
+    const fromCell = clickedRow.querySelector("td:nth-child(4)");
+    const toCell = clickedRow.querySelector("td:nth-child(5)");
+    const employeesCell = clickedRow.querySelector("td:nth-child(6)");
+
+    const selectedDays = Array.from(dayCell.querySelectorAll(".day-label"))
+        .filter((dayLabel) => dayLabel.classList.contains("bg-[#337ab7]"))
+        .map((dayLabel) => dayLabel.textContent.trim());
+
+    const shiftTypeId = shiftTypeCell.querySelector(
+        ".shift-type-dropdown"
+    ).value;
+    const shiftType = getShiftTypeTextById(locationId, shiftTypeId);
+    const dateRange = dateRangeCell.querySelector(
+        ".flatpickr-date-range"
+    ).value;
+    const from = fromCell.querySelector(".flatpickr-from").value;
+    const to = toCell.querySelector(".flatpickr-to").value;
+    const employees = employeesCell.querySelector(".employees-input").value;
+    console.log(`Saving edits for location ${locationId}:`, {
+        selectedDays,
         shiftType,
         from,
         to,
         employees,
-        selectedDays,
     });
 
-    // Validation
-    if (!shiftType || !from || !to || selectedDays.length === 0) {
+    // Validate inputs
+    if (
+        !selectedDays.length ||
+        !shiftType ||
+        !from ||
+        !to ||
+        employees <= 0 ||
+        !dateRange
+    ) {
         showToast("Please fill in all required fields.", "error");
         return;
     }
-
-    if (employees < 1) {
-        showToast("Number of employees must be at least 1.", "error");
-        return;
-    }
-
     // Check for duplicates before any operations
     const duplicateDays = [];
     selectedDays.forEach((day) => {
@@ -2216,7 +2657,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     addShiftTypeButtons.forEach((button) => {
         button.addEventListener("click", function () {
             const locationId = button.getAttribute("data-location-id");
-            openAddShiftTypeModal(locationId);
+            addDefaultShiftRow(locationId);
         });
     });
 
