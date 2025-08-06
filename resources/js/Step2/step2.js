@@ -120,6 +120,17 @@ function renderTable(locationId) {
 
     // // Update the records array with unique records
     // records[locationId] = uniqueRecords;
+    // Sort the records by `shiftType`
+    records[locationId].sort((a, b) => {
+        if (a.shiftType < b.shiftType) return -1;
+        if (a.shiftType > b.shiftType) return 1;
+        return 0;
+    });
+
+    console.log(
+        `Sorted records for location ${locationId}:`,
+        records[locationId]
+    );
     const tbody = document.querySelector(`#shiftTable_${locationId} tbody`);
     tbody.innerHTML = "";
 
@@ -148,7 +159,7 @@ function renderTable(locationId) {
         const dayCellContent = allDays
             .map((day) =>
                 rec.days.includes(day)
-                    ? `<span class="inline-block bg-[#337ab7] text-white flex-1 day-label text-center px-2 py-1 rounded text-s ">${day}</span>`
+                    ? `<span class="inline-block bg-[#337ab7] text-white flex-1 day-label text-center px-2 py-1 rounded text-s  ">${day}</span>`
                     : `<span class="inline-block bg-gray-300 opacity-50 flex-1 day-label text-center px-2 py-1 rounded text-s ">${day}</span>`
             )
             .join("");
@@ -159,7 +170,7 @@ function renderTable(locationId) {
                    
                 </td>
             <td class="border text-center leading-[180%] w-[15%] px-2 py-1 align-top">${rec.shiftType}</td>
-            <td class="border text-center leading-[180%] w-[15%] px-2 py-1 align-top">25-7-1 to 25-7-31</td>
+            <td class="border text-center leading-[180%] w-[15%] px-2 py-1 align-top">${rec.dateRange}</td>
 
             <td class="border text-center leading-[180%] w-[10%] px-2 py-1 align-top">${rec.from}</td>
             <td class="border text-center leading-[180%] w-[10%] px-2 py-1 align-top">${rec.to}</td>
@@ -201,39 +212,28 @@ function renderTable(locationId) {
     // Add event listeners for delete buttons
     tbody.querySelectorAll(".remove-record-btn").forEach((btn) => {
         btn.addEventListener("click", function () {
-            const key = btn.dataset.key;
-            const [shiftType, from, to] = key.split("-");
+            const clickedRow = this.closest("tr");
+            const recordId = clickedRow.getAttribute("data-id"); // Get the unique ID from the row
 
-            // Check if this is the last record for the shift type
-            const remainingRecords = records[locationId].filter(
-                (rec) => rec.shiftType === shiftType
-            );
-            const groupedRecords = remainingRecords.reduce((acc, rec) => {
-                const key = `${rec.from}-${rec.to}-${rec.employees}`;
-                if (!acc[key]) {
-                    acc[key] = { ...rec, days: [rec.day] }; // Initialize with the first day
-                } else {
-                    acc[key].days.push(rec.day); // Add the day to the existing group
-                }
-                return acc;
-            }, {});
-            console.log("Remaining records for shift type:", groupedRecords);
-            console.log("the length of groupedRecords:", groupedRecords.length);
-
+            // Remove the record from the `records` array
             records[locationId] = records[locationId].filter(
-                (rec) =>
-                    !(
-                        rec.shiftType === shiftType &&
-                        rec.from === from &&
-                        rec.to === to
-                    )
+                (rec) => rec.groupedId !== recordId
             );
+
+            console.log(`Record with ID ${recordId} removed.`);
+            console.log("Updated records:", records[locationId]);
+
+            // Remove the row from the table
+            clickedRow.remove();
+
             // Update localStorage after removing the record
             localStorage.setItem(
                 `records_${locationId}`,
                 JSON.stringify(records[locationId])
             );
-            renderTable(locationId); // Re-render the table
+
+            // Optionally re-render the table to reflect changes
+            renderTable(locationId);
         });
     });
 }
@@ -308,6 +308,8 @@ function addRow(locationId, clickedRow) {
     showToast("Row duplicated successfully!", "success");
 }
 function NewUpdateRow(locationId, clickedRow) {
+    const rowId = clickedRow.dataset.id; // Get the unique ID of the row
+
     clickedRow.classList.add("shadow-lg", "bg-gray-100");
     clickedRow.style.boxShadow =
         "0px 4px 6px rgba(0, 0, 0, 0.1), 0px -4px 6px rgba(0, 0, 0, 0.1), 4px 0px 6px rgba(0, 0, 0, 0.1), -4px 0px 6px rgba(0, 0, 0, 0.1)";
@@ -381,8 +383,8 @@ function NewUpdateRow(locationId, clickedRow) {
                         `<span class="day-label ${
                             previousDays.includes(day)
                                 ? "bg-[#337ab7] text-white"
-                                : "bg-gray-300 opacity-50"
-                        } inline-block flex-1 text-center px-2 py-1 rounded text-s  cursor-pointer">${day}</span>`
+                                : "bg-gray-300 opacity-50 hover:shadow-md hover:text-blue-500"
+                        } inline-block flex-1 text-center px-2 py-1 rounded text-s  cursor-pointer border hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white  box-border transition duration-300">${day}</span>`
                 )
                 .join("")}</div>
               
@@ -396,11 +398,11 @@ function NewUpdateRow(locationId, clickedRow) {
             if (dayBox.classList.contains("bg-[#337ab7]")) {
                 // Deselect the day (change to gray with low opacity)
                 dayBox.className =
-                    "day-label inline-block flex-1 bg-gray-300 opacity-50 text-center px-2 py-1 rounded cursor-pointer";
+                    "day-label inline-block flex-1 bg-gray-300 opacity-50 text-center px-2 py-1 rounded cursor-pointer border hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white  box-border transition duration-300";
             } else {
                 // Select the day (change to blue)
                 dayBox.className =
-                    "day-label inline-block flex-1 bg-[#337ab7] text-white text-center px-2 py-1 rounded cursor-pointer";
+                    "day-label inline-block flex-1 bg-[#337ab7] text-white text-center px-2 py-1 rounded cursor-pointer border hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white  box-border transition duration-300";
             }
         });
     });
@@ -470,6 +472,7 @@ function NewUpdateRow(locationId, clickedRow) {
         noCalendar: true,
         dateFormat: "H:i",
         time_24hr: true,
+        minuteIncrement: 15,
         scrollInput: true,
         onOpen: function (selectedDates, dateStr, instance) {
             // Add instruction below the Flatpickr popup
@@ -499,6 +502,7 @@ function NewUpdateRow(locationId, clickedRow) {
         enableTime: true,
         noCalendar: true,
         dateFormat: "H:i",
+        minuteIncrement: 15,
         time_24hr: true,
         onOpen: function (selectedDates, dateStr, instance) {
             // Add instruction below the Flatpickr popup
@@ -525,32 +529,40 @@ function NewUpdateRow(locationId, clickedRow) {
     });
     // Add focus event listeners to track the active input field
     fromCell.querySelector(".flatpickr-from").addEventListener("focus", (e) => {
+        console.log("Focus on from input");
         activeInput = e.target; // Set the active input field
     });
     toCell.querySelector(".flatpickr-to").addEventListener("focus", (e) => {
+        console.log("Focus on to input");
         activeInput = e.target; // Set the active input field
     });
 
     // Add blur event listeners to clear the active input field
     fromCell.querySelector(".flatpickr-from").addEventListener("blur", () => {
+        console.log("Blur on from input");
         activeInput = null; // Clear the active input field
     });
     toCell.querySelector(".flatpickr-to").addEventListener("blur", () => {
+        console.log("Blur on to input");
         activeInput = null; // Clear the active input field
     });
 
-    // Global wheel event listener to update the active input field
+    // // Global wheel event listener to update the active input field
     document.addEventListener("wheel", (e) => {
         if (!activeInput) return; // If no active input, do nothing
+        console.log("Active input:", activeInput);
 
         e.preventDefault(); // Prevent page scrolling
+        console.log("Wheel event detected on active input");
         const currentValue = activeInput.value.split(":"); // Split the value into hours and minutes
         let hours = parseInt(currentValue[0] || "0", 10);
         let minutes = parseInt(currentValue[1] || "0", 10);
+        console.log("Current hours:", hours, "Current minutes:", minutes);
 
         if (e.shiftKey) {
             // Scroll affects minutes when Shift key is pressed
-            minutes = e.deltaY < 0 ? minutes + 1 : minutes - 1;
+            console.log("Shift key pressed, adjusting minutes");
+            minutes += scrollDirection * 15;
             if (minutes >= 60) {
                 minutes = 0;
                 hours = hours + 1;
@@ -597,9 +609,9 @@ function NewUpdateRow(locationId, clickedRow) {
 
     // Actions Cell: Add Confirm button
     actionsCell.innerHTML = `
-    <div class="flex justify-center items-center gap-2">
-        <button type="button" class="btn-confirm bg-[#87b87f] hover:bg-lime-700 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300"><i class="fas fa-check"></i></button>
-        <button type="button" class="btn-cancel bg-red-500 hover:bg-red-600 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300"><i class="fas fa-times"></i></button>
+      <div class="flex justify-center items-center gap-2">
+        <button type="button" id="confirmBtn_${rowId}" class="btn-confirm bg-[#87b87f] hover:bg-lime-700 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300"><i class="fas fa-check"></i></button>
+        <button type="button" id="cancelBtn_${rowId}" class="btn-cancel bg-red-500 hover:bg-red-600 text-white font-medium px-2 py-1 rounded shadow-md transition duration-300"><i class="fas fa-times"></i></button>
     </div>
 `;
 
@@ -607,8 +619,8 @@ function NewUpdateRow(locationId, clickedRow) {
     const weekdaysBtn = dayCell.querySelector(".btn-weekdays");
     const weekendsBtn = dayCell.querySelector(".btn-weekends");
     const allDaysBtn = dayCell.querySelector(".btn-all-days");
-    const confirmBtn = actionsCell.querySelector(".btn-confirm");
-    const cancelBtn = actionsCell.querySelector(".btn-cancel");
+    const confirmBtn = document.getElementById(`confirmBtn_${rowId}`);
+    const cancelBtn = document.getElementById(`cancelBtn_${rowId}`);
 
     weekdaysBtn.addEventListener("click", () => {
         NewselectDays(dayCell, ["Mon", "Tue", "Wed", "Thu", "Fri"]);
@@ -630,7 +642,7 @@ function NewUpdateRow(locationId, clickedRow) {
         dayCell.innerHTML = previousDays
             .map(
                 (day) =>
-                    `<span class="inline-block bg-[#337ab7] text-white text-center px-2 py-1 rounded">${day}</span>`
+                    `<span class="inline-block bg-[#337ab7] text-white text-center px-2 py-1 rounded border hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white  box-border transition duration-300">${day}</span>`
             )
             .join("");
 
@@ -652,11 +664,11 @@ function NewselectDays(dayCell, days) {
         if (days.includes(dayBox.textContent)) {
             // Select the day (change to blue)
             dayBox.className =
-                "day-label inline-block flex-1 bg-[#337ab7] text-white text-center px-2 py-1 rounded cursor-pointer";
+                "day-label inline-block flex-1 bg-[#337ab7] text-white text-center px-2 py-1 rounded cursor-pointer border hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white  box-border transition duration-300";
         } else {
             // Deselect the day (change to gray with low opacity)
             dayBox.className =
-                "day-label inline-block flex-1 bg-gray-300 opacity-50 text-center px-2 py-1 rounded cursor-pointer";
+                "day-label inline-block flex-1 bg-gray-300 opacity-50 text-center px-2 py-1 rounded cursor-pointer border hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white  box-border transition duration-300";
         }
     });
 }
@@ -691,6 +703,7 @@ function saveRowEdits(locationId, previousFormData, clickedRow) {
         from,
         to,
         employees,
+        dateRange,
     });
     const rowId = clickedRow.dataset.id; // Get the unique ID from the row
 
@@ -761,6 +774,7 @@ function saveRowEdits(locationId, previousFormData, clickedRow) {
             const previousEmployees = parseInt(previousFormData.employees, 10);
 
             return (
+                rec.groupedId === rowId && // Match the unique ID
                 normalizedDay === day &&
                 normalizedShiftType === previousShiftType &&
                 normalizedFrom === previousFromTime &&
@@ -782,8 +796,9 @@ function saveRowEdits(locationId, previousFormData, clickedRow) {
         } else {
             // Add a new record for the updated day
             records[locationId].push({
+                id: generateRecordId(),
                 groupedId: rowId, // Use the unique ID from the previous form data
-                id: generateRecordId(), // Add the unique ID
+                // Add the unique ID
                 day,
                 shiftType,
                 from,
