@@ -33,15 +33,21 @@ class AuthController extends Controller
             return back()->withErrors(['password' => 'Incorrect password.'])->withInput();
         }
 
+        // // Attach user details to session
+        // session(['user_name' => $user->name, 'user_role' => $user->role]);
+
         Log::info('User authenticated', ['user_id' => $user->id]);
         // Generate JWT
         $payload = [
             'sub' => $user->id,
             'email' => $user->email,
+            'name' => $user->name,
+            'role' => $user->role,
             'iat' => time(),
             'exp' => time() + 60 * 60 * 24, // 1 day expiry
         ];
         Log::info('JWT payload', $payload);
+        Log::info('JWT payload before encoding', $payload);
         $jwt = JWT::encode($payload, env('JWT_SECRET', 'changeme'), 'HS256');
         Log::info('JWT generated', ['jwt' => $jwt]);
         // Set JWT as HttpOnly, Secure cookie and redirect

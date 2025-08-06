@@ -9,7 +9,7 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 // Show login page on '/'
-Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 
 // The actual data entry page (step1), protected by JWT middleware
 Route::get('/dataentry', [
@@ -108,5 +108,4 @@ Route::get('/review/step4', function () {
     return view('review', compact('reviewData', 'dateRange', 'shiftSchedule', 'debugData'))->with('location', $locationName);
 })->name('review.step4');
 
-Route::get('/login', [AuthController::class, 'showLoginForm']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
