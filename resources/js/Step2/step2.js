@@ -28,6 +28,460 @@ let filterShiftTypeValue = "";
 
 // const selectionManager = new SelectionManager();
 
+function renderColumnDropdown(
+    headings,
+    selectedColumnIds,
+    coreColumns,
+    previewData
+) {
+    const menu = document.getElementById("columnDropdownMenu");
+    menu.innerHTML = "";
+    headings.forEach((heading, idx) => {
+        const colId = heading.toLowerCase().replace(/[^a-z0-9]/g, "_");
+        const isCore = coreColumns.includes(colId);
+        const label = document.createElement("label");
+        label.className =
+            "flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = colId;
+        checkbox.checked = selectedColumnIds.has(colId);
+        checkbox.disabled = isCore;
+        checkbox.className = "mr-2";
+        checkbox.addEventListener("change", () => {
+            if (isCore) return;
+            if (checkbox.checked) {
+                selectedColumnIds.add(colId);
+            } else {
+                selectedColumnIds.delete(colId);
+            }
+            updateColumnDropdownText(headings, selectedColumnIds);
+            populatePreviewTable(headings, previewData, selectedColumnIds);
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(heading));
+        menu.appendChild(label);
+    });
+    updateColumnDropdownText(headings, selectedColumnIds);
+}
+
+function updateColumnDropdownText(headings, selectedColumnIds) {
+    const dropdownText = document.getElementById("columnDropdownText");
+    const selectedHeadings = headings.filter((h) =>
+        selectedColumnIds.has(h.toLowerCase().replace(/[^a-z0-9]/g, "_"))
+    );
+
+    if (selectedHeadings.length === 0) {
+        dropdownText.innerHTML = `<span class="text-gray-400 italic">Select Columns</span>`;
+    } else {
+        dropdownText.innerHTML = selectedHeadings
+            .map(
+                (h) =>
+                    `<span class="inline-block bg-blue-100 text-blue-700 font-semibold rounded-md px-3 py-1 mr-1 mb-1 text-xs shadow">${h}</span>`
+            )
+            .join("");
+    }
+}
+
+function getVisibleColumns() {
+    const columns = [];
+    const columnSelector = document.getElementById("columnSelector");
+
+    // Map column IDs to actual heading names
+    const columnMap = {
+        "week-starting": "Week Starting",
+        "shift-type": "Shift Type",
+        location: "Location",
+        "start-date": "Start Date",
+        "scheduled-start": "Scheduled Start",
+        "scheduled-finish": "Scheduled Finish",
+        "scheduled-hours": "Scheduled Hours",
+        "employee-number": "Employee Number",
+        "day-rate": "Day (06–18)",
+        "night-rate": "Night (18–06)",
+        saturday: "Saturday",
+        sunday: "Sunday",
+        "public-holiday": "Public Holiday",
+        "client-day-rate": "Client Day Rate",
+        "client-night-rate": "Client Night Rate",
+        "client-sat-rate": "Client Sat Rate",
+        "client-sun-rate": "Client Sun Rate",
+        "client-ph-rate": "Client PH Rate",
+        "client-billable": "Client Billable",
+    };
+
+    // Always include core columns
+    const coreColumns = ["week-starting", "shift-type", "location"];
+    coreColumns.forEach((columnId) => {
+        const columnName = columnMap[columnId];
+        if (columnName) {
+            columns.push(columnName);
+        }
+    });
+
+    // Get selected options from multi-select (excluding core columns to avoid duplicates)
+    Array.from(columnSelector.selectedOptions).forEach((option) => {
+        const columnId = option.value;
+        if (!coreColumns.includes(columnId)) {
+            const columnName = columnMap[columnId] || columnId;
+            columns.push(columnName);
+        }
+    });
+
+    return columns;
+}
+
+function initializeSaveButtons() {
+    // Add event listeners to all Save buttons
+    locations.forEach((location) => {
+        const saveButton = document.getElementById(`saveBtn_${location.id}`);
+        if (saveButton) {
+            saveButton.addEventListener("click", function () {
+                renderTable(location.id);
+                handleSaveButtonClick(location.id);
+            });
+        }
+    });
+}
+
+function handleSaveButtonClick(locationId, silent = false) {
+    return new Promise((resolve) => {
+        console.log(`Save button clicked for location: ${locationId}`);
+
+        const saveBtn = document.getElementById(`saveBtn_${locationId}`);
+        const btnText = saveBtn.querySelector(".save-btn-text");
+        const btnSpinner = saveBtn.querySelector(".save-btn-spinner");
+        const btnCheck = saveBtn.querySelector(".save-btn-check");
+
+        // Show spinner, hide text and check
+        btnText.classList.add("hidden");
+        btnSpinner.classList.remove("hidden");
+        btnCheck.classList.add("hidden");
+        if (records[locationId].length === 0) {
+            showToast("No records to save.", "error");
+            btnSpinner.classList.add("hidden");
+            btnText.classList.remove("hidden");
+            resolve(false);
+            return;
+        }
+
+        // Validate records for the location
+        const { duplicates, defaultShiftTypeRecords } =
+            validateRecords(locationId);
+        if (duplicates.length > 0) {
+            highlightDuplicateRows(locationId, duplicates);
+            showToast(
+                "Duplicate records found. Please resolve them before saving.",
+                "error"
+            );
+            btnSpinner.classList.add("hidden");
+            btnText.classList.remove("hidden");
+            return;
+            resolve(false);
+        }
+
+        if (defaultShiftTypeRecords.length > 0) {
+            highlightDuplicateRows(locationId, defaultShiftTypeRecords);
+            showToast(
+                "Records with the default shift type are not allowed. Please update them.",
+                "error"
+            );
+            btnSpinner.classList.add("hidden");
+            btnText.classList.remove("hidden");
+            resolve(false);
+        }
+        if (!silent)
+            showToast("No duplicates found. Proceeding to save.", "success");
+
+        const mappedShifts = records[locationId].map((rec) => {
+            // Find the shift type object by name
+            const shiftTypeObj = shiftTypes.find(
+                (st) => st.name === rec.shiftType || st.id === rec.shiftType
+            );
+            return {
+                shift_type_id: shiftTypeObj ? shiftTypeObj.id : rec.shiftType, // fallback if already id
+                day: rec.day,
+                from: rec.from,
+                to: rec.to,
+                employees: parseInt(rec.employees, 10), // ensure it's a number
+                date_range: rec.dateRange || rec.date_range,
+            };
+        });
+
+        console.log(
+            "data sent to calculate function",
+            mappedShifts,
+            " locationId",
+            locationId
+        );
+
+        // // Send API request to calculate totals
+        apiService
+            .calculateReview({
+                shifts: mappedShifts,
+                location_id: locationId,
+            })
+            .then((response) => {
+                console.log("API response from calculateReview:", response);
+
+                if (response.data.success) {
+                    // ...update UI...
+                    if (!silent)
+                        showToast("Totals calculated successfully!", "success");
+                    console.log("Totals calculated successfully:", response);
+                    const totals = response.data.totals;
+                    const totalsDisplay = document.getElementById(
+                        `totalsDisplay_${locationId}`
+                    );
+                    if (totalsDisplay) {
+                        totalsDisplay.innerHTML = `
+        <strong>Total Scheduled Hours:</strong>
+        : ${Number(totals.scheduled_hours).toFixed(2)} 
+       <strong> Total Billable:</strong> $${Number(totals.billable).toFixed(2)}
+    `;
+                    }
+                    btnSpinner.classList.add("hidden");
+                    btnCheck.classList.remove("hidden");
+                    setTimeout(() => {
+                        btnCheck.classList.add("hidden");
+                        btnText.classList.remove("hidden");
+                    }, 1500); // Show check for 1.5 seconds
+                    if (!silent)
+                        showToast("Totals calculated successfully!", "success");
+                    // Show the preview modal
+                    document
+                        .getElementById("previewModal")
+                        .classList.remove("hidden");
+                    console.log("Preview modal opened");
+
+                    // Store data locally
+                    const previewHeadings = response.data.timesheet_headings;
+                    const previewData = response.data.timesheet_data;
+                    const coreColumns = [
+                        "week_starting",
+                        "shift_type",
+                        "location",
+                    ]; // match backend keys
+
+                    // By default, select all columns
+                    const selectedColumnIds = new Set(
+                        previewHeadings.map((h) =>
+                            h.toLowerCase().replace(/[^a-z0-9]/g, "_")
+                        )
+                    );
+
+                    // Render dropdown and table
+                    renderColumnDropdown(
+                        previewHeadings,
+                        selectedColumnIds,
+                        coreColumns,
+                        previewData
+                    );
+                    populatePreviewTable(
+                        previewHeadings,
+                        previewData,
+                        selectedColumnIds
+                    );
+
+                    // Dropdown toggle logic (unchanged)
+                    document.getElementById("columnDropdownBtn").onclick =
+                        function (e) {
+                            e.stopPropagation();
+                            document
+                                .getElementById("columnDropdownMenu")
+                                .classList.toggle("hidden");
+                        };
+                    document.addEventListener("click", function (e) {
+                        const menu =
+                            document.getElementById("columnDropdownMenu");
+                        const btn =
+                            document.getElementById("columnDropdownBtn");
+                        if (
+                            !menu.contains(e.target) &&
+                            !btn.contains(e.target)
+                        ) {
+                            menu.classList.add("hidden");
+                        }
+                    });
+                    resolve(true);
+                } else {
+                    if (!silent)
+                        showToast("Failed to calculate totals.", "error");
+                    resolve(false);
+                }
+            })
+            .catch((error) => {
+                console.error("Error calculating totals:", error);
+                if (!silent)
+                    showToast(
+                        "An error occurred while calculating totals.",
+                        "error"
+                    );
+
+                btnSpinner.classList.add("hidden");
+                btnText.classList.remove("hidden");
+                resolve(false);
+            });
+    });
+}
+function populatePreviewTable(headings, data, selectedColumnIds) {
+    // Destroy DataTable before clearing table
+    if ($.fn.DataTable.isDataTable("#previewTable")) {
+        $("#previewTable").DataTable().destroy();
+    }
+
+    const thead = document.getElementById("previewTableHead1");
+    const tbody = document.getElementById("previewTableBody1");
+    tbody.innerHTML = "";
+    thead.innerHTML = "";
+
+    // Only show columns that are selected
+    const visibleColumns = headings.filter((h) =>
+        selectedColumnIds.has(h.toLowerCase().replace(/[^a-z0-9]/g, "_"))
+    );
+
+    // Build table header
+    const trHead = document.createElement("tr");
+    visibleColumns.forEach((heading) => {
+        const th = document.createElement("th");
+        th.textContent = heading;
+        th.className = "border border-gray-300 px-2 py-1";
+        trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+
+    // Build table body
+    if (!data || data.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = visibleColumns.length;
+        td.className = "border border-gray-300 px-2 py-1 text-center";
+        td.textContent = "No calculated data available";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+    }
+
+    data.forEach((row) => {
+        const tr = document.createElement("tr");
+
+        // Highlight row if public_holiday is set and not empty/zero/"-"
+        // Find the index of "Public Holiday" in visibleColumns and in headings
+        const phIndex = headings.findIndex(
+            (h) =>
+                h.toLowerCase().replace(/[^a-z0-9]/g, "_") === "public_holiday"
+        );
+        const isPublicHoliday = phIndex !== -1 && Number(row[phIndex]) > 0;
+
+        visibleColumns.forEach((heading) => {
+            // Find the index of this heading in the headings array
+            const idx = headings.indexOf(heading);
+            let value = idx !== -1 ? row[idx] : "-";
+
+            // Format Start Date with day name and PH
+            if (heading === "Start Date" && value && value !== "-") {
+                const dateObj = new Date(value);
+                const dayName = dateObj.toLocaleDateString("en-US", {
+                    weekday: "long",
+                });
+                value = isPublicHoliday
+                    ? `${value} (${dayName}) PH`
+                    : `${value} (${dayName})`;
+            }
+
+            // Format hours columns
+            const hourColumns = [
+                "Scheduled Hours",
+                "Day (06–18)",
+                "Night (18–06)",
+                "Saturday",
+                "Sunday",
+                "Public Holiday",
+            ];
+            // Format currency columns
+            const currencyColumns = [
+                "Client Day Rate",
+                "Client Night Rate",
+                "Client Sat Rate",
+                "Client Sun Rate",
+                "Client PH Rate",
+                "Client Billable",
+            ];
+
+            if (hourColumns.includes(heading) && value !== "-") {
+                value = Number(value).toFixed(2);
+            } else if (currencyColumns.includes(heading) && value !== "-") {
+                value = "$" + Number(value).toFixed(2);
+            }
+
+            const td = document.createElement("td");
+            td.className = "border border-gray-300 px-2 py-1";
+            td.textContent = value;
+            tr.appendChild(td);
+        });
+        if (isPublicHoliday) {
+            tr.style.backgroundColor = "#fffbe6";
+        }
+        tbody.appendChild(tr);
+    });
+
+    // (Re)initialize DataTable
+    $("#previewTable").DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        responsive: true,
+        columnDefs: [
+            { targets: "_all", width: "120px", className: "dt-nowrap" },
+        ],
+    });
+}
+function validateRecords(locationId) {
+    const locationRecords = records[locationId];
+    const duplicates = [];
+    const defaultShiftTypeRecords = [];
+
+    // Check for duplicates
+    locationRecords.forEach((record, index) => {
+        const isDuplicate = locationRecords.some((otherRecord, otherIndex) => {
+            return (
+                index !== otherIndex &&
+                record.day === otherRecord.day &&
+                record.shiftType === otherRecord.shiftType &&
+                record.from === otherRecord.from &&
+                record.to === otherRecord.to &&
+                record.employees === otherRecord.employees &&
+                record.dateRange === otherRecord.dateRange
+            );
+        });
+
+        if (isDuplicate) {
+            duplicates.push(record);
+        }
+        // Check for default shift type
+        if (record.shiftType === "Default") {
+            defaultShiftTypeRecords.push(record);
+        }
+    });
+
+    return { duplicates, defaultShiftTypeRecords };
+}
+function highlightDuplicateRows(locationId, recordsToHighlight) {
+    const tableBody = document.querySelector(`#shiftTable_${locationId} tbody`);
+    tableBody.querySelectorAll("tr").forEach((row) => {
+        const rowId = row.getAttribute("data-id");
+        const isDuplicate = recordsToHighlight.some(
+            (record) => record.groupedId === rowId
+        );
+
+        if (isDuplicate) {
+            row.classList.add("bg-red-100", "border-red-500");
+        } else {
+            row.classList.remove("bg-red-100", "border-red-500");
+        }
+    });
+}
+
 // Show the Batch Form Modal
 function showBatchFormModal(locationId) {
     const modal = document.getElementById(`batchFormModal_${locationId}`);
@@ -98,6 +552,79 @@ function initializeTimePickers(locationId) {
             time_24hr: true,
         });
     }
+}
+function renderRow(rec, locationId) {
+    console.log("Rendering row for record:", records[locationId]);
+    const tr = document.createElement("tr");
+    tr.setAttribute("data-id", rec.groupedId); // Add the unique ID as a data attribute
+    console.log("The ID in data-id attribute is", tr.dataset.id);
+
+    // Render all days, highlighting selected days in blue and others in gray
+    const allDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const dayCellContent = allDays
+        .map((day) =>
+            rec.days.includes(day)
+                ? `<span class="inline-block bg-[#337ab7] text-white flex-1 day-label text-center px-2 py-1 rounded text-s">${day}</span>`
+                : `<span class="inline-block bg-gray-300 opacity-50 flex-1 day-label text-center px-2 py-1 rounded text-s">${day}</span>`
+        )
+        .join("");
+
+    tr.innerHTML = `
+        <td class="border px-2 py-1 align-top w-[28%]">
+            <div class="w-full flex flex-wrap justify-around items-end gap-2">
+                ${dayCellContent}
+            </div>
+        </td>
+        <td class="border text-center leading-[180%] w-[15%] px-2 py-1 align-top">${rec.shiftType}</td>
+        <td class="border text-center leading-[180%] w-[15%] px-2 py-1 align-top">${rec.dateRange}</td>
+        <td class="border text-center leading-[180%] w-[10%] px-2 py-1 align-top">${rec.from}</td>
+        <td class="border text-center leading-[180%] w-[10%] px-2 py-1 align-top">${rec.to}</td>
+        <td class="border text-center leading-[180%] w-[10%] px-2 py-1 align-top">${rec.employees}</td>
+        <td class="border w-[7%] px-2 py-1">
+            <div class="text-center flex justify-center items-start gap-3 align-top">
+                <!-- Add Button -->
+                <button type="button" class="text-green-600 add-row-btn" title="Add Row">
+                    <i class="fa-solid fa-clone"></i>
+                </button>
+
+                <!-- Update Button -->
+                <button type="button" class="text-blue-600 update-row-btn" title="Update Row">
+                    <i class="fas fa-edit text-yellow-600"></i>
+                </button>
+                <button type="button" class="text-red-600 remove-record-btn" data-key="${rec.shiftType}-${rec.from}-${rec.to}">
+                    <i class="fa-solid fa-trash-can text-[#cf4c3f]"></i>
+                </button>
+            </div>
+        </td>
+    `;
+
+    // Attach event listeners to the buttons
+    const addRowBtn = tr.querySelector(".add-row-btn");
+    const updateRowBtn = tr.querySelector(".update-row-btn");
+    const removeRecordBtn = tr.querySelector(".remove-record-btn");
+
+    addRowBtn.addEventListener("click", () => {
+        addRow(locationId, tr);
+    });
+
+    updateRowBtn.addEventListener("click", () => {
+        NewUpdateRow(locationId, tr);
+    });
+
+    removeRecordBtn.addEventListener("click", () => {
+        const recordId = tr.getAttribute("data-id");
+        records[locationId] = records[locationId].filter(
+            (rec) => rec.groupedId !== recordId
+        );
+        tr.remove();
+        localStorage.setItem(
+            `records_${locationId}`,
+            JSON.stringify(records[locationId])
+        );
+        renderTable(locationId); // Optionally re-render the table
+    });
+
+    return tr;
 }
 
 function renderTable(locationId) {
@@ -638,23 +1165,55 @@ function NewUpdateRow(locationId, clickedRow) {
         saveRowEdits(locationId, previousFormData, clickedRow);
     });
     cancelBtn.addEventListener("click", () => {
-        // Restore the row to its original state
-        dayCell.innerHTML = previousDays
-            .map(
-                (day) =>
-                    `<span class="inline-block bg-[#337ab7] text-white text-center px-2 py-1 rounded border hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white  box-border transition duration-300">${day}</span>`
-            )
-            .join("");
+        // // Restore the row to its original state
+        // dayCell.innerHTML = previousDays
+        //     .map(
+        //         (day) =>
+        //             `<span class="inline-block bg-[#337ab7] text-white text-center px-2 py-1 rounded border hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white  box-border transition duration-300">${day}</span>`
+        //     )
+        //     .join("");
 
-        shiftTypeCell.textContent = previousShiftType;
-        dateRangeCell.textContent = previousDateRange;
-        fromCell.textContent = previousFrom;
-        toCell.textContent = previousTo;
-        employeesCell.textContent = previousEmployees;
+        // shiftTypeCell.textContent = previousShiftType;
+        // dateRangeCell.textContent = previousDateRange;
+        // fromCell.textContent = previousFrom;
+        // toCell.textContent = previousTo;
+        // employeesCell.textContent = previousEmployees;
+        // const recordToBeRendered = {
+        //     groupedId: rowId,
+        //     days: previousDays,
+        //     shiftType: previousShiftType,
+        //     dateRange: previousDateRange,
+        //     from: previousFrom,
+        //     to: previousTo,
+        //     employees: previousEmployees,
+        // };
+        // clickedRow.classList.remove("shadow-lg", "bg-gray-100");
 
-        // Remove the shadow and background color added during editing
-        clickedRow.classList.remove("shadow-lg", "bg-gray-100");
-        renderTable(locationId); // Re-render the table to reflect changes
+        // // Restore the row to its original state using renderRow
+        // const restoredRow = renderRow(recordToBeRendered, locationId);
+
+        // // Remove the shadow and background color added during editing
+
+        // // renderTable(locationId); // Re-render the table to reflect changes
+
+        // Construct the record object using previousFormData
+        const recordToBeRendered = {
+            groupedId: rowId, // Unique ID of the row
+            days: previousFormData.dayArray, // Previous selected days
+            shiftType: previousFormData.shiftType, // Previous shift type
+            dateRange: previousFormData.dateRange, // Previous date range
+            from: previousFormData.fromTime, // Previous start time
+            to: previousFormData.toTime, // Previous end time
+            employees: previousFormData.employees, // Previous number of employees
+        };
+
+        // Restore the row to its original state using renderRow
+        const restoredRow = renderRow(recordToBeRendered, locationId);
+
+        // Replace the current row with the restored row
+        clickedRow.replaceWith(restoredRow);
+
+        showToast("Row reverted successfully!", "info");
     });
 }
 
@@ -818,9 +1377,22 @@ function saveRowEdits(locationId, previousFormData, clickedRow) {
             });
         }
     });
+    // Construct the record object for rendering the updated row
+    const recordToBeRendered = {
+        groupedId: rowId,
+        days: selectedDays,
+        shiftType,
+        dateRange,
+        from,
+        to,
+        employees,
+    };
 
-    // Re-render the table
-    renderTable(locationId);
+    // Use renderRow to update the specific row
+    const updatedRow = renderRow(recordToBeRendered, locationId);
+
+    // Replace the current row with the updated row
+    clickedRow.replaceWith(updatedRow);
     showToast("Row updated successfully!", "success");
 }
 
@@ -1322,20 +1894,35 @@ function addDefaultShiftRow(locationId) {
     const defaultEmployees = 1;
     const recordId = generateRecordId(); // Generate a unique ID
 
-    // Add a default record to the `records` array
-    defaultDays.forEach((day) => {
-        records[locationId].push({
-            groupedId: recordId,
-            id: generateRecordId(), // Add the unique ID
-            day,
-            shiftType: defaultShiftType,
-            from: defaultFrom,
-            to: defaultTo,
-            employees: defaultEmployees,
-            dateRange: defaultDateRange,
-        });
-    });
+    // Collect new records in an array
+    const newRecords = defaultDays.map((day) => ({
+        groupedId: recordId,
+        id: generateRecordId(),
+        day,
+        shiftType: defaultShiftType,
+        from: defaultFrom,
+        to: defaultTo,
+        employees: defaultEmployees,
+        dateRange: defaultDateRange,
+    }));
+
+    // Add to the in-memory records array
+    records[locationId].push(...newRecords);
     console.log("records after adding default shift row:", records[locationId]);
+
+    // Handle localStorage
+    const storageKey = `records_${locationId}`;
+    let storedRecords = [];
+    const existing = localStorage.getItem(storageKey);
+    if (existing) {
+        try {
+            storedRecords = JSON.parse(existing);
+        } catch (e) {
+            storedRecords = [];
+        }
+    }
+    storedRecords.push(...newRecords);
+    localStorage.setItem(storageKey, JSON.stringify(storedRecords));
 
     // Re-render the table to reflect the new record
     renderTable(locationId);
@@ -2093,7 +2680,7 @@ function updateShift(locationId) {
     );
 }
 
-function initializeSaveButtons() {
+function initializeSaveButtonds() {
     // Add event listeners to all Save buttons
     locations.forEach((location) => {
         const saveButton = document.getElementById(`saveBtn_${location.id}`);
@@ -2563,6 +3150,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 initializeShiftTable(location.id);
 
                 console.log("All functions executed successfully.");
+                initializeSaveButtons();
             }
         });
 
@@ -2571,9 +3159,20 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     // Other initialization logic (e.g., toggle form visibility)
-    window.toggleForm = function (locationId) {
+    window.toggleForm = async function (locationId) {
         const form = document.getElementById(`form_${locationId}`);
         const arrow = document.getElementById(`arrow_${locationId}`);
+        renderTable(locationId); // Ensure the table is rendered before toggling
+
+        // Only try to collapse if currently open
+        if (!form.classList.contains("max-h-0")) {
+            // Try to save before collapsing
+            let saveSucceeded = await handleSaveButtonClick(locationId, true); // pass a flag for silent mode
+            if (!saveSucceeded) {
+                // If save failed, do not collapse
+                return;
+            }
+        }
 
         // Update the arrow icon
         if (form.classList.contains("max-h-0")) {
@@ -2722,6 +3321,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             });
         }
     });
+    const closeBtn = document.getElementById("closePreviewModal");
+    if (closeBtn) {
+        closeBtn.addEventListener("click", function () {
+            document.getElementById("previewModal").classList.add("hidden");
+        });
+    }
     // Add Event Listeners for Modal Actions
     locations.forEach((location) => {
         const locationId = location.id;

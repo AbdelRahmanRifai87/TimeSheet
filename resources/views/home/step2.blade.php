@@ -35,7 +35,11 @@
                         <i class="fas fa-chevron-down"></i>
                     </span>
                 </div>
-                <p class="text-sm text-gray-600">{{ $location->address }}</p>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-gray-600">{{ $location->address }}</p>
+                    <p id="totalsDisplay_{{ $location->id }}" class="text-sm text-gray-700 mt-2"></p>
+
+                </div>
             </div>
 
             <!-- Hidden Form -->
@@ -134,7 +138,7 @@
                                     </div>
                                 </div>
                             </div> --}}
-                    <div class="flex justify-between items-center mt-2 mr-5">
+                    <div class="flex justify-between items-center mt-2 ">
 
 
                         <div class="  flex items-center gap-4 p-2">
@@ -158,7 +162,7 @@
                         <button type="button"
                             class="bg-[#428bca] text-white  px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400  add-shift-type-btn"
                             data-location-id="{{ $location->id }}">
-                            Add Shift Type
+                            Add New Entry
                         </button>
                     </div>
 
@@ -181,8 +185,19 @@
                             <!-- Rows will be rendered by JS -->
                         </tbody>
                     </table>
+                    <div class="flex justify-end">
+                        <button type="button" id="saveBtn_{{ $location->id }}"
+                            class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3 ">
+                            <span class="save-btn-text">Save</span>
+                            <span class="save-btn-spinner hidden">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                            <span class="save-btn-check hidden" id="checkIcon_{{ $location->id }}">
+                                <i class="fas fa-check"></i>
+                            </span>
+                        </button>
+                    </div>
                 </div>
-
 
 
             </div>
@@ -351,6 +366,42 @@
             <div class="p-4 border-t flex justify-end gap-2">
                 <button id="cancelSelectShiftBtn" class="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
                 <button id="confirmSelectShiftBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Confirm</button>
+            </div>
+        </div>
+    </div>
+    <!-- Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg w-[50%] p-6 relative">
+            <button type="button" id="closePreviewModal"
+                class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+            <!-- Column Visibility Custom Dropdown -->
+            <div class="mb-6 p-4 border rounded bg-gray-50">
+                <h3 class="text-lg font-semibold mb-4">Column Visibility</h3>
+                <div class="relative w-full">
+                    <button id="columnDropdownBtn" type="button"
+                        class="w-full bg-white border-2 border-blue-400 rounded-lg px-4 py-2 text-left flex justify-between items-center shadow-sm focus:outline-none">
+                        <span id="columnDropdownText">Select Columns</span>
+                        <svg class="w-4 h-4 ml-2 text-blue-500" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="columnDropdownMenu"
+                        class="absolute left-0 mt-2 w-full bg-white border border-blue-200 rounded-lg shadow-lg z-50 hidden max-h-64 overflow-auto">
+                        <!-- JS will populate checkboxes here -->
+                    </div>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">Core columns are required and cannot be deselected.</p>
+            </div>
+            <!-- Preview Table -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-4">Preview</h3>
+                <div class="overflow-x-auto">
+                    <table id="previewTable" class="display w-full">
+                        <thead id="previewTableHead1"></thead>
+                        <tbody id="previewTableBody1"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

@@ -186,16 +186,17 @@ class ReviewController extends Controller
     {
         try {
             // Validate request
-            $validator = Validator::make($request->all(), [
-                'shifts' => 'required|array',
-                'shifts.*.date' => 'required|date',
-                'shifts.*.from' => 'required|string',
-                'shifts.*.to' => 'required|string',
-                'shifts.*.shift_type_id' => 'required|integer|exists:shift_types,id',
-                'shifts.*.employees' => 'required|integer|min:1',
-                'location_id' => 'nullable|integer|exists:locations,id',
-                'date_range' => 'nullable|string',
-            ]);
+           $validator = Validator::make($request->all(), [
+    'shifts' => 'required|array',
+    'shifts.*.from' => 'required|string',
+    'shifts.*.to' => 'required|string',
+    'shifts.*.shift_type_id' => 'required|integer|exists:shift_types,id',
+    'shifts.*.employees' => 'required|integer|min:1',
+    'shifts.*.day' => 'required|string', // e.g., "Mon"
+    'shifts.*.date_range' => 'required|string', // e.g., "2025-01-01 to 2025-01-30"
+    'location_id' => 'nullable|integer|exists:locations,id',
+    // 'date_range' => 'nullable|string',
+]);
 
             if ($validator->fails()) {
                 return response()->json([
@@ -235,8 +236,31 @@ class ReviewController extends Controller
                 'public_holiday' => 0,
                 'billable' => 0,
             ];
+           // Expand shifts by date range and day
+$expandedShifts = [];
+$dayMap = [
+    'Sun' => 0, 'Mon' => 1, 'Tue' => 2, 'Wed' => 3,
+    'Thu' => 4, 'Fri' => 5, 'Sat' => 6
+];
 
-            foreach ($shifts as $shift) {
+foreach ($shifts as $shift) {
+    $dateRange = $shift['date_range'];
+    $day = $shift['day'];
+    if (!isset($dayMap[$day])) continue;
+    [$startDate, $endDate] = array_map('trim', explode('to', $dateRange));
+    $start = \Carbon\Carbon::parse($startDate);
+    $end = \Carbon\Carbon::parse($endDate);
+
+    for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+        if ($date->dayOfWeek === $dayMap[$day]) {
+            $newShift = $shift;
+            $newShift['date'] = $date->format('Y-m-d');
+            $expandedShifts[] = $newShift;
+        }
+    }
+}
+
+            foreach ($expandedShifts as $shift) {
                 try {
                     $date = $shift['date'];
                     $from = $shift['from'];

@@ -158,7 +158,8 @@
         </div>
 
         <!-- Loading Overlay -->
-        <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div id="loadingOverlay"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white p-6 rounded-lg">
                 <div class="flex items-center">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
@@ -171,9 +172,58 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <script>
-
-    </script>
+    <!-- Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg max-w-4xl w-full p-6 relative">
+            <button type="button" id="closePreviewModal"
+                class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+            <!-- Column Visibility Controls -->
+            <div class="mb-6 p-4 border rounded bg-gray-50">
+                <h3 class="text-lg font-semibold mb-4">Column Visibility</h3>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Columns to Display:</label>
+                    <div class="relative">
+                        <select id="columnSelector" multiple
+                            class="w-full min-h-[120px] px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm">
+                            <!-- Core columns (always visible) -->
+                            <option value="week-starting" selected disabled>Week Starting (Required)</option>
+                            <option value="shift-type" selected disabled>Shift Type (Required)</option>
+                            <option value="location" selected disabled>Location (Required)</option>
+                            <!-- Optional columns -->
+                            <option value="start-date" selected>Start Date</option>
+                            <option value="scheduled-start" selected>Scheduled Start</option>
+                            <option value="scheduled-finish" selected>Scheduled Finish</option>
+                            <option value="scheduled-hours" selected>Scheduled Hours</option>
+                            <option value="employee-number" selected>Employee Number</option>
+                            <option value="day-rate" selected>Day (06–18)</option>
+                            <option value="night-rate" selected>Night (18–06)</option>
+                            <option value="saturday" selected>Saturday</option>
+                            <option value="sunday" selected>Sunday</option>
+                            <option value="public-holiday" selected>Public Holiday</option>
+                            <option value="client-day-rate" selected>Client Day Rate</option>
+                            <option value="client-night-rate" selected>Client Night Rate</option>
+                            <option value="client-sat-rate" selected>Client Sat Rate</option>
+                            <option value="client-sun-rate" selected>Client Sun Rate</option>
+                            <option value="client-ph-rate" selected>Client PH Rate</option>
+                            <option value="client-billable" selected>Client Billable</option>
+                        </select>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">Hold Ctrl (Cmd on Mac) to select/deselect multiple columns. Core
+                        columns are required and cannot be deselected.</p>
+                </div>
+            </div>
+            <!-- Preview Table -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-4">Preview</h3>
+                <div class="overflow-x-auto">
+                    <table id="previewTable" class="display w-full">
+                        <thead id="previewTableHead1"></thead>
+                        <tbody id="previewTableBody1"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Pass data from backend to frontend
@@ -181,7 +231,7 @@
         window.dateRange = @json($dateRange ?? '');
         window.locationName = @json($location ?? '');
         window.shiftSchedule = @json($shiftSchedule ?? []);
-        window.staticJwt = '{{ env("STATIC_JWT") }}';
+        window.staticJwt = '{{ env('STATIC_JWT') }}';
     </script>
     @vite(['resources/js/review-standalone.js'])
 @endsection
