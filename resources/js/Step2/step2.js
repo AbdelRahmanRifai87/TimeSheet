@@ -246,13 +246,15 @@ function handleSaveButtonClick(locationId, silent = false) {
                         btnCheck.classList.add("hidden");
                         btnText.classList.remove("hidden");
                     }, 1500); // Show check for 1.5 seconds
-                    if (!silent)
+                    if (!silent) {
                         showToast("Totals calculated successfully!", "success");
-                    // Show the preview modal
-                    document
-                        .getElementById("previewModal")
-                        .classList.remove("hidden");
-                    console.log("Preview modal opened");
+                        // Show the preview modal ONLY if not silent
+                        document
+                            .getElementById("previewModal")
+                            .classList.remove("hidden");
+                        document.body.classList.add("overflow-hidden");
+                        console.log("Preview modal opened");
+                    }
 
                     // Store data locally
                     const previewHeadings = response.data.timesheet_headings;
@@ -345,7 +347,8 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
     visibleColumns.forEach((heading) => {
         const th = document.createElement("th");
         th.textContent = heading;
-        th.className = "border border-gray-300 px-2 py-1";
+        th.className =
+            "border border-gray-300  px-1 py-1 text-xs break-words w-[90px] max-w-[90px] text-center align-middle";
         trHead.appendChild(th);
     });
     thead.appendChild(trHead);
@@ -355,8 +358,10 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         const tr = document.createElement("tr");
         const td = document.createElement("td");
         td.colSpan = visibleColumns.length;
-        td.className = "border border-gray-300 px-2 py-1 text-center";
+        td.className =
+            "border border-gray-300 px-1 py-1 text-xs break-all w-[90px] max-w-[90px] text-center align-middle";
         td.textContent = "No calculated data available";
+
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
@@ -415,7 +420,8 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             }
 
             const td = document.createElement("td");
-            td.className = "border border-gray-300 px-2 py-1";
+            td.className =
+                "border border-gray-300 whitespace-pre-wrap px-2 py-1";
             td.textContent = value;
             tr.appendChild(td);
         });
@@ -431,6 +437,7 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         searching: true,
         ordering: true,
         responsive: true,
+        scrollX: true,
         columnDefs: [
             { targets: "_all", width: "120px", className: "dt-nowrap" },
         ],
@@ -3325,6 +3332,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (closeBtn) {
         closeBtn.addEventListener("click", function () {
             document.getElementById("previewModal").classList.add("hidden");
+            document.body.classList.remove("overflow-hidden");
         });
     }
     // Add Event Listeners for Modal Actions
