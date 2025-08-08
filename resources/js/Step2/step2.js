@@ -342,30 +342,49 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         selectedColumnIds.has(h.toLowerCase().replace(/[^a-z0-9]/g, "_"))
     );
 
+    const headingBreaks = {
+        "Emp. Numb": "Emp.<wbr>Numb",
+        "Shift Type": "Shift<wbr> Type",
+        "Week Starting": "Week<wbr> Starting",
+
+        "Day (06–18)": "Day<wbr>(06–18)",
+        "Night (18–06)": "Night<wbr>(18–06)",
+        "Scheduled Hours": "Scheduled<wbr> Hours",
+        "Scheduled Start": "Scheduled<wbr> Start",
+        "Scheduled Finish": "Scheduled<wbr> Finish",
+        "Client Day Rate": "Client<wbr> Day<wbr> Rate",
+        "Client Night Rate": "Client<wbr> Night<wbr> Rate",
+        "Client Sat Rate": "Client<wbr> Sat<wbr> Rate",
+        "Client Sun Rate": "Client<wbr> Sun<wbr> Rate",
+        "Client PH Rate": "Client<wbr> PH<wbr> Rate",
+        "Client Billable": "Client<wbr> Billable",
+        // Add more as needed
+    };
+
     // Build table header
     const trHead = document.createElement("tr");
     visibleColumns.forEach((heading) => {
         const th = document.createElement("th");
-        th.textContent = heading;
+        th.innerHTML = headingBreaks[heading] || heading; // Use breaks if defined
         th.className =
-            "border border-gray-300  px-1 py-1 text-xs break-words w-[90px] max-w-[90px] text-center align-middle";
+            "border border-gray-300 px-1 py-1 text-xs break-words w-[30px] max-w-[70px] text-center align-middle";
         trHead.appendChild(th);
     });
     thead.appendChild(trHead);
 
-    // Build table body
-    if (!data || data.length === 0) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = visibleColumns.length;
-        td.className =
-            "border border-gray-300 px-1 py-1 text-xs break-all w-[90px] max-w-[90px] text-center align-middle";
-        td.textContent = "No calculated data available";
+    // // Build table body
+    // if (!data || data.length === 0) {
+    //     const tr = document.createElement("tr");
+    //     const td = document.createElement("td");
+    //     td.colSpan = visibleColumns.length;
+    //     td.className =
+    //         "border border-gray-300 px-1 py-1 text-xs break-all w-[90px] max-w-[90px] text-center align-middle";
+    //     td.textContent = "No calculated data available";
 
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-        return;
-    }
+    //     tr.appendChild(td);
+    //     tbody.appendChild(tr);
+    //     return;
+    // }
 
     data.forEach((row) => {
         const tr = document.createElement("tr");
@@ -382,17 +401,9 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             // Find the index of this heading in the headings array
             const idx = headings.indexOf(heading);
             let value = idx !== -1 ? row[idx] : "-";
-
-            // Format Start Date with day name and PH
-            if (heading === "Start Date" && value && value !== "-") {
-                const dateObj = new Date(value);
-                const dayName = dateObj.toLocaleDateString("en-US", {
-                    weekday: "long",
-                });
-                value = isPublicHoliday
-                    ? `${value} (${dayName}) PH`
-                    : `${value} (${dayName})`;
-            }
+            const td = document.createElement("td");
+            td.className =
+                "border border-gray-300 px-1 py-1 text-xs break-words w-[70px] max-w-[90px] text-center align-middle";
 
             // Format hours columns
             const hourColumns = [
@@ -418,11 +429,19 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             } else if (currencyColumns.includes(heading) && value !== "-") {
                 value = "$" + Number(value).toFixed(2);
             }
-
-            const td = document.createElement("td");
-            td.className =
-                "border border-gray-300 whitespace-pre-wrap px-2 py-1";
-            td.textContent = value;
+            // Special formatting for Start Date
+            if (heading === "Start Date" && value && value !== "-") {
+                const dateObj = new Date(value);
+                const dayName = dateObj.toLocaleDateString("en-US", {
+                    weekday: "long",
+                });
+                value = isPublicHoliday
+                    ? `${value}<br>(${dayName}) PH`
+                    : `${value}<br>(${dayName})`;
+                td.innerHTML = value; // Use innerHTML for <br>
+            } else {
+                td.textContent = value;
+            }
             tr.appendChild(td);
         });
         if (isPublicHoliday) {
