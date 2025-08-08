@@ -29,6 +29,8 @@ Route::middleware(StaticJwtMiddleware::class, EncryptCookies::class)->group(func
     // Review endpoints
     Route::get('review', [\App\Http\Controllers\ReviewController::class, 'index'])->name('api.review');
     Route::post('review/calculate', [\App\Http\Controllers\ReviewController::class, 'calculate'])->name('api.review.calculate');
+    Route::post('/review/calculate-multi-merged', [\App\Http\Controllers\ReviewController::class, 'calculateMultiMerged']);
+   
     Route::post('review/export', [\App\Http\Controllers\ReviewController::class, 'export'])->name('api.review.export');
     Route::post('review/save', [\App\Http\Controllers\ReviewController::class, 'save'])->name('api.review.save');
 });

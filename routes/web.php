@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ShiftTypeController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\QuotationController;
 use Illuminate\Support\Facades\Cookie;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -21,25 +23,6 @@ Route::get('/dataentry', [
         return view('dataentry.index_api', compact('dayTypes', 'shiftTypes', 'locations'));
     }
 ])->name('dataentry.index_api');
-
-Route::get('/home/step2', function () {
-     $locations = \App\Models\Location::all(); // Fetch all locations from the database
-    return view('home.step2', compact('locations')); // Pass $locations to the view
-})->name('home.step2.get');
-
-Route::post('/home/step2', function (\Illuminate\Http\Request $request) {
-   $validated = $request->validate([
-        'selected_locations' => 'required|json',
-    ]);
-
-    // Decode the selected_locations JSON array
-    $selectedLocations = json_decode($request->input('selected_locations'), true);
-
-    // Save the selected locations in the session
-    session(['step2.selected_locations' => $selectedLocations]);
-
-    return redirect('/details/step3');
-})->name('home.step2.submit');
 
 Route::get('/details/step3', function () {
   $selectedLocations = session('step2.selected_locations', []);
@@ -109,3 +92,25 @@ Route::get('/review/step4', function () {
 })->name('review.step4');
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+
+
+//quotation routes
+Route::get('/quotation', [QuotationController::class, 'index'])->name('quotation.index');
+Route::post('/quotation', [QuotationController::class, 'store'])->name('quotation.store');
+Route::put('/quotation/{quotation}', [QuotationController::class, 'update'])->name('quotation.update');
+Route::delete('/quotation/{quotation}', [QuotationController::class, 'destroy'])->name('quotation.destroy');
+Route::get('/quotation/{quotation}/schedule', [HomeController::class, 'step1'])->name('quotation.schedule');
+Route::get('/home/step1', [HomeController::class, 'step1'])->name('home.step1');
+
+Route::post('/save-location-shift-data', [HomeController::class, 'saveLocationShiftData'])->name('save.location.shift.data');
+
+// Bulk location management routes
+Route::post('/quotation/remove-locations', [HomeController::class, 'removeLocationsFromQuotation'])->name('quotation.remove.locations');
+Route::post('/quotation/update-locations', [HomeController::class, 'updateQuotationLocations'])->name('quotation.update.locations');
+
+//home routes
+Route::get('/home/step2', [HomeController::class, 'step2'])->name('home.step2.get');
+Route::post('/home/step2', [HomeController::class, 'step2Submit'])->name('home.step2.submit');
+
+Route::post('/save-location-shift-data', [HomeController::class, 'saveLocationShiftData'])->name('save.location.shift.data');
+Route::post('/load-location-shift-data', [HomeController::class, 'loadLocationShiftData'])->name('load.location.shift.data');

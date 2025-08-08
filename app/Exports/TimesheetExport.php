@@ -104,11 +104,11 @@ if (strpos($heading, 'Start Date') !== false) {
         $formatted = $value;
     }
 
-    // Check if PH column exists and is set for this row
-    $phColIndex = array_search('PH', $this->headings);
-    if ($phColIndex !== false && isset($row[$phColIndex]) && floatval($row[$phColIndex]) > 0) {
-        $formatted .= ' PH';
-    }
+    // // Check if PH column exists and is set for this row
+    // $phColIndex = array_search('PH', $this->headings);
+    // if ($phColIndex !== false && isset($row[$phColIndex]) && floatval($row[$phColIndex]) > 0) {
+    //     $formatted .= ' PH';
+    // }
     return $formatted;
 }
 
