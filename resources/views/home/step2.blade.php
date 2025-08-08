@@ -394,7 +394,7 @@
                 <p class="mt-2 text-sm text-gray-500">Core columns are required and cannot be deselected.</p>
             </div>
             <!-- Preview Table -->
-            <div class="mb-6 ">
+            <div class="mb-6 preview-table-container">
                 <h3 class="text-lg font-semibold mb-4">Preview</h3>
                 <div class="overflow-x-auto ">
                     <table id="previewTable" class="display  w-full table-fixed">
@@ -403,6 +403,7 @@
                     </table>
                 </div>
             </div>
+            <div id="exportBTN"></div>
 
         </div>
     </div>

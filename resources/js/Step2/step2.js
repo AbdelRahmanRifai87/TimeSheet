@@ -153,6 +153,7 @@ function renderExportButton(locationId) {
         `exportTimesheetBtn_${locationId}`
     );
     if (oldExportBtn) oldExportBtn.remove();
+    console.log(`Rendering export button for location: ${locationId}`);
 
     // Create the export button
     const exportBtn = document.createElement("button");
@@ -162,10 +163,7 @@ function renderExportButton(locationId) {
         "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow mt-4";
     exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
 
-    const previewTable = document.getElementById("previewTable");
-    if (previewTable) {
-        previewTable.insertAdjacentElement("afterend", exportBtn);
-    }
+    document.getElementById("exportBTN").appendChild(exportBtn);
 
     // Add export logic
     exportBtn.addEventListener("click", async function () {
@@ -223,6 +221,7 @@ function renderExportButton(locationId) {
             exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
         }
     });
+    console.log("Export button rendered for location:", locationId);
 }
 
 function handleSaveButtonClick(locationId, silent = false) {
@@ -242,7 +241,7 @@ function handleSaveButtonClick(locationId, silent = false) {
             showToast("No records to save.", "error");
             btnSpinner.classList.add("hidden");
             btnText.classList.remove("hidden");
-            resolve(false);
+            resolve(true);
             return;
         }
 
@@ -269,7 +268,7 @@ function handleSaveButtonClick(locationId, silent = false) {
             );
             btnSpinner.classList.add("hidden");
             btnText.classList.remove("hidden");
-            resolve(false);
+            resolve(true);
         }
         if (!silent)
             showToast("No duplicates found. Proceeding to save.", "success");
@@ -344,7 +343,6 @@ function handleSaveButtonClick(locationId, silent = false) {
                         console.log("Preview modal opened");
                     }
                     // Render the export button
-                    renderExportButton(locationId);
 
                     // Store data locally
                     const previewHeadings = response.data.timesheet_headings;
@@ -369,10 +367,23 @@ function handleSaveButtonClick(locationId, silent = false) {
                         coreColumns,
                         previewData
                     );
+                    console.log(
+                        "Column dropdown rendered with headings:",
+                        previewHeadings,
+                        "and selected columns:",
+                        selectedColumnIds
+                    );
                     populatePreviewTable(
                         previewHeadings,
                         previewData,
                         selectedColumnIds
+                    );
+                    renderExportButton(locationId);
+                    console.log(
+                        "Preview table populated with headings:",
+                        previewHeadings,
+                        "and data:",
+                        previewData
                     );
 
                     // Dropdown toggle logic (unchanged)
@@ -418,38 +429,55 @@ function handleSaveButtonClick(locationId, silent = false) {
 }
 function populatePreviewTable(headings, data, selectedColumnIds) {
     // Destroy DataTable before clearing table
+    console.log("Destroying DataTable if it exists");
+    const table = document.getElementById("previewTable");
+    console.log("Clearing preview table", table);
     if ($.fn.DataTable.isDataTable("#previewTable")) {
         $("#previewTable").DataTable().destroy();
     }
+    // if (!table.querySelector("thead")) {
+    //     table.appendChild(document.createElement("thead"));
+    // }
+    // if (!table.querySelector("tbody")) {
+    //     table.appendChild(document.createElement("tbody"));
+    // }
 
-    const thead = document.getElementById("previewTableHead1");
-    const tbody = document.getElementById("previewTableBody1");
-    tbody.innerHTML = "";
+    let thead = table.querySelector("thead");
+    if (!thead) {
+        thead = document.createElement("thead");
+        table.appendChild(thead);
+    }
+    let tbody = table.querySelector("tbody");
+    if (!tbody) {
+        tbody = document.createElement("tbody");
+        table.appendChild(tbody);
+    }
     thead.innerHTML = "";
+    tbody.innerHTML = "";
 
     // Only show columns that are selected
     const visibleColumns = headings.filter((h) =>
         selectedColumnIds.has(h.toLowerCase().replace(/[^a-z0-9]/g, "_"))
     );
 
-    const headingBreaks = {
-        "Emp. Numb": "Emp.<wbr>Numb",
-        "Shift Type": "Shift<wbr> Type",
-        "Week Starting": "Week<wbr> Starting",
-        "Date Range": "Date<wbr> Range",
-        "Day (06–18)": "Day<wbr>(06–18)",
-        "Night (18–06)": "Night<wbr>(18–06)",
-        "Scheduled Hours": "Scheduled<wbr> Hours",
-        "Scheduled Start": "Scheduled<wbr> Start",
-        "Scheduled Finish": "Scheduled<wbr> Finish",
-        "Client Day Rate": "Client<wbr> Day<wbr> Rate",
-        "Client Night Rate": "Client<wbr> Night<wbr> Rate",
-        "Client Sat Rate": "Client<wbr> Sat<wbr> Rate",
-        "Client Sun Rate": "Client<wbr> Sun<wbr> Rate",
-        "Client PH Rate": "Client<wbr> PH<wbr> Rate",
-        "Client Billable": "Client<wbr> Billable",
-        // Add more as needed
-    };
+    // const headingBreaks = {
+    //     "Emp. Numb": "Emp.<wbr>Numb",
+    //     "Shift Type": "Shift<wbr> Type",
+    //     "Week Starting": "Week<wbr> Starting",
+    //     "Date Range": "Date<wbr> Range",
+    //     "Day (06–18)": "Day<wbr>(06–18)",
+    //     "Night (18–06)": "Night<wbr>(18–06)",
+    //     "Scheduled Hours": "Scheduled<wbr> Hours",
+    //     "Scheduled Start": "Scheduled<wbr> Start",
+    //     "Scheduled Finish": "Scheduled<wbr> Finish",
+    //     "Client Day Rate": "Client<wbr> Day<wbr> Rate",
+    //     "Client Night Rate": "Client<wbr> Night<wbr> Rate",
+    //     "Client Sat Rate": "Client<wbr> Sat<wbr> Rate",
+    //     "Client Sun Rate": "Client<wbr> Sun<wbr> Rate",
+    //     "Client PH Rate": "Client<wbr> PH<wbr> Rate",
+    //     "Client Billable": "Client<wbr> Billable",
+    //     // Add more as needed
+    // };
 
     // Build table header
     const trHead = document.createElement("tr");
@@ -482,8 +510,7 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         // Highlight row if public_holiday is set and not empty/zero/"-"
         // Find the index of "Public Holiday" in visibleColumns and in headings
         const phIndex = headings.findIndex(
-            (h) =>
-                h.toLowerCase().replace(/[^a-z0-9]/g, "_") === "public_holiday"
+            (h) => h.toLowerCase().replace(/[^a-z0-9]/g, "_") === "ph"
         );
         const isPublicHoliday = phIndex !== -1 && Number(row[phIndex]) > 0;
 
@@ -526,8 +553,8 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             //         weekday: "long",
             //     });
             //     value = isPublicHoliday
-            //         ? `${value}<br>(${dayName}) PH`
-            //         : `${value}<br>(${dayName})`;
+            //         ? `${value} (${dayName}) PH`
+            //         : `${value} (${dayName})`;
             //     td.innerHTML = value; // Use innerHTML for <br>
             // } else {
             //     td.textContent = value;
@@ -563,7 +590,7 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         ordering: true,
         responsive: true,
         scrollX: true,
-        scrollY: "320px",
+        scrollY: "30vh",
         columnDefs: [{ targets: "_all" }],
     });
     // Add margin-bottom to the DataTables search bar
@@ -3464,6 +3491,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         closeBtn.addEventListener("click", function () {
             document.getElementById("previewModal").classList.add("hidden");
             document.body.classList.remove("overflow-hidden");
+            const exportBtn = document.querySelector("#exportBTN button");
+            if (exportBtn) exportBtn.remove();
         });
     }
     // Add Event Listeners for Modal Actions
