@@ -9,15 +9,19 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Maatwebsite\Excel\Concerns\WithMapping;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Concerns\FromCollection;
 
-class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
+class TimesheetExport implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
 {
     protected $data;
     protected $headings;
     protected $hiddenColumns;
     protected $totals;
     protected $weekGroups;
+    private $currentRow = 0;
+    
 
     public function __construct(array $data, array $headings, array $hiddenColumns = [], array $totals = [], array $weekGroups = [])
     {
@@ -26,44 +30,52 @@ class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
         $this->hiddenColumns = $hiddenColumns;
         $this->totals = $totals;
         $this->weekGroups = $weekGroups;
+        $this->currentRow = 0; // Initialize current row counter
     }
 
-    public function array(): array
-    {
-        $rows = [];
-        $filteredHeadings = $this->headings();
-        $publicHolidayColIndex = array_search('Public Holiday', $filteredHeadings);
-        $startDateColIndex = array_search('Start Date', $filteredHeadings);
+    // public function array(): array
+    // {
+    //     $rows = [];
+    //     $filteredHeadings = $this->headings();
+    //     $publicHolidayColIndex = array_search('Public Holiday', $filteredHeadings);
+    //     $startDateColIndex = array_search('Start Date', $filteredHeadings);
 
-        // Add data rows (filtering out hidden columns and formatting values)
-        foreach ($this->data as $row) {
-            $filteredRow = [];
-            foreach ($row as $index => $value) {
-                if (!in_array($index, $this->hiddenColumns)) {
-                    // Format specific columns
-                    $filteredRow[] = $this->formatCellValue($value, $index);
-                }
-            }
-            if (
-                $publicHolidayColIndex !== false &&
-                $startDateColIndex !== false &&
-                floatval($filteredRow[$publicHolidayColIndex] ?? 0) > 0
-            ) {
-                $filteredRow[$startDateColIndex] .= ' PH';
-            }
-            $rows[] = $filteredRow;
-        }
+    //     // Add data rows (filtering out hidden columns and formatting values)
+    //     foreach ($this->data as $row) {
+    //         $filteredRow = [];
+    //         foreach ($row as $index => $value) {
+    //             if (!in_array($index, $this->hiddenColumns)) {
+    //                 // Format specific columns
+    //                 $filteredRow[] = $this->formatCellValue($value, $index);
+    //             }
+    //         }
+    //         if (
+    //             $publicHolidayColIndex !== false &&
+    //             $startDateColIndex !== false &&
+    //             floatval($filteredRow[$publicHolidayColIndex] ?? 0) > 0
+    //         ) {
+    //             $filteredRow[$startDateColIndex] .= ' PH';
+    //         }
+    //         $rows[] = $filteredRow;
+    //     }
 
-        // Add totals row if provided
-        if (!empty($this->totals)) {
-            $totalsRow = $this->createTotalsRow();
-            $rows[] = $totalsRow;
-        }
+    //     // Add totals row if provided
+    //     if (!empty($this->totals)) {
+    //         $totalsRow = $this->createTotalsRow();
+    //         $rows[] = $totalsRow;
+    //     }
 
-        return $rows;
+    //     return $rows;
+    // }
+public function collection()
+{
+    $rows = $this->data;
+    if (!empty($this->totals)) {
+        $rows[] = $this->createTotalsRow();
     }
-
-    private function formatCellValue($value, $columnIndex)
+    return collect($rows);
+}
+    private function formatCellValue($value, $columnIndex,$row = [])
     {
         $heading = $this->headings[$columnIndex] ?? '';
 
@@ -78,6 +90,27 @@ class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
                 }
             }
         }
+        // Format Start Date column and append ' PH' if public holiday
+if (strpos($heading, 'Start Date') !== false) {
+    // Format the date as before
+    if ($value && $value !== '' && $value !== null) {
+        try {
+            $date = \Carbon\Carbon::parse($value);
+            $formatted = $date->format('D d/m/Y');
+        } catch (\Exception $e) {
+            $formatted = $value;
+        }
+    } else {
+        $formatted = $value;
+    }
+
+    // Check if PH column exists and is set for this row
+    $phColIndex = array_search('PH', $this->headings);
+    if ($phColIndex !== false && isset($row[$phColIndex]) && floatval($row[$phColIndex]) > 0) {
+        $formatted .= ' PH';
+    }
+    return $formatted;
+}
 
         // Format date columns
         if (strpos($heading, 'Date') !== false) {
@@ -97,19 +130,23 @@ class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
             strpos(strtolower($heading), 'billable') !== false
         ) {
             if (is_numeric($value) && $value > 0) {
-                return '$' . number_format($value, 2);
+                return $value;
             }
+            // Try to extract a number from a string like "$0.00"
+    if (is_string($value) && preg_match('/[\d.]+/', $value, $matches)) {
+        return $matches[0];
+    }
             return ''; // Empty for zero rates
         }
 
         // Format hour columns - show with 2 decimal places
         if (
             strpos(strtolower($heading), 'hour') !== false ||
-            strpos(strtolower($heading), 'day (06–18)') !== false ||
-            strpos(strtolower($heading), 'night (18–06)') !== false ||
+            strpos(strtolower($heading), 'day (0600–1800)') !== false ||
+            strpos(strtolower($heading), 'night (1800–0600)') !== false ||
             strpos(strtolower($heading), 'saturday') !== false ||
             strpos(strtolower($heading), 'sunday') !== false ||
-            strpos(strtolower($heading), 'holiday') !== false
+            strpos(strtolower($heading), 'ph') !== false
         ) {
             if (is_numeric($value)) {
                 return number_format($value, 2);
@@ -141,34 +178,38 @@ class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
     }
 
     private function createTotalsRow()
-    {
-        $totalsRow = [];
+{
+    $totalsRow = [];
+    $filteredHeadings = $this->headings();
+    $dataRowCount = count($this->data);
+    $startRow = 2; // Data starts at row 2 (row 1 is headings)
+    $endRow = $dataRowCount + 1; // Last data row
 
-        foreach ($this->headings as $index => $heading) {
-            if (!in_array($index, $this->hiddenColumns)) {
-                // Only show totals for specific columns
-                if (strpos($heading, 'Scheduled Hours') !== false) {
-                    $totalsRow[] = number_format($this->totals['scheduled_hours'] ?? 0, 2);
-                } elseif (strpos($heading, 'Day (06–18)') !== false) {
-                    $totalsRow[] = number_format($this->totals['day'] ?? 0, 2);
-                } elseif (strpos($heading, 'Night (18–06)') !== false) {
-                    $totalsRow[] = number_format($this->totals['night'] ?? 0, 2);
-                } elseif (strpos($heading, 'Saturday') !== false) {
-                    $totalsRow[] = number_format($this->totals['saturday'] ?? 0, 2);
-                } elseif (strpos($heading, 'Sunday') !== false) {
-                    $totalsRow[] = number_format($this->totals['sunday'] ?? 0, 2);
-                } elseif (strpos($heading, 'Public Holiday') !== false) {
-                    $totalsRow[] = number_format($this->totals['public_holiday'] ?? 0, 2);
-                } elseif (strpos(strtolower($heading), 'billable') !== false) {
-                    $totalsRow[] = '$' . number_format($this->totals['billable'] ?? 0, 2);
-                } else {
-                    $totalsRow[] = '';
-                }
+    foreach ($filteredHeadings as $index => $heading) {
+        if (!in_array($index, $this->hiddenColumns)) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($index + 1);
+
+            // Only sum columns that are hours, billable, etc. NOT rates
+            if (
+                strpos($heading, 'Scheduled Hours') !== false ||
+                strpos($heading, 'Day (0600–1800)') !== false ||
+                strpos($heading, 'Night (1800–0600)') !== false ||
+                strpos($heading, 'Saturday') !== false ||
+                strpos($heading, 'Sunday') !== false ||
+                (strpos($heading, 'PH') !== false && strpos(strtolower($heading), 'rate') === false)
+            ) {
+                $totalsRow[] = "=SUM({$colLetter}{$startRow}:{$colLetter}{$endRow})";
+            } elseif (strpos(strtolower($heading), 'billable') !== false) {
+                // For Client Billable, sum the column
+                $totalsRow[] = "=SUM({$colLetter}{$startRow}:{$colLetter}{$endRow})";
+            } else {
+                $totalsRow[] = '';
             }
         }
-
-        return $totalsRow;
     }
+
+    return $totalsRow;
+}
 
     public function headings(): array
     {
@@ -257,7 +298,7 @@ class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
         }
 
         $filteredHeadings = $this->headings();
-        $publicHolidayColIndex = array_search('Public Holiday', $filteredHeadings);
+        $publicHolidayColIndex = array_search('PH', $filteredHeadings);
         if ($publicHolidayColIndex !== false) {
             $startRow = 2; // Data starts at row 2 (row 1 is headings)
             $rowCount = count($this->data);
@@ -303,11 +344,12 @@ class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
                 strpos($heading, 'Week Starting') !== false ||
                 strpos($heading, 'Shift Type') !== false ||
                 strpos($heading, 'Location') !== false ||
+                strpos($heading, 'Date Range') !== false ||
                 strpos($heading, 'Start Date') !== false ||
                 strpos($heading, 'Scheduled Start') !== false ||
                 strpos($heading, 'Scheduled Finish') !== false ||
                 strpos($heading, 'Scheduled Hours') !== false ||
-                strpos($heading, 'Employee Number') !== false
+                strpos($heading, 'Emp. Numb') !== false
             ) {
                 $sheet->getStyle("{$col}1:{$col}{$highestRow}")
                     ->getFill()->setFillType(Fill::FILL_SOLID)
@@ -324,11 +366,11 @@ class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
 
             // Style hour columns with gray background
             if (
-                strpos($heading, 'Day (06–18)') !== false ||
-                strpos($heading, 'Night (18–06)') !== false ||
+                strpos($heading, 'Day (0600–1800)') !== false ||
+                strpos($heading, 'Night (1800–0600)') !== false ||
                 strpos($heading, 'Saturday') !== false ||
                 strpos($heading, 'Sunday') !== false ||
-                strpos($heading, 'Public Holiday') !== false
+                strpos($heading, 'PH') !== false
             ) {
                 $sheet->getStyle("{$col}1:{$col}{$highestRow}")
                     ->getFill()->setFillType(Fill::FILL_SOLID)
@@ -336,6 +378,65 @@ class TimesheetExport implements FromArray, WithHeadings, WithStyles, WithEvents
             }
         }
     }
+
+   public function map($row): array
+{
+    $mapped = [];
+    $filteredHeadings = $this->headings();
+    $excelRow = $this->currentRow + 2;
+    $isTotalsRow = !empty($this->totals) && $this->currentRow === count($this->data);
+
+    // Find column indexes
+    $colIndexes = [
+        'emp'      => array_search('Emp. Numb', $filteredHeadings),
+        'dayH'     => array_search('Day (0600–1800)', $filteredHeadings),
+        'nightH'   => array_search('Night (1800–0600)', $filteredHeadings),
+        'satH'     => array_search('Saturday', $filteredHeadings),
+        'sunH'     => array_search('Sunday', $filteredHeadings),
+        'phH'      => array_search('PH', $filteredHeadings),
+        'dayR'     => array_search('Client Day Rate', $filteredHeadings),
+        'nightR'   => array_search('Client Night Rate', $filteredHeadings),
+        'satR'     => array_search('Client Sat Rate', $filteredHeadings),
+        'sunR'     => array_search('Client Sun Rate', $filteredHeadings),
+        'phR'      => array_search('Client PH Rate', $filteredHeadings),
+        'billable' => array_search('Client Billable', $filteredHeadings),
+    ];
+
+    foreach ($filteredHeadings as $index => $heading) {
+        if (in_array($index, $this->hiddenColumns)) continue;
+
+        if ($index === $colIndexes['billable']) {
+            $billableCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['billable'] + 1);
+            $startRow = 2;
+            $endRow = count($this->data) + 1;
+
+            if ($isTotalsRow) {
+                // For totals row, sum the billable column
+                $mapped[] = "=SUM({$billableCol}{$startRow}:{$billableCol}{$endRow})";
+            } else {
+                // For data rows, use the per-row formula
+                $empCol    = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['emp'] + 1);
+                $dayHCol   = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['dayH'] + 1);
+                $nightHCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['nightH'] + 1);
+                $satHCol   = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['satH'] + 1);
+                $sunHCol   = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['sunH'] + 1);
+                $phHCol    = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['phH'] + 1);
+
+                $dayRCol   = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['dayR'] + 1);
+                $nightRCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['nightR'] + 1);
+                $satRCol   = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['satR'] + 1);
+                $sunRCol   = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['sunR'] + 1);
+                $phRCol    = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndexes['phR'] + 1);
+
+                $mapped[] = "={$empCol}{$excelRow}*( {$dayHCol}{$excelRow}*{$dayRCol}{$excelRow} + {$nightHCol}{$excelRow}*{$nightRCol}{$excelRow} + {$satHCol}{$excelRow}*{$satRCol}{$excelRow} + {$sunHCol}{$excelRow}*{$sunRCol}{$excelRow} + {$phHCol}{$excelRow}*{$phRCol}{$excelRow} )";
+            }
+        } else {
+            $mapped[] = $this->formatCellValue($row[$index], $index, $row);
+        }
+    }
+    $this->currentRow++;
+    return $mapped;
+}
 
     public function afterSheet(\Maatwebsite\Excel\Events\AfterSheet $event)
     {

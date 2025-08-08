@@ -10,6 +10,8 @@ import { SelectionManager } from "./SelectionManager";
 const records = {}; // Keyed by location ID
 let previousFormData = {}; // Store previous form data for each location
 let shiftTypes = []; // Initialize shiftTypes as an empty array
+// Store the latest calculate response for each location
+const latestCalculateResponses = {};
 async function loadShiftTypes() {
     try {
         shiftTypes = await apiService.getShiftTypes(); // Fetch shift types from the API
@@ -137,9 +139,88 @@ function initializeSaveButtons() {
         const saveButton = document.getElementById(`saveBtn_${location.id}`);
         if (saveButton) {
             saveButton.addEventListener("click", function () {
+                console.log(`Save button clicked for location: ${location.id}`);
                 renderTable(location.id);
                 handleSaveButtonClick(location.id);
             });
+        }
+    });
+}
+
+function renderExportButton(locationId) {
+    // Remove any existing export button for this location
+    const oldExportBtn = document.getElementById(
+        `exportTimesheetBtn_${locationId}`
+    );
+    if (oldExportBtn) oldExportBtn.remove();
+
+    // Create the export button
+    const exportBtn = document.createElement("button");
+    exportBtn.id = `exportTimesheetBtn_${locationId}`;
+    exportBtn.type = "button";
+    exportBtn.className =
+        "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow mt-4";
+    exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
+
+    const previewTable = document.getElementById("previewTable");
+    if (previewTable) {
+        previewTable.insertAdjacentElement("afterend", exportBtn);
+    }
+
+    // Add export logic
+    exportBtn.addEventListener("click", async function () {
+        const exportData = latestCalculateResponses[locationId];
+        if (!exportData) {
+            showToast("No data to export. Please calculate first.", "error");
+            return;
+        }
+        exportBtn.disabled = true;
+        exportBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Exporting...`;
+        console.log("Exporting data for location:", locationId, exportData);
+        // Get the DataTable instance
+        const table = $("#previewTable").DataTable();
+
+        // Get all rows in the current order (after sorting, filtering, etc.)
+        const sortedData = table
+            .rows({ order: "applied", search: "applied" })
+            .data()
+            .toArray();
+
+        console.log(sortedData);
+
+        try {
+            const res = await apiService.exportReview({
+                data: sortedData,
+                headings: exportData.timesheet_headings,
+                totals: exportData.totals,
+            });
+            if (res.data.type === "application/json") {
+                // Read the error message from the blob
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const errorJson = JSON.parse(reader.result);
+                    showToast(errorJson.error || "Export failed.", "error");
+                    console.error("Export error:", errorJson);
+                };
+                reader.readAsText(res.data);
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
+                return;
+            }
+            if (res.data && res.data.success && res.data.download_url) {
+                console.log("Export successful:", res.data);
+                window.open(res.data.download_url, "_blank");
+                showToast("Export successful!", "success");
+            } else {
+                console.error("Export failed:", res.data);
+                showToast("Export failed.", "error");
+            }
+        } catch (e) {
+            console.error("Export error:", e);
+            showToast("Export failed.", "error");
+        } finally {
+            exportBtn.disabled = false;
+            exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
         }
     });
 }
@@ -225,6 +306,13 @@ function handleSaveButtonClick(locationId, silent = false) {
                 console.log("API response from calculateReview:", response);
 
                 if (response.data.success) {
+                    latestCalculateResponses[locationId] = response.data; // Store for export
+                    console.log(
+                        "Latest calculate response stored for location:",
+                        locationId,
+                        "latestCalculateResponses:",
+                        latestCalculateResponses
+                    );
                     // ...update UI...
                     if (!silent)
                         showToast("Totals calculated successfully!", "success");
@@ -255,6 +343,8 @@ function handleSaveButtonClick(locationId, silent = false) {
                         document.body.classList.add("overflow-hidden");
                         console.log("Preview modal opened");
                     }
+                    // Render the export button
+                    renderExportButton(locationId);
 
                     // Store data locally
                     const previewHeadings = response.data.timesheet_headings;
@@ -346,7 +436,7 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         "Emp. Numb": "Emp.<wbr>Numb",
         "Shift Type": "Shift<wbr> Type",
         "Week Starting": "Week<wbr> Starting",
-
+        "Date Range": "Date<wbr> Range",
         "Day (06–18)": "Day<wbr>(06–18)",
         "Night (18–06)": "Night<wbr>(18–06)",
         "Scheduled Hours": "Scheduled<wbr> Hours",
@@ -365,9 +455,9 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
     const trHead = document.createElement("tr");
     visibleColumns.forEach((heading) => {
         const th = document.createElement("th");
-        th.innerHTML = headingBreaks[heading] || heading; // Use breaks if defined
+        th.innerHTML = heading; // Use breaks if defined
         th.className =
-            "border border-gray-300 px-1 py-1 text-xs break-words w-[30px] max-w-[70px] text-center align-middle";
+            "border border-gray-300 px-1 py-1 text-xs break-words w-[50px] text-center align-middle";
         trHead.appendChild(th);
     });
     thead.appendChild(trHead);
@@ -403,16 +493,16 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             let value = idx !== -1 ? row[idx] : "-";
             const td = document.createElement("td");
             td.className =
-                "border border-gray-300 px-1 py-1 text-xs break-words w-[70px] max-w-[90px] text-center align-middle";
+                "border border-gray-300 px-1 py-1 text-xs break-words  text-center align-middle";
 
             // Format hours columns
             const hourColumns = [
                 "Scheduled Hours",
-                "Day (06–18)",
-                "Night (18–06)",
+                "Day (0600–1800)",
+                "Night (1800–0600)",
                 "Saturday",
                 "Sunday",
-                "Public Holiday",
+                "PH",
             ];
             // Format currency columns
             const currencyColumns = [
@@ -429,15 +519,31 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             } else if (currencyColumns.includes(heading) && value !== "-") {
                 value = "$" + Number(value).toFixed(2);
             }
-            // Special formatting for Start Date
-            if (heading === "Start Date" && value && value !== "-") {
+            // // Special formatting for Start Date
+            // if (heading === "Start Date" && value && value !== "-") {
+            //     const dateObj = new Date(value);
+            //     const dayName = dateObj.toLocaleDateString("en-US", {
+            //         weekday: "long",
+            //     });
+            //     value = isPublicHoliday
+            //         ? `${value}<br>(${dayName}) PH`
+            //         : `${value}<br>(${dayName})`;
+            //     td.innerHTML = value; // Use innerHTML for <br>
+            // } else {
+            //     td.textContent = value;
+            // }
+            if (heading === "Date Range" && value && value !== "-") {
+                // Insert <wbr> after 'to' for better wrapping
+                // value = value.replace(/\s+to\s+/, " <wbr>to<wbr> ");
+                td.innerHTML = value; // Use innerHTML to allow <wbr>
+            } else if (heading === "Start Date" && value && value !== "-") {
                 const dateObj = new Date(value);
                 const dayName = dateObj.toLocaleDateString("en-US", {
                     weekday: "long",
                 });
                 value = isPublicHoliday
-                    ? `${value}<br>(${dayName}) PH`
-                    : `${value}<br>(${dayName})`;
+                    ? `${value} (${dayName}) PH`
+                    : `${value} (${dayName})`;
                 td.innerHTML = value; // Use innerHTML for <br>
             } else {
                 td.textContent = value;
@@ -452,15 +558,16 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
 
     // (Re)initialize DataTable
     $("#previewTable").DataTable({
-        paging: true,
+        paging: false,
         searching: true,
         ordering: true,
         responsive: true,
         scrollX: true,
-        columnDefs: [
-            { targets: "_all", width: "120px", className: "dt-nowrap" },
-        ],
+        scrollY: "320px",
+        columnDefs: [{ targets: "_all" }],
     });
+    // Add margin-bottom to the DataTables search bar
+    $(".dataTables_filter").addClass("mb-4"); // or 'mb-2' for less space
 }
 function validateRecords(locationId) {
     const locationRecords = records[locationId];
@@ -1402,6 +1509,10 @@ function saveRowEdits(locationId, previousFormData, clickedRow) {
                 dateRange,
             });
         }
+        localStorage.setItem(
+            `records_${locationId}`,
+            JSON.stringify(records[locationId])
+        );
     });
     // Construct the record object for rendering the updated row
     const recordToBeRendered = {
@@ -3289,6 +3400,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             });
         }
     });
+    // Add event listeners for each export button after rendering the preview modal/table
 
     // Add event listeners to all "Add Shift Type" buttons
     const addShiftTypeButtons = document.querySelectorAll(

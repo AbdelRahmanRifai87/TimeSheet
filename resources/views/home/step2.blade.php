@@ -370,12 +370,12 @@
         </div>
     </div>
     <!-- Preview Modal -->
-    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative">
+    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden  ">
+        <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative h-[90%]">
             <button type="button" id="closePreviewModal"
                 class="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
             <!-- Column Visibility Custom Dropdown -->
-            <div class="mb-6 p-4 border rounded bg-gray-50">
+            <div class="mb-6 p-4 border rounded bg-gray-50 column-visibility-dropdown">
                 <h3 class="text-lg font-semibold mb-4">Column Visibility</h3>
                 <div class="relative w-full">
                     <button id="columnDropdownBtn" type="button"
@@ -394,15 +394,16 @@
                 <p class="mt-2 text-sm text-gray-500">Core columns are required and cannot be deselected.</p>
             </div>
             <!-- Preview Table -->
-            <div class="mb-6">
+            <div class="mb-6 ">
                 <h3 class="text-lg font-semibold mb-4">Preview</h3>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto ">
                     <table id="previewTable" class="display  w-full table-fixed">
                         <thead id="previewTableHead1"></thead>
                         <tbody id="previewTableBody1"></tbody>
                     </table>
                 </div>
             </div>
+
         </div>
     </div>
 
