@@ -188,7 +188,7 @@
                     <div class="flex justify-end">
                         <button type="button" id="saveBtn_{{ $location->id }}"
                             class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3 ">
-                            <span class="save-btn-text">Save</span>
+                            <span class="save-btn-text">Save and Review</span>
                             <span class="save-btn-spinner hidden">
                                 <i class="fas fa-spinner fa-spin"></i>
                             </span>
@@ -273,7 +273,7 @@
                     <button type="button" id="cancelBatchFormBtn_{{ $location->id }}"
                         class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
                     <button type="button" id="saveBatchFormBtn_{{ $location->id }}"
-                        class="bg-[#87b87f] hover:bg-lime-700 text-white px-4 py-2 rounded">Save <i
+                        class="bg-[#87b87f] hover:bg-lime-700 text-white px-4 py-2 rounded">Save and review <i
                             class="fa-solid fa-arrow-right ml-1"></i></button>
                 </div>
 
@@ -371,9 +371,9 @@
     </div>
     <!-- Preview Modal -->
     <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-lg w-[50%] p-6 relative">
+        <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative">
             <button type="button" id="closePreviewModal"
-                class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+                class="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
             <!-- Column Visibility Custom Dropdown -->
             <div class="mb-6 p-4 border rounded bg-gray-50">
                 <h3 class="text-lg font-semibold mb-4">Column Visibility</h3>
@@ -397,7 +397,7 @@
             <div class="mb-6">
                 <h3 class="text-lg font-semibold mb-4">Preview</h3>
                 <div class="overflow-x-auto">
-                    <table id="previewTable" class="display w-full">
+                    <table id="previewTable" class="display  w-full table-fixed">
                         <thead id="previewTableHead1"></thead>
                         <tbody id="previewTableBody1"></tbody>
                     </table>

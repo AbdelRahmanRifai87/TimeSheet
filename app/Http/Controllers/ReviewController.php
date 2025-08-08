@@ -68,7 +68,7 @@ class ReviewController extends Controller
                 'Scheduled Start',
                 'Scheduled Finish',
                 'Scheduled Hours',
-                'Employee Number',
+                'Emp. Numb',
                 'Day (06–18)',
                 'Night (18–06)',
                 'Saturday',
