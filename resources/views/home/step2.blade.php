@@ -1,31 +1,156 @@
 @php $currentStep = 2; @endphp
 @extends('layouts.app')
+@section('head')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <style>
+        .location-form {
+            display: none;
+        }
+    </style>
+    
+@endsection
 
 @section('content')
     <div class="w-[100%]  overflow-y-auto bg-white-100">
-        <form id="step2Form" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
-            @csrf
-            <div class="flex justify-between items-center  ">
-                <h2 class="text-2xl text-[#2679b5] ">Locations:</h2>
-                <!-- Back Button -->
-                <div class="flex gap justify-end gap-4 ">
-                    <!-- Back Button -->
-                    <button type="button" id="backBtn"
-                        class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border">
-                        Add/Edit Locations
-                    </button>
-
-                    <!-- Next Button -->
-                    <button type="submit" class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border">
-                        Add/Edit Shift Types
-                    </button>
-                </div>
-            </div>
+    <!-- Quotation Header -->
+    <div class="bg-gray-50 p-4 mb-4 rounded">
+        <h1 class="text-xl font-bold text-[#2679b5]">Quotation Name: {{ $quotation->name }}</h1>
+        @if($quotation->client_name)
+            <p class="text-gray-600">Client Name: {{ $quotation->client_name }}</p>
+        @endif
     </div>
 
+    <!-- Location Selection Interface -->
+    <div class="bg-white p-4 mb-6 rounded border">
+        <h3 class="text-lg font-semibold text-[#2679b5] mb-4">Select Locations for this Quotation</h3>
+        
+        <!-- Location Selection Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+            @foreach($locations as $location)
+                <div class="border rounded p-3 hover:bg-gray-50 cursor-pointer location-selector" 
+                     data-location-id="{{ $location->id }}">
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               id="locationSelect_{{ $location->id }}" 
+                               value="{{ $location->id }}" 
+                               class="location-checkbox mr-3"
+                               data-name="{{ $location->name }}"
+                               data-address="{{ $location->address }}"
+                               onchange="updateLocationDisplay()">
+                        <div class="flex-1" onclick="toggleLocationSelection('{{ $location->id }}')">
+                            <div class="font-medium text-sm">{{ $location->name }}</div>
+                            <div class="text-xs text-gray-500">{{ $location->address }}</div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
 
+        <!-- Action Buttons -->
+        <div class="flex gap-2 mb-4">
+            <button type="button" id="selectAllLocations" class="bg-blue-500 text-white px-4 py-2 rounded text-sm">
+                Select All
+            </button>
+            <button type="button" id="clearAllLocations" class="bg-gray-500 text-white px-4 py-2 rounded text-sm">
+                Clear All
+            </button>
+        </div>
+
+        <!-- Selected Count Display -->
+        <div class="text-sm text-gray-600">
+            <span id="selectedLocationCount">0</span> of {{ $locations->count() }} locations selected
+        </div>
+    </div>
+    <!-- Modal for Adding Shift Type -->
+    <div id="addShiftTypeModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+            <h2 class="text-lg font-bold mb-4">Add Shift Type</h2>
+            <form id="addShiftTypeForm">
+                <table class="w-full border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border border-gray-300 px-4 py-2 text-left">Name</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Day Rate</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Night Rate</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Saturday Rate</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Sunday Rate</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Public Holiday Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="text" id="shiftTypeName" name="name"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <textarea id="shiftTypeDescription" name="description"
+                                    class="form-textarea w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="dayRate" name="day_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="nightRate" name="night_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="saturdayRate" name="saturday_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="sundayRate" name="sunday_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="publicHolidayRate" name="public_holiday_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Modal Actions -->
+                <div class="flex justify-end mt-4">
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+        <form id="mainLocationsForm" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
+            @csrf
+            <!-- Hidden form for step2.js compatibility -->
+            <form id="step2Form" style="display: none;"></form>
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-2xl text-[#2679b5]">Selected Locations:</h2>
+                    <p class="text-sm text-gray-600" id="locationStatusMessage">Select locations above to configure shifts</p>
+                </div>
+                <div class="flex gap-4">
+                    <button type="button" id="backToSelectionBtn"
+                        class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border">
+                        Edit Location Selection
+                    </button>
+                    <button type="submit" id="saveAllLocationsBtn" class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border">
+                        Save Selected Locations
+                    </button>
+                    <a href="{{ route('quotation.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded">
+                        Back to Quotations
+                    </a>
+                </div>
+            </div>
+
+    <!-- Locations Container -->
+    <div id="locationsContainer">
     @foreach ($locations as $location)
-        <div class="border border-gray-300 rounded  mt-2 mb-6 bg-gray-100">
+        <div class="border border-gray-300 rounded mt-2 mb-6 bg-gray-100 location-form" 
+             data-location-id="{{ $location->id }}" 
+             style="display: none;">
             <!-- Location Header -->
             <div class="cursor-pointer p-2" onclick="toggleForm('{{ $location->id }}')">
                 <div class="flex justify-between items-center mb-2">
@@ -280,9 +405,18 @@
             </div>
         </div>
     @endforeach
-    <!-- Hidden input to store selected locations -->
+    </div>
+    <!-- Hidden inputs -->
     <input type="hidden" id="selectedLocationsInput" name="selected_locations" value="[]">
-
+    <input type="hidden" name="quotation_id" value="{{ $quotation->id }}">
+    
+    <!-- Hidden elements for step2.js compatibility -->
+    <div id="locationDropdown" style="display: none;"></div>
+    <div id="locationOptions" style="display: none;"></div>
+    <div id="selectedLocations" style="display: none;"></div>
+    <div id="placeholderText" style="display: none;"></div>
+    <div id="selectedLocationsForms" style="display: none;"></div>
+    <span id="selectedCount" style="display: none;">0</span>
 
     </form>
 
@@ -409,26 +543,317 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        // Toggle visibility of the form for a specific location and update the arrow icon
-        // function toggleForm(locationId) {
-        //     const form = document.getElementById(`form_${locationId}`);
-        //     const arrow = document.getElementById(`arrow_${locationId}`);
+        // Simplified Location Selection and Display Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const locations = @json($locations);
+            const quotationId = @json($quotation->id);
+            const savedLocationSchedules = @json($savedLocationSchedules ?? []);
+            
+            let selectedLocationIds = [];
 
-        //     // Toggle the hidden class
-        //     form.classList.toggle('hidden');
+            // Initialize functionality
+            initLocationSelection();
+            loadSavedShiftData();
 
-        //     // Update the arrow icon
-        //     if (form.classList.contains('hidden')) {
-        //         arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Down arrow
-        //     } else {
-        //         arrow.innerHTML = '<i class="fas fa-chevron-up"></i>'; // Up arrow
-        //     }
-        // }
+            function initLocationSelection() {
+                // Select All button
+                const selectAllBtn = document.getElementById('selectAllLocations');
+                if (selectAllBtn) {
+                    selectAllBtn.addEventListener('click', function() {
+                        document.querySelectorAll('.location-checkbox').forEach(checkbox => {
+                            checkbox.checked = true;
+                        });
+                        updateLocationDisplay();
+                    });
+                }
+
+                // Clear All button
+                const clearAllBtn = document.getElementById('clearAllLocations');
+                if (clearAllBtn) {
+                    clearAllBtn.addEventListener('click', function() {
+                        document.querySelectorAll('.location-checkbox').forEach(checkbox => {
+                            checkbox.checked = false;
+                        });
+                        updateLocationDisplay();
+                    });
+                }
+
+                // Show Selected button
+                const showSelectedBtn = document.getElementById('showSelectedLocations');
+                if (showSelectedBtn) {
+                    showSelectedBtn.addEventListener('click', function() {
+                        updateLocationDisplay();
+                        // Scroll to forms section
+                        const formsSection = document.getElementById('locationsContainer');
+                        if (formsSection) {
+                            formsSection.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    });
+                }
+
+                // Back to selection button
+                const backToSelectionBtn = document.getElementById('backToSelectionBtn');
+                if (backToSelectionBtn) {
+                    backToSelectionBtn.addEventListener('click', function() {
+                        const selectionSection = document.querySelector('.bg-white.p-4.mb-6.rounded.border');
+                        if (selectionSection) {
+                            selectionSection.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    });
+                }
+
+                // Save All Locations button
+                const saveAllBtn = document.getElementById('saveAllLocationsBtn');
+                if (saveAllBtn) {
+                    saveAllBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // Save all location data before submitting the form
+                        const selectedLocationIds = Array.from(document.querySelectorAll('.location-checkbox:checked')).map(cb => cb.value);
+                        let savePromises = [];
+                        
+                        selectedLocationIds.forEach(locationId => {
+                            if (window.records && window.records[locationId] && window.records[locationId].length > 0) {
+                                savePromises.push(
+                                    new Promise((resolve) => {
+                                        if (typeof window.saveShiftDataToDatabase === 'function') {
+                                            window.saveShiftDataToDatabase(locationId, window.records[locationId]);
+                                        }
+                                        resolve();
+                                    })
+                                );
+                            }
+                        });
+                        
+                        // Wait for all saves to complete, then submit the form
+                        Promise.all(savePromises).then(() => {
+                            console.log('All location data saved. Submitting form...');
+                            document.getElementById('mainLocationsForm').submit();
+                        }).catch((error) => {
+                            console.error('Error saving location data:', error);
+                            // Submit anyway
+                            document.getElementById('mainLocationsForm').submit();
+                        });
+                    });
+                }
+
+                // Add change event listeners to all checkboxes
+                document.querySelectorAll('.location-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', updateLocationDisplay);
+                });
+
+                // Load saved selections
+                loadSavedSelections();
+            }
+
+            // Load saved shift data from database
+            function loadSavedShiftData() {
+                console.log('Loading saved shift data...', savedLocationSchedules);
+                
+                savedLocationSchedules.forEach(schedule => {
+                    const locationId = schedule.location_id;
+                    const shiftDetails = schedule.shift_details;
+                    
+                    if (shiftDetails && Array.isArray(shiftDetails) && shiftDetails.length > 0) {
+                        console.log(`Loading ${shiftDetails.length} shift records for location ${locationId}`);
+                        
+                        // Initialize records for this location if not exists
+                        if (!window.records) {
+                            window.records = {};
+                        }
+                        if (!window.records[locationId]) {
+                            window.records[locationId] = [];
+                        }
+                        
+                        // Load the saved shift details into the records array
+                        window.records[locationId] = shiftDetails;
+                        
+                        // Also save to localStorage for compatibility
+                        localStorage.setItem(`records_${locationId}`, JSON.stringify(shiftDetails));
+                        
+                        // If the location form is visible, render the table
+                        const locationForm = document.querySelector(`[data-location-id="${locationId}"]`);
+                        if (locationForm && locationForm.style.display !== 'none') {
+                            if (typeof window.renderTable === 'function') {
+                                window.renderTable(locationId);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Save shift data to database
+            function saveShiftDataToDatabase(locationId, shiftData) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                if (!csrfToken) {
+                    console.error('CSRF token not found');
+                    return;
+                }
+
+                fetch('/save-location-shift-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        location_id: locationId,
+                        shift_data: shiftData
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Shift data saved successfully for location:', locationId);
+                    } else {
+                        console.error('Failed to save shift data:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving shift data:', error);
+                });
+            }
+
+            // Toggle individual location selection
+            window.toggleLocationSelection = function(locationId) {
+                const checkbox = document.getElementById(`locationSelect_${locationId}`);
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    updateLocationDisplay();
+                }
+            }
+
+            // Update location display based on selections
+            function updateLocationDisplay() {
+                const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
+                selectedLocationIds = Array.from(checkedBoxes).map(cb => cb.value);
+                
+                console.log('Selected location IDs:', selectedLocationIds); // Debug log
+                
+                // Update selected count
+                const countElement = document.getElementById('selectedLocationCount');
+                if (countElement) {
+                    countElement.textContent = selectedLocationIds.length;
+                }
+                
+                // Update status message
+                const statusMessage = document.getElementById('locationStatusMessage');
+                if (statusMessage) {
+                    if (selectedLocationIds.length === 0) {
+                        statusMessage.textContent = 'Select locations above to configure shifts';
+                    } else {
+                        statusMessage.textContent = `${selectedLocationIds.length} location(s) selected - Configure shifts below`;
+                    }
+                }
+                
+                // Show/hide location forms based on selection
+                const locationForms = document.querySelectorAll('.location-form');
+                locationForms.forEach(form => {
+                    const locationId = form.getAttribute('data-location-id');
+                    if (selectedLocationIds.includes(locationId)) {
+                        form.style.display = 'block';
+                        
+                        // Load saved data for this location if it exists and not already loaded
+                        if (window.records && !window.records[locationId]) {
+                            const schedule = savedLocationSchedules.find(s => s.location_id == locationId);
+                            if (schedule && schedule.shift_details) {
+                                window.records[locationId] = schedule.shift_details;
+                                localStorage.setItem(`records_${locationId}`, JSON.stringify(schedule.shift_details));
+                                
+                                // Render table if renderTable function is available
+                                if (typeof window.renderTable === 'function') {
+                                    window.renderTable(locationId);
+                                }
+                            }
+                        }
+                        
+                        // Also try to load using the step2.js function
+                        if (typeof window.loadRecordsForLocation === 'function') {
+                            window.loadRecordsForLocation(locationId);
+                        }
+                    } else {
+                        form.style.display = 'none';
+                    }
+                });
+                
+                // Update hidden input
+                const selectedLocationsInput = document.getElementById('selectedLocationsInput');
+                if (selectedLocationsInput) {
+                    selectedLocationsInput.value = JSON.stringify(selectedLocationIds);
+                }
+                
+                // Save to localStorage
+                localStorage.setItem(`quotation_${quotationId}_selected_locations`, JSON.stringify(selectedLocationIds));
+            }
+
+            // Make functions globally available
+            window.updateLocationDisplay = updateLocationDisplay;
+            window.saveShiftDataToDatabase = saveShiftDataToDatabase;
+
+            function loadSavedSelections() {
+                // First try to load from saved schedules (database)
+                if (savedLocationSchedules && savedLocationSchedules.length > 0) {
+                    savedLocationSchedules.forEach(schedule => {
+                        const checkbox = document.getElementById(`locationSelect_${schedule.location_id}`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                    updateLocationDisplay();
+                    return;
+                }
+
+                // Fallback to localStorage
+                const savedLocations = localStorage.getItem(`quotation_${quotationId}_selected_locations`);
+                if (savedLocations) {
+                    try {
+                        const locationIds = JSON.parse(savedLocations);
+                        locationIds.forEach(id => {
+                            const checkbox = document.getElementById(`locationSelect_${id}`);
+                            if (checkbox) {
+                                checkbox.checked = true;
+                            }
+                        });
+                        updateLocationDisplay();
+                    } catch (e) {
+                        console.error('Error loading saved locations:', e);
+                    }
+                }
+            }
+        });
+
+        // Global variables for step2.js compatibility
         const locations = @json($locations);
         window.staticJwt = @json(env('STATIC_JWT'));
         window.selectedShiftTypes = @json(session('step2.shift_types', []));
         window.selectedLocationId = @json(session('step2.location_id', ''));
         window.selectedDateRange = @json(session('step2.date_range', ''));
+        window.quotationId = @json($quotation->id);
+
+        // Initialize global records object
+        window.records = {};
+        locations.forEach(location => {
+            window.records[location.id] = [];
+        });
+
+        // Compatibility function for step2.js
+        window.getSelectedLocations = function() {
+            const selectedLocationIds = Array.from(document.querySelectorAll('.location-checkbox:checked')).map(cb => cb.value);
+            return selectedLocationIds.map(id => {
+                const location = locations.find(loc => loc.id == id);
+                return location || { id: id };
+            });
+        };
+
+        // Compatibility function for step2.js validation
+        window.validateStep2Form = function() {
+            const selectedLocationIds = Array.from(document.querySelectorAll('.location-checkbox:checked')).map(cb => cb.value);
+            if (selectedLocationIds.length === 0) {
+                alert('Please select at least one location.');
+                return false;
+            }
+            return true;
+        };
     </script>
     @vite('resources/js/Step2/step2.js')
 @endsection
