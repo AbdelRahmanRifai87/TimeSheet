@@ -51,14 +51,12 @@ function saveRecordsToStorage(locationId) {
 // Function to load records from database/localStorage when location form is shown
 function loadRecordsForLocation(locationId) {
     console.log(`Loading records for location ${locationId}`);
-
     // Check if we already have records loaded
     if (records[locationId] && records[locationId].length > 0) {
         console.log(`Records already loaded for location ${locationId}`);
         renderTable(locationId);
         return;
     }
-
     // Try localStorage first (for immediate response)
     const localData = localStorage.getItem(`records_${locationId}`);
     if (localData) {
