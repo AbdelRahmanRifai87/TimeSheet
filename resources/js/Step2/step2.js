@@ -12,6 +12,168 @@ let previousFormData = {}; // Store previous form data for each location
 let shiftTypes = []; // Initialize shiftTypes as an empty array
 // Store the latest calculate response for each location
 
+function showLoading() {
+    document.getElementById("globalLoadingOverlay").classList.remove("hidden");
+}
+function hideLoading() {
+    document.getElementById("globalLoadingOverlay").classList.add("hidden");
+}
+
+function openLocationCrudModal() {
+    document.getElementById("locationCrudModal").classList.remove("hidden");
+    loadLocationsTable();
+}
+
+function closeLocationCrudModal() {
+    document.getElementById("locationCrudModal").classList.add("hidden");
+}
+
+const AU_STATES = [
+    "New South Wales",
+    "Victoria",
+    "Queensland",
+    "Western Australia",
+    "South Australia",
+    "Tasmania",
+    "Australian Capital Territory",
+    "Northern Territory",
+];
+
+function addLocationRow() {
+    const tbody = document.querySelector("#locationCrudTable tbody");
+    // Prevent multiple empty rows
+    if (tbody.querySelector(".editing-row")) return;
+    const tr = document.createElement("tr");
+    tr.classList.add("editing-row");
+    tr.innerHTML = `
+        <td class="border px-2 py-1"><input type="text" class="form-input w-full" placeholder="Name"></td>
+        <td class="border px-2 py-1"><input type="text" class="form-input w-full" placeholder="Address"></td>
+        <td class="border px-2 py-1"><input type="text" class="form-input w-full" placeholder="City"></td>
+        <td class="border px-2 py-1">
+            <select class="form-select w-full">
+                <option value="">Select State</option>
+                ${AU_STATES.map(
+                    (state) => `<option value="${state}">${state}</option>`
+                ).join("")}
+            </select>
+        </td>
+        <td class="border px-2 py-1 flex gap-2">
+            <button class="saveLocationBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save"><i class="fas fa-check"></i></button>
+            <button class="cancelLocationBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel"><i class="fas fa-times"></i></button>
+        </td>
+    `;
+    tr.classList.add("editing-row", "shadow-lg", "bg-blue-50", "rounded");
+    tbody.prepend(tr);
+}
+
+function handleLocationCrudTableClick(e) {
+    const tr = e.target.closest("tr");
+    if (!tr) return;
+
+    // Save new or edited location
+    if (e.target.closest(".saveLocationBtn")) {
+        const inputs = tr.querySelectorAll("input");
+        const stateSelect = tr.querySelector("select");
+
+        const data = {
+            name: inputs[0].value.trim(),
+            address: inputs[1].value.trim(),
+            city: inputs[2].value.trim(),
+            state: stateSelect.value.trim(),
+        };
+        const id = tr.dataset.id;
+        if (!data.name) {
+            alert("Name is required.");
+            return;
+        }
+        showLoading();
+        if (id) {
+            axios
+                .put(`/api/locations/${id}`, data)
+                .then(() => loadLocationsTable())
+                .finally(() => hideLoading());
+        } else {
+            axios
+                .post(`/api/locations`, data)
+                .then(() => loadLocationsTable())
+                .finally(hideLoading);
+        }
+    }
+
+    // Cancel add/edit
+    if (e.target.closest(".cancelLocationBtn")) {
+        loadLocationsTable();
+    }
+
+    // Edit existing location
+    if (e.target.closest(".editLocationBtn")) {
+        if (document.querySelector(".editing-row")) return;
+        const tds = tr.querySelectorAll("td");
+        const [name, address, city, state] = Array.from(tds)
+            .slice(0, 4)
+            .map((td) => td.textContent.trim());
+        tr.innerHTML = `
+            <td class="border px-2 py-1"><input type="text" class="form-input w-full" value="${name}"></td>
+            <td class="border px-2 py-1"><input type="text" class="form-input w-full" value="${address}"></td>
+            <td class="border px-2 py-1"><input type="text" class="form-input w-full" value="${city}"></td>
+ <td class="border px-2 py-1">
+            <select class="form-select w-full">
+                <option value="">Select State</option>
+                ${AU_STATES.map(
+                    (s) =>
+                        `<option value="${s}" ${
+                            s === state ? "selected" : ""
+                        }>${s}</option>`
+                ).join("")}
+            </select>
+        </td>            <td class="border px-2 py-1 flex gap-2">
+                <button class="saveLocationBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save"><i class="fas fa-check"></i></button>
+                <button class="cancelLocationBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel"><i class="fas fa-times"></i></button>
+            </td>
+        `;
+        tr.classList.add("editing-row", "shadow-lg", "bg-blue-50", "rounded");
+        tr.dataset.id = tr.dataset.id;
+    }
+
+    // Delete location
+    if (e.target.closest(".deleteLocationBtn")) {
+        const id = tr.dataset.id;
+        if (confirm("Are you sure you want to delete this location?")) {
+            showLoading();
+            axios
+                .delete(`/api/locations/${id}`)
+                .then(() => loadLocationsTable())
+                .finally(() => hideLoading());
+        }
+    }
+}
+
+function loadLocationsTable() {
+    showLoading();
+    axios
+        .get("/api/locations")
+        .then((res) => {
+            const tbody = document.querySelector("#locationCrudTable tbody");
+            tbody.innerHTML = "";
+            res.data.forEach((loc) => {
+                const tr = document.createElement("tr");
+                tr.dataset.id = loc.id;
+                tr.innerHTML = `
+                <td class="border px-2 py-1">${loc.name}</td>
+                <td class="border px-2 py-1">${loc.address}</td>
+                <td class="border px-2 py-1">${loc.city}</td>
+                <td class="border px-2 py-1">${loc.state}</td>
+                <td class="border px-2 py-1 flex gap-2">
+                    <button class="editLocationBtn text-blue-600" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="deleteLocationBtn text-red-600" title="Delete"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+                tbody.appendChild(tr);
+            });
+        })
+        .finally(hideLoading);
+}
+
 async function calculateForMultipleLocations(locationsData) {
     // locationsData: Array of { location_id, shifts: [...] }
     try {
@@ -785,9 +947,11 @@ function initializeSaveButtons() {
     // Add event listeners to all Save buttons
     locations.forEach((location) => {
         const saveButton = document.getElementById(`saveBtn_${location.id}`);
-        console.log(`Initializing save button for location ${saveButton}`);
-        if (saveButton) {
-            saveButton.addEventListener("click", function () {
+        saveButton.replaceWith(saveButton.cloneNode(true)); // Remove all listeners
+        const newSaveButton = document.getElementById(`saveBtn_${location.id}`);
+        console.log(`Initializing save button for location ${location.id}`);
+        if (newSaveButton) {
+            newSaveButton.addEventListener("click", function () {
                 console.log(`Save button clicked for location: ${location.id}`);
                 renderTable(location.id);
                 handleSaveButtonClick(location.id);
@@ -991,7 +1155,6 @@ function handleSaveButtonClick(locationId, silent = false) {
                         btnText.classList.remove("hidden");
                     }, 1500); // Show check for 1.5 seconds
                     if (!silent) {
-                        showToast("Totals calculated successfully!", "success");
                         // Show the preview modal ONLY if not silent
                         document
                             .getElementById("previewModal")
@@ -1251,16 +1414,25 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         columnDefs: [{ targets: "_all" }],
     });
     // Add margin-bottom to the DataTables search bar
+    // Find the filter container
     const $filter = $(".dataTables_filter");
+    if ($filter.length && !$("#datatable-title").length) {
+        // Create a flex wrapper div with three columns
+        const $flexDiv = $(`
+        <div class="w-full flex items-center mb-4" style="min-height:40px;">
+            <div class="flex-1 flex items-center"></div>
+            <div class="flex-1 text-center  text-2xl text-[#2679b5]" id="datatable-title">Preview Table</div>
+            <div class="flex-1"></div>
+        </div>
+    `);
 
-    $filter.addClass("mb-4"); // or 'mb-2' for less space
-    $filter.css({
-        float: "none",
-        "text-align": "left",
-    });
-    $filter.prepend(
-        '<span class="datatable-title font-bold text-lg mr-4" style="vertical-align:middle;">Timesheet Preview</span>'
-    );
+        // Move the search bar into the left column
+        $flexDiv.children().eq(0).append($filter.contents());
+        // Replace the filter's content with the flex container
+        $filter.empty().append($flexDiv);
+        // Remove float and align left for the search bar
+        $filter.css({ float: "none", "text-align": "left", margin: 0 });
+    }
 }
 function validateRecords(locationId) {
     const locationRecords = records[locationId];
@@ -2363,34 +2535,34 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     // Other initialization logic (e.g., toggle form visibility)
-    window.toggleForm = async function (locationId) {
-        const form = document.getElementById(`form_${locationId}`);
-        const arrow = document.getElementById(`arrow_${locationId}`);
-        renderTable(locationId); // Ensure the table is rendered before toggling
+    // window.toggleForm = async function (locationId) {
+    //     const form = document.getElementById(`form_${locationId}`);
+    //     const arrow = document.getElementById(`arrow_${locationId}`);
+    //     renderTable(locationId); // Ensure the table is rendered before toggling
 
-        // Only try to collapse if currently open
-        if (!form.classList.contains("max-h-0")) {
-            // Try to save before collapsing
-            let saveSucceeded = await handleSaveButtonClick(locationId, true); // pass a flag for silent mode
-            if (!saveSucceeded) {
-                // If save failed, do not collapse
-                return;
-            }
-        }
+    //     // Only try to collapse if currently open
+    //     if (!form.classList.contains("max-h-0")) {
+    //         // Try to save before collapsing
+    //         let saveSucceeded = await handleSaveButtonClick(locationId, true); // pass a flag for silent mode
+    //         if (!saveSucceeded) {
+    //             // If save failed, do not collapse
+    //             return;
+    //         }
+    //     }
 
-        // Update the arrow icon
-        if (form.classList.contains("max-h-0")) {
-            form.classList.remove("max-h-0");
-            form.classList.add("max-h-[1000px]");
-            arrow.innerHTML = '<i class="fas fa-chevron-up"></i>'; // Down arrow
-            form.classList.add("p-2");
-        } else {
-            form.classList.add("max-h-0");
-            form.classList.remove("max-h-[1000px]");
-            arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Up arrow
-            form.classList.remove("p-2");
-        }
-    };
+    //     // Update the arrow icon
+    //     if (form.classList.contains("max-h-0")) {
+    //         form.classList.remove("max-h-0");
+    //         form.classList.add("max-h-[1000px]");
+    //         arrow.innerHTML = '<i class="fas fa-chevron-up"></i>'; // Down arrow
+    //         form.classList.add("p-2");
+    //     } else {
+    //         form.classList.add("max-h-0");
+    //         form.classList.remove("max-h-[1000px]");
+    //         arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Up arrow
+    //         form.classList.remove("p-2");
+    //     }
+    // };
 
     // Load saved selections from localStorage
     const savedSelections = localStorage.getItem("selectedOptions");
@@ -4364,9 +4536,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 console.log("Calling initializeShiftTable...");
                 initializeShiftTable(location.id);
-
-                console.log("All functions executed successfully.");
-                initializeSaveButtons();
             }
         });
 
@@ -4407,6 +4576,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             form.classList.add("max-h-0");
             form.classList.remove("max-h-[1000px]");
+            const exportBtn = document.querySelector("#exportBTN button");
+            if (exportBtn) exportBtn.remove();
 
             arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Up arrow
             form.classList.remove("p-2");
@@ -4464,6 +4635,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     //         setSummary(); // Update the summary section
     //     });
     // }
+
+    document
+        .getElementById("backToSelectionBtn")
+        .addEventListener("click", openLocationCrudModal);
+    document
+        .getElementById("closeLocationCrudModal")
+        .addEventListener("click", closeLocationCrudModal);
+    document
+        .getElementById("addLocationBtn")
+        .addEventListener("click", addLocationRow);
+    document
+        .querySelector("#locationCrudTable tbody")
+        .addEventListener("click", handleLocationCrudTableClick);
 
     locations.forEach((location) => {
         const addShiftBtn = document.getElementById(
