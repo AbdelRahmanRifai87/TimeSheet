@@ -222,10 +222,10 @@
                 <div class="flex gap-4">
                     <button type="button" id="backToSelectionBtn"
                         class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border">
-                        Edit Location Selection
+                        Edit/add Location Selection
                     </button>
                     <button type="submit" id="saveAllLocationsBtn" class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border">
-                        Save Selected Locations
+                        add/edit shift types
                     </button>
                     <a href="{{ route('quotation.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded">
                         Back to Quotations
