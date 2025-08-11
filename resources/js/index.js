@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function deleteQuotation(row) {
-        if (!confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
+        if (!confirm('Are you sure you want to delete this quotation? This action cannot be undone and will remove all related data.')) {
             return;
         }
 
@@ -155,6 +155,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Clear all localStorage data related to this quotation
+                clearQuotationLocalStorage(quotationId);
+                
                 // Remove the row from table
                 row.remove();
                 showAlert('success', data.message);
@@ -172,6 +175,89 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             showAlert('error', 'Network error occurred');
         });
+    }
+
+    // Function to clear all localStorage data related to a specific quotation
+    function clearQuotationLocalStorage(quotationId) {
+        console.log(`Clearing localStorage data for quotation ID: ${quotationId}`);
+        
+        const keysToRemove = [];
+        
+        // Find all localStorage keys related to this quotation
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (
+                key.includes(`quotation${quotationId}_`) ||
+                key.includes(`quotation_${quotationId}_`) ||
+                key.includes(`records_quotation_${quotationId}`) ||
+                key.includes(`shifts_quotation_${quotationId}`) ||
+                key.includes(`location_data_quotation_${quotationId}`) ||
+                key.startsWith(`quotation${quotationId}`) ||
+                key.startsWith(`quotation_${quotationId}`)
+            )) {
+                keysToRemove.push(key);
+            }
+        }
+        
+        // Also check for location-specific records that might be related to this quotation
+        // Pattern: records_locationId where we need to check if it belongs to this quotation
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('records_') && key.match(/^records_\d+$/)) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    // If the data has quotation information and matches our quotation ID
+                    if (data && Array.isArray(data) && data.length > 0) {
+                        // Check if any record in the array belongs to this quotation
+                        const belongsToQuotation = data.some(record => 
+                            record && (
+                                record.quotationId == quotationId ||
+                                record.quotation_id == quotationId ||
+                                (record.id && record.id.includes(`quotation${quotationId}`))
+                            )
+                        );
+                        if (belongsToQuotation) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                } catch (e) {
+                    // If we can't parse the data, skip it
+                    console.warn(`Could not parse localStorage data for key: ${key}`);
+                }
+            }
+        }
+        
+        // Remove all identified keys
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`Removed localStorage key: ${key}`);
+        });
+        
+        // Also clear any global records object if it exists and contains data for this quotation
+        if (window.records && typeof window.records === 'object') {
+            Object.keys(window.records).forEach(locationId => {
+                if (window.records[locationId] && Array.isArray(window.records[locationId])) {
+                    const filteredRecords = window.records[locationId].filter(record => 
+                        record && !(
+                            record.quotationId == quotationId ||
+                            record.quotation_id == quotationId ||
+                            (record.id && record.id.includes(`quotation${quotationId}`))
+                        )
+                    );
+                    
+                    // If all records were removed, clear the location entirely
+                    if (filteredRecords.length === 0) {
+                        delete window.records[locationId];
+                        console.log(`Cleared window.records for location: ${locationId}`);
+                    } else if (filteredRecords.length !== window.records[locationId].length) {
+                        window.records[locationId] = filteredRecords;
+                        console.log(`Filtered window.records for location: ${locationId}`);
+                    }
+                }
+            });
+        }
+        
+        console.log(`Successfully cleared ${keysToRemove.length} localStorage items for quotation ${quotationId}`);
     }
 
     function showAlert(type, message) {
