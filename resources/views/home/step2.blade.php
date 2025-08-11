@@ -111,11 +111,12 @@
                                data-location-id="{{ $location->id }}"
                                data-name="{{ $location->name }}"
                                data-address="{{ $location->address }}">
-                            <input type="checkbox" 
-                                   value="{{ $location->id }}" 
-                                   class="mr-3 text-blue-600 focus:ring-blue-500">
+
                             <div class="flex-1">
-                                <div class="font-medium text-sm text-gray-900">{{ $location->name }}</div>
+
+                                
+                                <div class="font-medium text-sm text-gray-900"><input type="checkbox"value="{{ $location->id }}" 
+                                   class="mr-3 text-blue-600 focus:ring-blue-500"> {{ $location->name }}</div>
                                 <div class="text-xs text-gray-500">{{ $location->address }}</div>
                             </div>
                         </label>
@@ -677,68 +678,136 @@
             initLocationSelection();
             loadSavedShiftData();
 
-            function initLocationSelection() {
-                // Select All Locations button
-                const selectAllBtn = document.getElementById('selectAllLocationsBtn');
-                if (selectAllBtn) {
-                    selectAllBtn.addEventListener('click', function() {
-                        console.log('Select All button clicked');
-                        if (window.multiSelectDropdown) {
-                            window.multiSelectDropdown.selectAll();
-                        } else {
-                            console.error('multiSelectDropdown not available');
-                        }
-                    });
-                }
+function initLocationSelection() {
+    if (typeof MultiSelectDropdown !== 'undefined') {
+        console.log('Initializing MultiSelectDropdown...');
+        window.multiSelectDropdown = new MultiSelectDropdown('locationMultiSelect');
+        
+        // Load saved selections after initialization
+        setTimeout(loadSavedSelections, 100);
+        
+        // Add event listeners for Select All and Deselect All buttons
+        const selectAllBtn = document.getElementById('selectAllLocationsBtn');
+        const deselectAllBtn = document.getElementById('deselectAllLocationsBtn');
+        
+        console.log('Select All Button:', selectAllBtn);
+        console.log('Deselect All Button:', deselectAllBtn);
 
-                // Deselect All Locations button
-                const deselectAllBtn = document.getElementById('deselectAllLocationsBtn');
-                if (deselectAllBtn) {
-                    deselectAllBtn.addEventListener('click', function() {
-                        console.log('Deselect All button clicked');
-                        if (window.multiSelectDropdown) {
-                            window.multiSelectDropdown.deselectAll();
-                        } else {
-                            console.error('multiSelectDropdown not available');
-                        }
-                    });
+        // Select All Locations button
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', function() {
+                console.log('Select All button clicked');
+                console.log('multiSelectDropdown available:', !!window.multiSelectDropdown);
+                console.log('multiSelectDropdown.selectAll method:', typeof window.multiSelectDropdown?.selectAll);
+                if (window.multiSelectDropdown && typeof window.multiSelectDropdown.selectAll === 'function') {
+                    window.multiSelectDropdown.selectAll();
+                } else {
+                    console.error('multiSelectDropdown or selectAll method not available');
                 }
+            });
+            console.log('Select All event listener attached');
+        } else {
+            console.error('Select All button not found');
+        }
 
-                // Save All Locations button
-                const saveAllBtn = document.getElementById('saveAllLocationsBtn');
-                if (saveAllBtn) {
-                    saveAllBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        
-                        // Get selected locations from multiSelect dropdown
-                        const selectedLocationIds = window.multiSelectDropdown.getSelectedValues();
-                        let savePromises = [];
-                        
-                        selectedLocationIds.forEach(locationId => {
-                            if (window.records && window.records[locationId] && window.records[locationId].length > 0) {
-                                savePromises.push(
-                                    new Promise((resolve) => {
-                                        if (typeof window.saveShiftDataToDatabase === 'function') {
-                                            window.saveShiftDataToDatabase(locationId, window.records[locationId]);
-                                        }
-                                        resolve();
-                                    })
-                                );
-                            }
-                        });
-                        
-                        // Wait for all saves to complete, then submit the form
-                        Promise.all(savePromises).then(() => {
-                            console.log('All location data saved. Submitting form...');
-                            document.getElementById('mainLocationsForm').submit();
-                        }).catch((error) => {
-                            console.error('Error saving location data:', error);
-                            // Submit anyway
-                            document.getElementById('mainLocationsForm').submit();
-                        });
-                    });
+        // Deselect All Locations button
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener('click', function() {
+                console.log('Deselect All button clicked');
+                console.log('multiSelectDropdown available:', !!window.multiSelectDropdown);
+                console.log('multiSelectDropdown.deselectAll method:', typeof window.multiSelectDropdown?.deselectAll);
+                if (window.multiSelectDropdown && typeof window.multiSelectDropdown.deselectAll === 'function') {
+                    window.multiSelectDropdown.deselectAll();
+                } else {
+                    console.error('multiSelectDropdown or deselectAll method not available');
                 }
-            }
+            });
+            console.log('Deselect All event listener attached');
+        } else {
+            console.error('Deselect All button not found');
+        }
+
+        // Save All Locations button
+        const saveAllBtn = document.getElementById('saveAllLocationsBtn');
+        if (saveAllBtn) {
+            saveAllBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Get selected locations from multiSelect dropdown
+                const selectedLocationIds = window.multiSelectDropdown.getSelectedValues();
+                let savePromises = [];
+                
+                selectedLocationIds.forEach(locationId => {
+                    if (window.records && window.records[locationId] && window.records[locationId].length > 0) {
+                        savePromises.push(
+                            new Promise((resolve) => {
+                                if (typeof window.saveShiftDataToDatabase === 'function') {
+                                    window.saveShiftDataToDatabase(locationId, window.records[locationId]);
+                                }
+                                resolve();
+                            })
+                        );
+                    }
+                });
+                
+                // Wait for all saves to complete, then submit the form
+                Promise.all(savePromises).then(() => {
+                    console.log('All location data saved. Submitting form...');
+                    document.getElementById('mainLocationsForm').submit();
+                }).catch((error) => {
+                    console.error('Error saving location data:', error);
+                    // Submit anyway
+                    document.getElementById('mainLocationsForm').submit();
+                });
+            });
+        }
+    } else {
+        console.error('MultiSelectDropdown class not found');
+    }
+    
+    // Global test function for debugging
+    window.testButtons = function() {
+        console.log('=== Testing Select/Deselect Buttons ===');
+        console.log('MultiSelectDropdown available:', !!window.multiSelectDropdown);
+        console.log('MultiSelectDropdown methods:');
+        if (window.multiSelectDropdown) {
+            console.log('- selectAll:', typeof window.multiSelectDropdown.selectAll);
+            console.log('- deselectAll:', typeof window.multiSelectDropdown.deselectAll);
+            console.log('- selectedValues:', window.multiSelectDropdown.selectedValues);
+        }
+        
+        const selectAllBtn = document.getElementById('selectAllLocationsBtn');
+        const deselectAllBtn = document.getElementById('deselectAllLocationsBtn');
+        
+        console.log('Select All Button found:', !!selectAllBtn);
+        console.log('Deselect All Button found:', !!deselectAllBtn);
+        
+        if (selectAllBtn && window.multiSelectDropdown) {
+            console.log('Testing selectAll...');
+            window.multiSelectDropdown.selectAll();
+        }
+    };
+    
+    // Make test functions globally available
+    window.testSelectAll = function() {
+        if (window.multiSelectDropdown) {
+            console.log('Manually testing selectAll');
+            window.multiSelectDropdown.selectAll();
+        } else {
+            console.error('multiSelectDropdown not available');
+        }
+    };
+    
+    window.testDeselectAll = function() {
+        if (window.multiSelectDropdown) {
+            console.log('Manually testing deselectAll');
+            window.multiSelectDropdown.deselectAll();
+        } else {
+            console.error('multiSelectDropdown not available');
+        }
+    };
+}
+
 
             // Load saved shift data from database
             function loadSavedShiftData() {
@@ -810,14 +879,22 @@
 
             // Update location display based on multiSelect selections
             function updateLocationDisplay() {
+                const quotationId = window.quotationId;
+
+                if (!window.multiSelectDropdown) {
+                    console.warn('MultiSelectDropdown not initialized');
+                    return;
+                }
                 const selectedLocationIds = window.multiSelectDropdown.getSelectedValues();
+                console.log('Updating location display...');
+
                 
                 console.log('Selected location IDs:', selectedLocationIds); // Debug log
                 
-                // Update selected count
-                const countElement = document.getElementById('selectedLocationCount');
-                if (countElement) {
-                    countElement.textContent = selectedLocationIds.length;
+                // Update the count display
+                const countDisplay = document.getElementById('selectedLocationCount');
+                if (countDisplay) {
+                    countDisplay.textContent = selectedLocationIds.length;
                 }
                 
                 // Update status message
@@ -924,17 +1001,7 @@
                     }
                 }
 
-            // Initialize location selection with quotation-specific data
-            function initLocationSelection() {
-                if (typeof MultiSelectDropdown !== 'undefined') {
-                    window.multiSelectDropdown = new MultiSelectDropdown('locationMultiSelect');
-                    
-                    // Load saved selections after initialization
-                    setTimeout(loadSavedSelections, 100);
-                } else {
-                    console.error('MultiSelectDropdown class not found');
-                }
-            }
+            // Removed duplicate initLocationSelection function - using the one above with button event listeners
 
         });
 

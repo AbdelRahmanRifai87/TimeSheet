@@ -196,37 +196,91 @@ class MultiSelectDropdown {
         this.dropdown.classList.add('hidden');
         this.dropdown.classList.remove('dropdown-enter-active');
         this.searchInput.value = '';
+        // Make sure all options are visible when closing
         this.filterOptions('');
     }
     
     filterOptions(searchTerm) {
         const options = this.optionsContainer.querySelectorAll('.location-option');
+        let visibleCount = 0;
+        
         options.forEach(option => {
             const text = option.textContent.toLowerCase();
-            const matches = text.includes(searchTerm.toLowerCase());
-            option.style.display = matches ? 'flex' : 'none';
+            const matches = searchTerm === '' || text.includes(searchTerm.toLowerCase());
+            
+            if (matches) {
+                option.style.display = 'flex';
+                visibleCount++;
+            } else {
+                option.style.display = 'none';
+            }
         });
+        
     }
     
     handleOptionSelect(checkbox) {
         const value = checkbox.value;
+        
+        // GUARD: Prevent duplicate calls by tracking last processed state
+        const lastState = this.lastProcessedStates || new Map();
+        if (!this.lastProcessedStates) {
+            this.lastProcessedStates = lastState;
+        }
+        
+        const stateKey = `${value}_${checkbox.checked}`;
+        const now = Date.now();
+        const lastProcessed = lastState.get(stateKey);
+        
+        // If same state was processed within last 100ms, ignore duplicate
+        if (lastProcessed && (now - lastProcessed) < 100) {
+            return;
+        }
+        
+        lastState.set(stateKey, now);
         
         // Get the location name from the label structure
         const label = checkbox.closest('label');
         const nameDiv = label.querySelector('.font-medium');
         const text = nameDiv ? nameDiv.textContent.trim() : `Location ${value}`;
         
-        console.log('Option selected:', { value, text, checked: checkbox.checked });
+        // Find the option container for this checkbox
+        const optionContainer = checkbox.closest('.location-option');
         
         if (checkbox.checked) {
+            // SELECTING the location
+            console.log('Adding location:', value);
             this.selectedValues.add(value);
             this.addPill(value, text);
             this.showLocationForm(value);
         } else {
+            // DESELECTING the location
+            console.log('Removing location:', value);
             this.selectedValues.delete(value);
             this.removePill(value);
             this.hideLocationForm(value);
+            
+            // IMMEDIATE PROTECTIVE FIX: Ensure the option remains visible
+            this.ensureOptionVisible(value);
+            
+            // ADDITIONAL PROTECTION: Re-ensure visibility after small delay
+            setTimeout(() => {
+                this.ensureOptionVisible(value);
+            }, 5);
+            
+            // FINAL PROTECTION: Re-ensure visibility after longer delay
+            setTimeout(() => {
+                this.ensureOptionVisible(value);
+            }, 50);
         }
+        
+        // Check option container state after operations
+        setTimeout(() => {
+            console.log('Option container after:', {
+                display: optionContainer ? optionContainer.style.display : 'not found',
+                visible: optionContainer ? optionContainer.offsetHeight > 0 : false,
+                inDOM: optionContainer ? document.contains(optionContainer) : false
+            });
+        }, 10);
         
         this.updateSearchPlaceholder();
         
@@ -235,6 +289,8 @@ class MultiSelectDropdown {
             console.log('Triggering updateLocationDisplay');
             window.updateLocationDisplay();
         }
+        
+
     }
     
     addPill(value, text) {
@@ -292,20 +348,24 @@ class MultiSelectDropdown {
             </div>
         `;
         
-        console.log('Appending pill to container');
         this.pillsContainer.appendChild(pill);
-        console.log('Pill added successfully, pills container now has', this.pillsContainer.children.length, 'children');
     }
     
     removePill(value) {
+        
         if (!this.pillsContainer) {
             console.error('Pills container not found, cannot remove pill');
             return;
         }
         
+        // Check option state before removing pill
+        const optionContainer = this.optionsContainer.querySelector(`input[value="${value}"]`)?.closest('.location-option');
+        
         const pill = this.pillsContainer.querySelector(`[data-value="${value}"]`);
         if (pill) {
             pill.remove();
+        } else {
+            console.warn('Pill not found for value:', value);
         }
         
         // Add placeholder back if no pills remain
@@ -330,12 +390,64 @@ class MultiSelectDropdown {
         this.pillsContainer.appendChild(placeholder);
     }
     
-    removePillByValue(value) {
-        // Uncheck the corresponding checkbox
+    removePillByValue(value) {        
+        // Find the corresponding checkbox and its container
         const checkbox = this.optionsContainer.querySelector(`input[value="${value}"]`);
-        if (checkbox) {
-            checkbox.checked = false;
-            this.handleOptionSelect(checkbox);
+        const locationOption = checkbox ? checkbox.closest('.location-option') : null;
+        
+        if (checkbox && locationOption) {
+
+            if (checkbox.checked) {
+                checkbox.checked = false;
+                // Manually trigger the selection logic
+                this.handleOptionSelect(checkbox);
+                
+                // // Check the state after handling
+                // setTimeout(() => {
+                //     console.log('Location option display after:', locationOption.style.display);
+                //     console.log('Location option classes after:', locationOption.className);
+                //     console.log('  Location option is in DOM:', document.contains(locationOption));
+                // }, 100);
+            } else {
+                console.warn('Checkbox was already unchecked for value:', value);
+            }
+        } else {
+            console.error('Checkbox or location option not found for value:', value);
+        }
+    }
+    
+    // Debug method to check current state
+    // debugState() {
+    //     console.log('=== MultiSelectDropdown Debug State ===');
+    //     console.log('Selected values:', Array.from(this.selectedValues));
+    //     console.log('Pills in container:', this.pillsContainer ? this.pillsContainer.children.length : 'No container');
+    //     console.log('Checkboxes:', 
+    //         Array.from(this.optionsContainer.querySelectorAll('input[type="checkbox"]'))
+    //             .map(cb => ({ 
+    //                 value: cb.value, 
+    //                 checked: cb.checked, 
+    //                 display: cb.closest('.location-option').style.display,
+    //                 visible: cb.closest('.location-option').offsetHeight > 0
+    //             }))
+    //     );
+    //     console.log('========================================');
+    // }
+    
+    // Force show all options - debug method
+    showAllOptions() {
+        const options = this.optionsContainer.querySelectorAll('.location-option');
+        options.forEach(option => {
+            option.style.display = 'flex';
+        });
+    }
+    
+    // Protective method to ensure an option is visible after deselection
+    ensureOptionVisible(value) {
+        const option = this.optionsContainer.querySelector(`input[value="${value}"]`)?.closest('.location-option');
+        if (option) {
+            option.style.display = 'flex';
+        } else {
+            console.error('Could not find option to make visible for value:', value);
         }
     }
     
@@ -364,10 +476,26 @@ class MultiSelectDropdown {
     }
     
     hideLocationForm(locationId) {
+        // Check option state before hiding form
+        const optionContainer = this.optionsContainer.querySelector(`input[value="${locationId}"]`)?.closest('.location-option');
         const form = document.querySelector(`[data-location-id="${locationId}"]`);
         if (form) {
             form.style.display = 'none';
+            console.log('Location form hidden successfully for location:', locationId);
+        } else {
+            console.warn('Location form not found for ID:', locationId);
         }
+        
+        // // Check option state after hiding form
+        // setTimeout(() => {
+        //     console.log('Option container state after hiding form:', {
+        //         display: optionContainer ? optionContainer.style.display : 'not found',
+        //         visible: optionContainer ? optionContainer.offsetHeight > 0 : false,
+        //         inDOM: optionContainer ? document.contains(optionContainer) : false
+        //     });
+        // }, 10);
+        
+        // console.log('=== hideLocationForm END ===');
     }
     
     getSelectedValues() {
@@ -441,6 +569,24 @@ class MultiSelectDropdown {
 
 // Make it globally available
 window.MultiSelectDropdown = MultiSelectDropdown;
+
+// Global debug function
+window.debugDropdown = function() {
+    if (window.multiSelectDropdown) {
+        window.multiSelectDropdown.debugState();
+    } else {
+        console.log('MultiSelectDropdown not initialized');
+    }
+};
+
+// Global function to show all options
+window.showAllOptions = function() {
+    if (window.multiSelectDropdown) {
+        window.multiSelectDropdown.showAllOptions();
+    } else {
+        console.log('MultiSelectDropdown not initialized');
+    }
+};
 
 // Make the function globally available so it can be called from the window script
 window.loadRecordsForLocation = loadRecordsForLocation;
@@ -3711,9 +3857,6 @@ function initializeSaveButtonds() {
                 console.log("Calling initializeTimePickers...");
                 initializeTimePickers(location.id);
 
-                // console.log("Calling populateBatchDays...");
-                // populateBatchDays(location.id);
-
                 console.log("Calling initializeShiftTable...");
                 initializeShiftTable(location.id);
 
@@ -4127,9 +4270,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 console.log("Calling initializeTimePickers...");
                 initializeTimePickers(location.id);
-
-                // console.log("Calling populateBatchDays...");
-                // populateBatchDays(location.id);
 
                 console.log("Calling initializeShiftTable...");
                 initializeShiftTable(location.id);
