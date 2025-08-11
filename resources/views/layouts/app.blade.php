@@ -821,23 +821,12 @@
                             <!-- Quotations Sub-items -->
                             <ul id="quotationsSubmenu" class="ml-6 mt-2 space-y-1 hidden">
                                 <li>
-                                    <a href="#"
-                                        class="flex items-center p-2 text-blue-600 hover:bg-blue-100 rounded text-sm">
-                                        Create Quotation
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#"
+                                    <a href="/quotation"
                                         class="flex items-center p-2 text-blue-600 hover:bg-blue-100 rounded text-sm">
                                         View Quotations
                                     </a>
                                 </li>
-                                <li>
-                                    <a href="#"
-                                        class="flex items-center p-2 text-blue-600 hover:bg-blue-100 rounded text-sm">
-                                        Quotation History
-                                    </a>
-                                </li>
+
                             </ul>
                         </li>
 
