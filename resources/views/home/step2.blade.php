@@ -7,7 +7,7 @@
         .location-form {
             display: none;
         }
-        
+
         /* Custom styles for multiselect dropdown */
         .location-pill {
             display: inline-flex !important;
@@ -23,12 +23,12 @@
             border: none !important;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24) !important;
         }
-        
+
         .location-pill:hover {
             background-color: #1d4ed8 !important;
             transform: translateY(-1px) !important;
         }
-        
+
         .location-pill .remove-btn {
             margin-left: 0.5rem !important;
             padding: 0.125rem !important;
@@ -40,175 +40,174 @@
             align-items: center !important;
             justify-content: center !important;
         }
-        
+
         .location-pill .remove-btn:hover {
             background-color: rgba(255, 255, 255, 0.3) !important;
         }
-        
+
         .location-option:hover {
             background-color: #eff6ff;
         }
-        
-        .location-option input[type="checkbox"]:checked + div {
+
+        .location-option input[type="checkbox"]:checked+div {
             color: #2563eb;
         }
-        
+
         /* Dropdown animation */
         .dropdown-enter {
             opacity: 0;
             transform: translateY(-10px);
         }
-        
+
         .dropdown-enter-active {
             opacity: 1;
             transform: translateY(0);
             transition: all 0.2s ease-in-out;
         }
-        
+
         .dropdown-exit {
             opacity: 1;
         }
-        
+
         .dropdown-exit-active {
             opacity: 0;
             transform: translateY(-10px);
             transition: all 0.2s ease-in-out;
         }
     </style>
-    
 @endsection
 
 @section('content')
     <div class="w-[100%]  overflow-y-auto bg-white-100">
-    <!-- Quotation Header -->
-    <div class="bg-gray-50 p-4 mb-4 rounded">
-        <h1 class="text-xl font-bold text-[#2679b5]">Quotation Name: {{ $quotation->name }}</h1>
-        @if($quotation->client_name)
-            <p class="text-gray-600">Client Name: {{ $quotation->client_name }}</p>
-        @endif
-    </div>
+        <!-- Quotation Header -->
+        <div class="bg-gray-50 p-4 mb-4 rounded">
+            <h1 class="text-xl font-bold text-[#2679b5]">Quotation Name: {{ $quotation->name }}</h1>
+            @if ($quotation->client_name)
+                <p class="text-gray-600">Client Name: {{ $quotation->client_name }}</p>
+            @endif
+        </div>
 
-    <!-- Location Selection Interface -->
-    <div class="bg-white p-4 mb-6 rounded border">
-        <h3 class="text-lg font-semibold text-[#2679b5] mb-4">Select Locations for this Quotation</h3>
-        
-        <!-- Multi-Select Dropdown -->
-        <div id="locationMultiSelect" class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Choose Locations:</label>
-            
-            <!-- Search Input -->
-            <div class="relative">
-                <input type="text" 
-                       class="location-search w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                       placeholder="Search or select locations...">
-                
-                <!-- Dropdown -->
-                <div class="location-dropdown absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-64 overflow-y-auto">
-                    <!-- Location Options -->
-                    <div class="location-options py-1">
-                        @foreach($locations as $location)
-                        <label class="location-option flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer" 
-                               data-location-id="{{ $location->id }}"
-                               data-name="{{ $location->name }}"
-                               data-address="{{ $location->address }}">
-                            <input type="checkbox" 
-                                   value="{{ $location->id }}" 
-                                   class="mr-3 text-blue-600 focus:ring-blue-500">
-                            <div class="flex-1">
-                                <div class="font-medium text-sm text-gray-900">{{ $location->name }}</div>
-                                <div class="text-xs text-gray-500">{{ $location->address }}</div>
-                            </div>
-                        </label>
-                        @endforeach
+        <!-- Location Selection Interface -->
+        <div class="bg-white p-4 mb-6 rounded border">
+            <h3 class="text-lg font-semibold text-[#2679b5] mb-4">Select Locations for this Quotation</h3>
+
+            <!-- Multi-Select Dropdown -->
+            <div id="locationMultiSelect" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Choose Locations:</label>
+
+                <!-- Search Input -->
+                <div class="relative">
+                    <input type="text"
+                        class="location-search w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Search or select locations...">
+
+                    <!-- Dropdown -->
+                    <div
+                        class="location-dropdown absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-64 overflow-y-auto">
+                        <!-- Location Options -->
+                        <div class="location-options py-1">
+                            @foreach ($locations as $location)
+                                <label class="location-option flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                                    data-location-id="{{ $location->id }}" data-name="{{ $location->name }}"
+                                    data-address="{{ $location->address }}">
+                                    <input type="checkbox" value="{{ $location->id }}"
+                                        class="mr-3 text-blue-600 focus:ring-blue-500">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-sm text-gray-900">{{ $location->name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $location->address }}</div>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Selected Locations Pills -->
-            <div class="mt-3">
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-sm font-medium text-gray-700">Selected Locations:</label>
-                    <div class="flex gap-2">
-                        <button type="button" id="selectAllLocationsBtn" 
+
+                <!-- Selected Locations Pills -->
+                <div class="mt-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Selected Locations:</label>
+                        <div class="flex gap-2">
+                            <button type="button" id="selectAllLocationsBtn"
                                 class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition duration-200">
-                            Select All
-                        </button>
-                        <button type="button" id="deselectAllLocationsBtn" 
+                                Select All
+                            </button>
+                            <button type="button" id="deselectAllLocationsBtn"
                                 class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded transition duration-200">
-                            Deselect All
-                        </button>
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+                    <div class="selected-pills flex flex-wrap gap-2 min-h-[50px] p-3 border border-gray-200 rounded-lg bg-gray-50"
+                        style="align-items: flex-start;">
+                        <span class="text-gray-400 text-sm italic">No locations selected</span>
                     </div>
                 </div>
-                <div class="selected-pills flex flex-wrap gap-2 min-h-[50px] p-3 border border-gray-200 rounded-lg bg-gray-50" style="align-items: flex-start;">
-                    <span class="text-gray-400 text-sm italic">No locations selected</span>
-                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="text-sm text-gray-600 bg-blue-50 p-2 rounded">
+                <span id="selectedLocationCount">0</span> of {{ $locations->count() }} locations selected
             </div>
         </div>
+        <!-- Modal for Adding Shift Type -->
+        <div id="addShiftTypeModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+            <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+                <h2 class="text-lg font-bold mb-4">Add Shift Type</h2>
+                <form id="addShiftTypeForm">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border border-gray-300 px-4 py-2 text-left">Name</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Day Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Night Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Saturday Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Sunday Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Public Holiday Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="text" id="shiftTypeName" name="name"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <textarea id="shiftTypeDescription" name="description"
+                                        class="form-textarea w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="dayRate" name="day_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="nightRate" name="night_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="saturdayRate" name="saturday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="sundayRate" name="sunday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="publicHolidayRate" name="public_holiday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-        <!-- Summary -->
-        <div class="text-sm text-gray-600 bg-blue-50 p-2 rounded">
-            <span id="selectedLocationCount">0</span> of {{ $locations->count() }} locations selected
+                    <!-- Modal Actions -->
+                    <div class="flex justify-end mt-4">
+                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                        <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-    <!-- Modal for Adding Shift Type -->
-    <div id="addShiftTypeModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
-        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
-            <h2 class="text-lg font-bold mb-4">Add Shift Type</h2>
-            <form id="addShiftTypeForm">
-                <table class="w-full border-collapse border border-gray-300">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="border border-gray-300 px-4 py-2 text-left">Name</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Day Rate</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Night Rate</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Saturday Rate</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Sunday Rate</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Public Holiday Rate</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="text" id="shiftTypeName" name="name"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <textarea id="shiftTypeDescription" name="description"
-                                    class="form-textarea w-full border border-gray-300 rounded px-3 py-2"></textarea>
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="dayRate" name="day_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="nightRate" name="night_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="saturdayRate" name="saturday_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="sundayRate" name="sunday_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="publicHolidayRate" name="public_holiday_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- Modal Actions -->
-                <div class="flex justify-end mt-4">
-                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
-                    <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
         <form id="mainLocationsForm" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
             @csrf
@@ -217,64 +216,66 @@
             <div class="flex justify-between items-center mb-4">
                 <div>
                     <h2 class="text-2xl text-[#2679b5]">Selected Locations:</h2>
-                    <p class="text-sm text-gray-600" id="locationStatusMessage">Select locations above to configure shifts</p>
+                    <p class="text-sm text-gray-600" id="locationStatusMessage">Select locations above to configure shifts
+                    </p>
                 </div>
                 <div class="flex gap-4">
                     <button type="button" id="backToSelectionBtn"
                         class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border">
-                        Edit/add Location Selection
+                        Add/Edit Location
                     </button>
-                    <button type="submit" id="saveAllLocationsBtn" class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border">
-                        add/edit shift types
+                    <button type="submit" id="saveAllLocationsBtn"
+                        class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border">
+                        Add/Edit Shift Types
                     </button>
-                    <a href="{{ route('quotation.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded">
+                    <a href="{{ route('quotation.index') }}"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded">
                         Back to Quotations
                     </a>
                 </div>
             </div>
 
-    <!-- Locations Container -->
-    <div id="locationsContainer">
-    @foreach ($locations as $location)
-        <div class="border border-gray-300 rounded mt-2 mb-6 bg-gray-100 location-form" 
-             data-location-id="{{ $location->id }}" 
-             style="display: none;">
-            <!-- Location Header -->
-            <div class="cursor-pointer p-2" onclick="toggleForm('{{ $location->id }}')">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-lg text-[#2679b5] ">{{ $location->name }}</h3>
-                    <span id="arrow_{{ $location->id }}" class="text-sm text-gray-500">
-                        <!-- Down arrow by default -->
-                        <i class="fas fa-chevron-down"></i>
-                    </span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <p class="text-sm text-gray-600">{{ $location->address }}</p>
-                    <p id="totalsDisplay_{{ $location->id }}" class="text-sm text-gray-700 mt-2"></p>
+            <!-- Locations Container -->
+            <div id="locationsContainer">
+                @foreach ($locations as $location)
+                    <div class="border border-gray-300 rounded mt-2 mb-6 bg-gray-100 location-form"
+                        data-location-id="{{ $location->id }}" style="display: none;">
+                        <!-- Location Header -->
+                        <div class="cursor-pointer p-2" onclick="toggleForm('{{ $location->id }}')">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-lg text-[#2679b5] ">{{ $location->name }}</h3>
+                                <span id="arrow_{{ $location->id }}" class="text-sm text-gray-500">
+                                    <!-- Down arrow by default -->
+                                    <i class="fas fa-chevron-down"></i>
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <p class="text-sm text-gray-600">{{ $location->address }}</p>
+                                <p id="totalsDisplay_{{ $location->id }}" class="text-sm text-gray-700 mt-2"></p>
 
-                </div>
-            </div>
+                            </div>
+                        </div>
 
-            <!-- Hidden Form -->
-            <div id="form_{{ $location->id }}"
-                class="overflow-hidden max-h-0 transition-all duration-700 ease-in-out bg-white ">
-                <!-- Shift Types Dropdown -->
+                        <!-- Hidden Form -->
+                        <div id="form_{{ $location->id }}"
+                            class="overflow-hidden max-h-0 transition-all duration-700 ease-in-out bg-white ">
+                            <!-- Shift Types Dropdown -->
 
-                <div class="flex justify-end items-center mr-5">
-                    {{-- <label for="shiftTypes_{{ $location->id }}"
+                            <div class="flex justify-end items-center mr-5">
+                                {{-- <label for="shiftTypes_{{ $location->id }}"
                                     class="block text-sm  mb-1 text-[#2679b5]">Select
                                     Shift
                                     Types</label> --}}
 
-                </div>
-                {{-- <select id="shiftTypes_{{ $location->id }}" name="shift_types[{{ $location->id }}][]" multiple
+                            </div>
+                            {{-- <select id="shiftTypes_{{ $location->id }}" name="shift_types[{{ $location->id }}][]" multiple
                                 class="form-multiselect w-full border border-gray-300 rounded px-3 py-2">
                                 <!-- Options will be loaded by JS -->
                             </select> --}}
-                {{-- <div class="text-red-500 text-xs mt-1" id="shiftTypesError_{{ $location->id }}"></div> --}}
+                            {{-- <div class="text-red-500 text-xs mt-1" id="shiftTypesError_{{ $location->id }}"></div> --}}
 
 
-                {{-- <!-- Date Range Input -->
+                            {{-- <!-- Date Range Input -->
                         <div class="mt-4">
                             <label for="dateRange_{{ $location->id }}" class="block text-sm text-[#2679b5] mb-1">Date
                                 Range</label>
@@ -283,7 +284,7 @@
                                 placeholder="Select date range (YYYY-MM-DD to YYYY-MM-DD)">
                             <div class="text-red-500 text-xs mt-1" id="dateRangeError_{{ $location->id }}"></div>
                         </div> --}}
-                {{-- <div class="flex justify-end mt-4">
+                            {{-- <div class="flex justify-end mt-4">
                             <button type="button" id="saveBtn_{{ $location->id }}"
                                 class="bg-[#337ab7] text-white px-4 py-2 rounded">
                                 Continue to details
@@ -291,10 +292,10 @@
                                 <i class="fas fa-check ml-2 hidden" id="checkIcon_{{ $location->id }}"></i>
                             </button>
                         </div> --}}
-                <!-- New Shift Details Section -->
-                <div class="mt-1   rounded mx-5  " id="batchForm_{{ $location->id }}">
-                    {{-- <h3 class="text-lg text-[#2679b5] mb-2 bg-gray-100 p-2">Shift Details</h3> --}}
-                    {{-- <div class="flex flex-wrap gap-4 items-end">
+                            <!-- New Shift Details Section -->
+                            <div class="mt-1   rounded mx-5  " id="batchForm_{{ $location->id }}">
+                                {{-- <h3 class="text-lg text-[#2679b5] mb-2 bg-gray-100 p-2">Shift Details</h3> --}}
+                                {{-- <div class="flex flex-wrap gap-4 items-end">
                                 <div class="flex flex-wrap gap-4 w-full">
                                     <!-- Shift Type Dropdown -->
                                     <div class="flex-1">
@@ -351,226 +352,229 @@
                                     </div>
                                 </div>
                             </div> --}}
-                    <div class="flex justify-between items-center mt-2 ">
+                                <div class="flex justify-between items-center mt-2 ">
 
 
-                        <div class="  flex items-center gap-4 p-2">
-                            <label>Filter by Day:</label>
-                            <select id="filterDay_{{ $location->id }}" class="border rounded px-2 py-1">
-                                <option value="">All</option>
-                                <option value="Mon">Monday</option>
-                                <option value="Tue">Tuesday</option>
-                                <option value="Wed">Wednesday</option>
-                                <option value="Thu">Thursday</option>
-                                <option value="Fri">Friday</option>
-                                <option value="Sat">Saturday</option>
-                                <option value="Sun">Sunday</option>
-                            </select>
-                            <label class="ml-4">Filter by Shift Type:</label>
-                            <select id="filterShiftType_{{ $location->id }}" class="border rounded px-2 py-1">
-                                <option value="">All</option>
-                                <!-- Shift types will be dynamically populated -->
-                            </select>
+                                    <div class="  flex items-center gap-4 p-2">
+                                        <label>Filter by Day:</label>
+                                        <select id="filterDay_{{ $location->id }}" class="border rounded px-2 py-1">
+                                            <option value="">All</option>
+                                            <option value="Mon">Monday</option>
+                                            <option value="Tue">Tuesday</option>
+                                            <option value="Wed">Wednesday</option>
+                                            <option value="Thu">Thursday</option>
+                                            <option value="Fri">Friday</option>
+                                            <option value="Sat">Saturday</option>
+                                            <option value="Sun">Sunday</option>
+                                        </select>
+                                        <label class="ml-4">Filter by Shift Type:</label>
+                                        <select id="filterShiftType_{{ $location->id }}"
+                                            class="border rounded px-2 py-1">
+                                            <option value="">All</option>
+                                            <!-- Shift types will be dynamically populated -->
+                                        </select>
+                                    </div>
+                                    <button type="button"
+                                        class="bg-[#428bca] text-white  px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400  add-shift-type-btn"
+                                        data-location-id="{{ $location->id }}">
+                                        Add New Entry
+                                    </button>
+                                </div>
+
+
+                                <!-- Shift Details Table -->
+                                <table class="min-w-full border mt-1" id="shiftTable_{{ $location->id }}">
+                                    <thead>
+                                        <tr>
+                                            <th class="border px-2 py-1">Day</th>
+                                            <th class="border px-2 py-1">Shift Type</th>
+                                            <th class="border px-2 py-1">Date Range</th>
+
+                                            <th class="border px-2 py-1">From</th>
+                                            <th class="border px-2 py-1">To</th>
+                                            <th class="border px-2 py-1"># Employees</th>
+                                            <th class="border px-2 py-1">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Rows will be rendered by JS -->
+                                    </tbody>
+                                </table>
+                                <div class="flex justify-end">
+                                    <button type="button" id="saveBtn_{{ $location->id }}"
+                                        class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3 ">
+                                        <span class="save-btn-text">Save and Review</span>
+                                        <span class="save-btn-spinner hidden">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                        </span>
+                                        <span class="save-btn-check hidden" id="checkIcon_{{ $location->id }}">
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+
+
                         </div>
-                        <button type="button"
-                            class="bg-[#428bca] text-white  px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400  add-shift-type-btn"
-                            data-location-id="{{ $location->id }}">
-                            Add New Entry
-                        </button>
                     </div>
+                    <!-- Modal for Batch Form -->
+                    <div id="batchFormModal_{{ $location->id }}"
+                        class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+                        <div class="relative bg-white rounded-lg shadow-lg w-3/4 max-w-4xl p-6">
+
+                            <div class=" ">
+                                <!-- Close Button -->
+                                <button type="button" id="closeBatchFormModal_{{ $location->id }}"
+                                    class="absolute text-3xl top-2 right-2 text-gray-500 hover:text-gray-700">
+                                    &times;
+                                </button>
+
+                                <!-- Batch Form Content -->
+                                <h3 class=" text-lg mb-4 text-[#2679b5]">Batch Form</h3>
+                            </div>
+
+                            <div class="flex flex-wrap gap-4 items-end">
+                                <div class="flex flex-wrap gap-4 w-full">
+                                    <!-- Shift Type Dropdown -->
+                                    <div class="flex-1">
+                                        <label class="block mb-1  text-[#2679b5]">Shift Type</label>
+                                        <select id="batchShiftType_{{ $location->id }}"
+                                            class="border rounded px-2 py-1 w-full">
+                                            <option value="">Select</option>
+                                            <!-- Options will be loaded by JS -->
+                                        </select>
+                                    </div>
+
+                                    <!-- From Time -->
+                                    <div class="flex-1">
+                                        <label class="block mb-1  text-[#2679b5]">From</label>
+                                        <input type="time" id="batchFrom_{{ $location->id }}"
+                                            class="border rounded px-2 py-1 w-full" />
+                                    </div>
+
+                                    <!-- To Time -->
+                                    <div class="flex-1">
+                                        <label class="block mb-1  text-[#2679b5]">To</label>
+                                        <input type="time" id="batchTo_{{ $location->id }}"
+                                            class="border rounded px-2 py-1 w-full" />
+                                    </div>
+
+                                    <!-- Number of Employees -->
+                                    <div class="flex-1">
+                                        <label class="block mb-1  text-[#2679b5]"># Employees</label>
+                                        <input type="number" id="batchEmployees_{{ $location->id }}"
+                                            class="border rounded px-2 py-1 w-full" min="1" value="1" />
+                                    </div>
+                                </div>
+
+                                <!-- Days Multi-select -->
+                                <div class="w-full flex flex-col">
+                                    <label class="block text-[#2679b5]">Days</label>
+                                    <div id="daysButtonsContainer" class="flex gap-1 mb-1 mt-2">
+                                        <button type="button" id="weekdaysBtn_{{ $location->id }}"
+                                            class="btn bg-[#428bca] hover:bg-[#337ab7] text-white   py-1 px-2 rounded">Weekdays</button>
+                                        <button type="button" id="weekendsBtn_{{ $location->id }}"
+                                            class="btn bg-[#428bca] hover:bg-[#337ab7] text-white py-1 px-2 rounded">Weekends</button>
+                                        <button type="button" id="allDaysBtn_{{ $location->id }}"
+                                            class="btn bg-[#428bca] hover:bg-[#337ab7] text-white   py-1 px-2 rounded">All
+                                            Days</button>
+                                    </div>
+                                    <select id="batchDays_{{ $location->id }}" class="border rounded px-2 py-1 w-full"
+                                        multiple size="7"></select>
+                                </div>
+                            </div>
+
+                            <!-- Modal Actions -->
+                            <div class="flex justify-end mt-4">
+                                <button type="button" id="cancelBatchFormBtn_{{ $location->id }}"
+                                    class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                                <button type="button" id="saveBatchFormBtn_{{ $location->id }}"
+                                    class="bg-[#87b87f] hover:bg-lime-700 text-white px-4 py-2 rounded">Save and review <i
+                                        class="fa-solid fa-arrow-right ml-1"></i></button>
+                            </div>
+
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <!-- Hidden inputs -->
+            <input type="hidden" id="selectedLocationsInput" name="selected_locations" value="[]">
+            <input type="hidden" name="quotation_id" value="{{ $quotation->id }}">
+
+            <!-- Hidden elements for step2.js compatibility -->
+            <div id="locationDropdown" style="display: none;"></div>
+            <div id="locationOptions" style="display: none;"></div>
+            <div id="selectedLocations" style="display: none;"></div>
+            <div id="placeholderText" style="display: none;"></div>
+            <div id="selectedLocationsForms" style="display: none;"></div>
+            <span id="selectedCount" style="display: none;">0</span>
+
+        </form>
 
 
-                    <!-- Shift Details Table -->
-                    <table class="min-w-full border mt-1" id="shiftTable_{{ $location->id }}">
+
+        <!-- Modal for Adding Shift Type -->
+        <div id="addShiftTypeModal"
+            class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+            <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+                <h2 class="text-lg font-bold mb-4">Add Shift Type</h2>
+                <form id="addShiftTypeForm">
+                    <table class="w-full border-collapse border border-gray-300">
                         <thead>
-                            <tr>
-                                <th class="border px-2 py-1">Day</th>
-                                <th class="border px-2 py-1">Shift Type</th>
-                                <th class="border px-2 py-1">Date Range</th>
-
-                                <th class="border px-2 py-1">From</th>
-                                <th class="border px-2 py-1">To</th>
-                                <th class="border px-2 py-1"># Employees</th>
-                                <th class="border px-2 py-1">Actions</th>
+                            <tr class="bg-gray-100">
+                                <th class="border border-gray-300 px-4 py-2 text-left">Name</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Day Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Night Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Saturday Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Sunday Rate</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left">Public Holiday Rate</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Rows will be rendered by JS -->
+                            <tr>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="text" id="shiftTypeName" name="name"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <textarea id="shiftTypeDescription" name="description"
+                                        class="form-textarea w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="dayRate" name="day_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="nightRate" name="night_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="saturdayRate" name="saturday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="sundayRate" name="sunday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                                <td class="border border-gray-300 px-4 py-2">
+                                    <input type="number" id="publicHolidayRate" name="public_holiday_rate"
+                                        class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
-                    <div class="flex justify-end">
-                        <button type="button" id="saveBtn_{{ $location->id }}"
-                            class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3 ">
-                            <span class="save-btn-text">Save and Review</span>
-                            <span class="save-btn-spinner hidden">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </span>
-                            <span class="save-btn-check hidden" id="checkIcon_{{ $location->id }}">
-                                <i class="fas fa-check"></i>
-                            </span>
-                        </button>
+
+                    <!-- Modal Actions -->
+                    <div class="flex justify-end mt-4">
+                        <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                        <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
                     </div>
-                </div>
 
 
+                </form>
             </div>
         </div>
-        <!-- Modal for Batch Form -->
-        <div id="batchFormModal_{{ $location->id }}"
-            class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
-            <div class="relative bg-white rounded-lg shadow-lg w-3/4 max-w-4xl p-6">
-
-                <div class=" ">
-                    <!-- Close Button -->
-                    <button type="button" id="closeBatchFormModal_{{ $location->id }}"
-                        class="absolute text-3xl top-2 right-2 text-gray-500 hover:text-gray-700">
-                        &times;
-                    </button>
-
-                    <!-- Batch Form Content -->
-                    <h3 class=" text-lg mb-4 text-[#2679b5]">Batch Form</h3>
-                </div>
-
-                <div class="flex flex-wrap gap-4 items-end">
-                    <div class="flex flex-wrap gap-4 w-full">
-                        <!-- Shift Type Dropdown -->
-                        <div class="flex-1">
-                            <label class="block mb-1  text-[#2679b5]">Shift Type</label>
-                            <select id="batchShiftType_{{ $location->id }}" class="border rounded px-2 py-1 w-full">
-                                <option value="">Select</option>
-                                <!-- Options will be loaded by JS -->
-                            </select>
-                        </div>
-
-                        <!-- From Time -->
-                        <div class="flex-1">
-                            <label class="block mb-1  text-[#2679b5]">From</label>
-                            <input type="time" id="batchFrom_{{ $location->id }}"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- To Time -->
-                        <div class="flex-1">
-                            <label class="block mb-1  text-[#2679b5]">To</label>
-                            <input type="time" id="batchTo_{{ $location->id }}"
-                                class="border rounded px-2 py-1 w-full" />
-                        </div>
-
-                        <!-- Number of Employees -->
-                        <div class="flex-1">
-                            <label class="block mb-1  text-[#2679b5]"># Employees</label>
-                            <input type="number" id="batchEmployees_{{ $location->id }}"
-                                class="border rounded px-2 py-1 w-full" min="1" value="1" />
-                        </div>
-                    </div>
-
-                    <!-- Days Multi-select -->
-                    <div class="w-full flex flex-col">
-                        <label class="block text-[#2679b5]">Days</label>
-                        <div id="daysButtonsContainer" class="flex gap-1 mb-1 mt-2">
-                            <button type="button" id="weekdaysBtn_{{ $location->id }}"
-                                class="btn bg-[#428bca] hover:bg-[#337ab7] text-white   py-1 px-2 rounded">Weekdays</button>
-                            <button type="button" id="weekendsBtn_{{ $location->id }}"
-                                class="btn bg-[#428bca] hover:bg-[#337ab7] text-white py-1 px-2 rounded">Weekends</button>
-                            <button type="button" id="allDaysBtn_{{ $location->id }}"
-                                class="btn bg-[#428bca] hover:bg-[#337ab7] text-white   py-1 px-2 rounded">All
-                                Days</button>
-                        </div>
-                        <select id="batchDays_{{ $location->id }}" class="border rounded px-2 py-1 w-full" multiple
-                            size="7"></select>
-                    </div>
-                </div>
-
-                <!-- Modal Actions -->
-                <div class="flex justify-end mt-4">
-                    <button type="button" id="cancelBatchFormBtn_{{ $location->id }}"
-                        class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
-                    <button type="button" id="saveBatchFormBtn_{{ $location->id }}"
-                        class="bg-[#87b87f] hover:bg-lime-700 text-white px-4 py-2 rounded">Save and review <i
-                            class="fa-solid fa-arrow-right ml-1"></i></button>
-                </div>
-
-            </div>
-        </div>
-    @endforeach
-    </div>
-    <!-- Hidden inputs -->
-    <input type="hidden" id="selectedLocationsInput" name="selected_locations" value="[]">
-    <input type="hidden" name="quotation_id" value="{{ $quotation->id }}">
-    
-    <!-- Hidden elements for step2.js compatibility -->
-    <div id="locationDropdown" style="display: none;"></div>
-    <div id="locationOptions" style="display: none;"></div>
-    <div id="selectedLocations" style="display: none;"></div>
-    <div id="placeholderText" style="display: none;"></div>
-    <div id="selectedLocationsForms" style="display: none;"></div>
-    <span id="selectedCount" style="display: none;">0</span>
-
-    </form>
-
-
-
-    <!-- Modal for Adding Shift Type -->
-    <div id="addShiftTypeModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
-        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
-            <h2 class="text-lg font-bold mb-4">Add Shift Type</h2>
-            <form id="addShiftTypeForm">
-                <table class="w-full border-collapse border border-gray-300">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="border border-gray-300 px-4 py-2 text-left">Name</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Day Rate</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Night Rate</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Saturday Rate</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Sunday Rate</th>
-                            <th class="border border-gray-300 px-4 py-2 text-left">Public Holiday Rate</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="text" id="shiftTypeName" name="name"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <textarea id="shiftTypeDescription" name="description"
-                                    class="form-textarea w-full border border-gray-300 rounded px-3 py-2"></textarea>
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="dayRate" name="day_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="nightRate" name="night_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="saturdayRate" name="saturday_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="sundayRate" name="sunday_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                            <td class="border border-gray-300 px-4 py-2">
-                                <input type="number" id="publicHolidayRate" name="public_holiday_rate"
-                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- Modal Actions -->
-                <div class="flex justify-end mt-4">
-                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
-                    <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
-                </div>
-
-
-            </form>
-        </div>
-    </div>
     </div>
     <!-- Modal for Selecting Shifts -->
     <div id="selectShiftModal"
@@ -593,9 +597,11 @@
     </div>
     <!-- Preview Modal -->
     <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden  ">
-        <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative h-[90%]">
+        <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative overflow-y-auto max-h-[95vh]">
             <button type="button" id="closePreviewModal"
                 class="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+            <h2 class="text-2xl  text-[#2679b5] mb-4">Timesheet Preview</h2>
+
             <!-- Column Visibility Custom Dropdown -->
             <div class="mb-6 p-4 border rounded bg-gray-50 column-visibility-dropdown">
                 <h3 class="text-lg font-semibold mb-4">Column Visibility</h3>
@@ -638,12 +644,13 @@
             const locations = @json($locations);
             const quotationId = @json($quotation->id);
             const savedLocationSchedules = @json($savedLocationSchedules ?? []);
-            
+
             let selectedLocationIds = [];
 
             // Initialize multiSelect dropdown
             const initializeDropdown = () => {
-                console.log('Attempting to initialize dropdown, MultiSelectDropdown available:', !!window.MultiSelectDropdown);
+                console.log('Attempting to initialize dropdown, MultiSelectDropdown available:', !!window
+                    .MultiSelectDropdown);
                 if (window.MultiSelectDropdown) {
                     console.log('Creating new MultiSelectDropdown instance');
                     window.multiSelectDropdown = new window.MultiSelectDropdown('locationMultiSelect');
@@ -655,7 +662,7 @@
                     return false;
                 }
             };
-            
+
             if (!initializeDropdown()) {
                 console.log('Waiting for MultiSelectDropdown class to be available');
                 // Wait for the class to be available
@@ -666,7 +673,7 @@
                 };
                 waitForDropdown();
             }
-            
+
             // Initialize functionality
             initLocationSelection();
             loadSavedShiftData();
@@ -703,24 +710,27 @@
                 if (saveAllBtn) {
                     saveAllBtn.addEventListener('click', function(e) {
                         e.preventDefault();
-                        
+
                         // Get selected locations from multiSelect dropdown
                         const selectedLocationIds = window.multiSelectDropdown.getSelectedValues();
                         let savePromises = [];
-                        
+
                         selectedLocationIds.forEach(locationId => {
-                            if (window.records && window.records[locationId] && window.records[locationId].length > 0) {
+                            if (window.records && window.records[locationId] && window.records[
+                                    locationId].length > 0) {
                                 savePromises.push(
                                     new Promise((resolve) => {
-                                        if (typeof window.saveShiftDataToDatabase === 'function') {
-                                            window.saveShiftDataToDatabase(locationId, window.records[locationId]);
+                                        if (typeof window.saveShiftDataToDatabase ===
+                                            'function') {
+                                            window.saveShiftDataToDatabase(locationId,
+                                                window.records[locationId]);
                                         }
                                         resolve();
                                     })
                                 );
                             }
                         });
-                        
+
                         // Wait for all saves to complete, then submit the form
                         Promise.all(savePromises).then(() => {
                             console.log('All location data saved. Submitting form...');
@@ -737,14 +747,15 @@
             // Load saved shift data from database
             function loadSavedShiftData() {
                 console.log('Loading saved shift data...', savedLocationSchedules);
-                
+
                 savedLocationSchedules.forEach(schedule => {
                     const locationId = schedule.location_id;
                     const shiftDetails = schedule.shift_details;
-                    
+
                     if (shiftDetails && Array.isArray(shiftDetails) && shiftDetails.length > 0) {
-                        console.log(`Loading ${shiftDetails.length} shift records for location ${locationId}`);
-                        
+                        console.log(
+                            `Loading ${shiftDetails.length} shift records for location ${locationId}`);
+
                         // Initialize records for this location if not exists
                         if (!window.records) {
                             window.records = {};
@@ -752,13 +763,13 @@
                         if (!window.records[locationId]) {
                             window.records[locationId] = [];
                         }
-                        
+
                         // Load the saved shift details into the records array
                         window.records[locationId] = shiftDetails;
-                        
+
                         // Also save to localStorage for compatibility
                         localStorage.setItem(`records_${locationId}`, JSON.stringify(shiftDetails));
-                        
+
                         // If the location form is visible, render the table
                         const locationForm = document.querySelector(`[data-location-id="${locationId}"]`);
                         if (locationForm && locationForm.style.display !== 'none') {
@@ -779,72 +790,74 @@
                 }
 
                 fetch('/save-location-shift-data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken.getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        location_id: locationId,
-                        shift_data: shiftData
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            location_id: locationId,
+                            shift_data: shiftData
+                        })
                     })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        console.log('Shift data saved successfully for location:', locationId);
-                    } else {
-                        console.error('Failed to save shift data:', data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error saving shift data:', error);
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Shift data saved successfully for location:', locationId);
+                        } else {
+                            console.error('Failed to save shift data:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving shift data:', error);
+                    });
             }
 
             // Update location display based on multiSelect selections
             function updateLocationDisplay() {
                 const selectedLocationIds = window.multiSelectDropdown.getSelectedValues();
-                
+
                 console.log('Selected location IDs:', selectedLocationIds); // Debug log
-                
+
                 // Update selected count
                 const countElement = document.getElementById('selectedLocationCount');
                 if (countElement) {
                     countElement.textContent = selectedLocationIds.length;
                 }
-                
+
                 // Update status message
                 const statusMessage = document.getElementById('locationStatusMessage');
                 if (statusMessage) {
                     if (selectedLocationIds.length === 0) {
                         statusMessage.textContent = 'Select locations above to configure shifts';
                     } else {
-                        statusMessage.textContent = `${selectedLocationIds.length} location(s) selected - Configure shifts below`;
+                        statusMessage.textContent =
+                            `${selectedLocationIds.length} location(s) selected - Configure shifts below`;
                     }
                 }
-                
+
                 // Show/hide location forms based on selection
                 const locationForms = document.querySelectorAll('.location-form');
                 locationForms.forEach(form => {
                     const locationId = form.getAttribute('data-location-id');
                     if (selectedLocationIds.includes(locationId)) {
                         form.style.display = 'block';
-                        
+
                         // Load saved data for this location if it exists and not already loaded
                         if (window.records && !window.records[locationId]) {
                             const schedule = savedLocationSchedules.find(s => s.location_id == locationId);
                             if (schedule && schedule.shift_details) {
                                 window.records[locationId] = schedule.shift_details;
-                                localStorage.setItem(`records_${locationId}`, JSON.stringify(schedule.shift_details));
-                                
+                                localStorage.setItem(`records_${locationId}`, JSON.stringify(schedule
+                                    .shift_details));
+
                                 // Render table if renderTable function is available
                                 if (typeof window.renderTable === 'function') {
                                     window.renderTable(locationId);
                                 }
                             }
                         }
-                        
+
                         // Also try to load using the step2.js function
                         if (typeof window.loadRecordsForLocation === 'function') {
                             window.loadRecordsForLocation(locationId);
@@ -853,15 +866,16 @@
                         form.style.display = 'none';
                     }
                 });
-                
+
                 // Update hidden input
                 const selectedLocationsInput = document.getElementById('selectedLocationsInput');
                 if (selectedLocationsInput) {
                     selectedLocationsInput.value = JSON.stringify(selectedLocationIds);
                 }
-                
+
                 // Save to localStorage
-                localStorage.setItem(`quotation_${quotationId}_selected_locations`, JSON.stringify(selectedLocationIds));
+                localStorage.setItem(`quotation_${quotationId}_selected_locations`, JSON.stringify(
+                    selectedLocationIds));
             }
 
             // Make functions globally available
@@ -874,7 +888,8 @@
                     savedLocationSchedules.forEach(schedule => {
                         // Select the location in multiSelect dropdown
                         if (window.multiSelectDropdown) {
-                            const checkbox = document.querySelector(`#locationMultiSelect input[value="${schedule.location_id}"]`);
+                            const checkbox = document.querySelector(
+                                `#locationMultiSelect input[value="${schedule.location_id}"]`);
                             if (checkbox) {
                                 checkbox.checked = true;
                                 window.multiSelectDropdown.handleOptionSelect(checkbox);
@@ -891,7 +906,8 @@
                         const locationIds = JSON.parse(savedLocations);
                         locationIds.forEach(id => {
                             if (window.multiSelectDropdown) {
-                                const checkbox = document.querySelector(`#locationMultiSelect input[value="${id}"]`);
+                                const checkbox = document.querySelector(
+                                    `#locationMultiSelect input[value="${id}"]`);
                                 if (checkbox) {
                                     checkbox.checked = true;
                                     window.multiSelectDropdown.handleOptionSelect(checkbox);
@@ -921,23 +937,27 @@
 
         // Compatibility function for step2.js
         window.getSelectedLocations = function() {
-            const selectedLocationIds = window.multiSelectDropdown ? window.multiSelectDropdown.getSelectedValues() : [];
+            const selectedLocationIds = window.multiSelectDropdown ? window.multiSelectDropdown.getSelectedValues() :
+        [];
             return selectedLocationIds.map(id => {
                 const location = locations.find(loc => loc.id == id);
-                return location || { id: id };
+                return location || {
+                    id: id
+                };
             });
         };
 
         // Compatibility function for step2.js validation
         window.validateStep2Form = function() {
-            const selectedLocationIds = window.multiSelectDropdown ? window.multiSelectDropdown.getSelectedValues() : [];
+            const selectedLocationIds = window.multiSelectDropdown ? window.multiSelectDropdown.getSelectedValues() :
+        [];
             if (selectedLocationIds.length === 0) {
                 alert('Please select at least one location.');
                 return false;
             }
             return true;
         };
-        
+
         // // Test function to manually test pills
         // window.testPills = function() {
         //     console.log('Testing pills functionality');
@@ -946,45 +966,45 @@
         //         // Remove placeholder
         //         const placeholder = pillsContainer.querySelector('.text-gray-400');
         //         if (placeholder) placeholder.remove();
-                
+
         //         // Create a manual test pill
         //         const testPill = document.createElement('div');
         //         testPill.className = 'location-pill';
         //         testPill.style.cssText = `
-        //             display: inline-flex;
-        //             align-items: center;
-        //             background-color: #2563eb;
-        //             color: white;
-        //             padding: 0.375rem 0.75rem;
-        //             border-radius: 9999px;
-        //             font-size: 0.875rem;
-        //             font-weight: 500;
-        //             margin: 0.125rem;
-        //             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-        //         `;
+    //             display: inline-flex;
+    //             align-items: center;
+    //             background-color: #2563eb;
+    //             color: white;
+    //             padding: 0.375rem 0.75rem;
+    //             border-radius: 9999px;
+    //             font-size: 0.875rem;
+    //             font-weight: 500;
+    //             margin: 0.125rem;
+    //             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    //         `;
         //         testPill.innerHTML = `
-        //             <span style="margin-right: 0.5rem;">Test Location</span>
-        //             <div style="
-        //                 padding: 0.125rem;
-        //                 border-radius: 50%;
-        //                 background-color: rgba(255, 255, 255, 0.2);
-        //                 cursor: pointer;
-        //                 display: flex;
-        //                 align-items: center;
-        //                 justify-content: center;
-        //                 width: 16px;
-        //                 height: 16px;
-        //             " onclick="this.parentElement.remove()">
-        //                 <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        //                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        //                 </svg>
-        //             </div>
-        //         `;
-                
+    //             <span style="margin-right: 0.5rem;">Test Location</span>
+    //             <div style="
+    //                 padding: 0.125rem;
+    //                 border-radius: 50%;
+    //                 background-color: rgba(255, 255, 255, 0.2);
+    //                 cursor: pointer;
+    //                 display: flex;
+    //                 align-items: center;
+    //                 justify-content: center;
+    //                 width: 16px;
+    //                 height: 16px;
+    //             " onclick="this.parentElement.remove()">
+    //                 <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    //                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+    //                 </svg>
+    //             </div>
+    //         `;
+
         //         pillsContainer.appendChild(testPill);
         //         console.log('Manual test pill added');
         //     }
-            
+
         //     if (window.multiSelectDropdown) {
         //         console.log('Adding test pill via multiSelectDropdown');
         //         window.multiSelectDropdown.addPill('test-1', 'Test Location 1');

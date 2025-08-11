@@ -80,132 +80,154 @@ function loadRecordsForLocation(locationId) {
 // MultiSelect Dropdown functionality
 class MultiSelectDropdown {
     constructor(containerId) {
-        console.log('Initializing MultiSelectDropdown with container ID:', containerId);
+        console.log(
+            "Initializing MultiSelectDropdown with container ID:",
+            containerId
+        );
         this.container = document.getElementById(containerId);
         if (!this.container) {
             console.error(`Container with ID ${containerId} not found`);
             return;
         }
-        
-        console.log('Container found:', this.container);
-        
-        this.searchInput = this.container.querySelector('.location-search');
-        this.dropdown = this.container.querySelector('.location-dropdown');
-        this.optionsContainer = this.container.querySelector('.location-options');
-        this.pillsContainer = this.container.querySelector('.selected-pills');
-        
+
+        console.log("Container found:", this.container);
+
+        this.searchInput = this.container.querySelector(".location-search");
+        this.dropdown = this.container.querySelector(".location-dropdown");
+        this.optionsContainer =
+            this.container.querySelector(".location-options");
+        this.pillsContainer = this.container.querySelector(".selected-pills");
+
         // Also try to find pills container outside the main container if it's not inside
         if (!this.pillsContainer) {
-            this.pillsContainer = document.querySelector('.selected-pills');
-            console.log('Pills container found outside main container:', !!this.pillsContainer);
+            this.pillsContainer = document.querySelector(".selected-pills");
+            console.log(
+                "Pills container found outside main container:",
+                !!this.pillsContainer
+            );
         }
-        
+
         this.selectedValues = new Set();
-        
-        console.log('Elements found:', {
+
+        console.log("Elements found:", {
             searchInput: !!this.searchInput,
             dropdown: !!this.dropdown,
             optionsContainer: !!this.optionsContainer,
-            pillsContainer: !!this.pillsContainer
+            pillsContainer: !!this.pillsContainer,
         });
-        
+
         this.init();
     }
-    
+
     init() {
         const requiredElements = {
             searchInput: !!this.searchInput,
             dropdown: !!this.dropdown,
             optionsContainer: !!this.optionsContainer,
-            pillsContainer: !!this.pillsContainer
+            pillsContainer: !!this.pillsContainer,
         };
-        
-        console.log('Required elements check:', requiredElements);
-        
-        if (!this.searchInput || !this.dropdown || !this.optionsContainer || !this.pillsContainer) {
-            console.error('Required elements not found in multiSelect container:', requiredElements);
+
+        console.log("Required elements check:", requiredElements);
+
+        if (
+            !this.searchInput ||
+            !this.dropdown ||
+            !this.optionsContainer ||
+            !this.pillsContainer
+        ) {
+            console.error(
+                "Required elements not found in multiSelect container:",
+                requiredElements
+            );
             return;
         }
-        
-        console.log('MultiSelectDropdown initialized successfully');
-        
+
+        console.log("MultiSelectDropdown initialized successfully");
+
         // Toggle dropdown
-        this.searchInput.addEventListener('click', () => {
-            console.log('Search input clicked, toggling dropdown');
+        this.searchInput.addEventListener("click", () => {
+            console.log("Search input clicked, toggling dropdown");
             this.toggleDropdown();
         });
-        
+
         // Also toggle on focus
-        this.searchInput.addEventListener('focus', () => {
-            console.log('Search input focused, opening dropdown');
+        this.searchInput.addEventListener("focus", () => {
+            console.log("Search input focused, opening dropdown");
             this.openDropdown();
         });
-        
+
         // Filter options
-        this.searchInput.addEventListener('input', (e) => this.filterOptions(e.target.value));
-        
+        this.searchInput.addEventListener("input", (e) =>
+            this.filterOptions(e.target.value)
+        );
+
         // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
+        document.addEventListener("click", (e) => {
             if (!this.container.contains(e.target)) {
                 this.closeDropdown();
             }
         });
-        
+
         // Handle option selection
-        this.optionsContainer.addEventListener('change', (e) => {
-            if (e.target.type === 'checkbox') {
+        this.optionsContainer.addEventListener("change", (e) => {
+            if (e.target.type === "checkbox") {
                 this.handleOptionSelect(e.target);
             }
         });
-        
+
         // Prevent dropdown from closing when clicking inside
-        this.dropdown.addEventListener('click', (e) => e.stopPropagation());
+        this.dropdown.addEventListener("click", (e) => e.stopPropagation());
     }
-    
+
     toggleDropdown() {
-        const isHidden = this.dropdown.classList.contains('hidden');
-        console.log('Toggling dropdown, currently hidden:', isHidden);
+        const isHidden = this.dropdown.classList.contains("hidden");
+        console.log("Toggling dropdown, currently hidden:", isHidden);
         if (isHidden) {
             this.openDropdown();
         } else {
             this.closeDropdown();
         }
     }
-    
+
     openDropdown() {
-        console.log('Opening dropdown');
-        this.dropdown.classList.remove('hidden');
-        this.dropdown.classList.add('dropdown-enter-active');
+        console.log("Opening dropdown");
+        this.dropdown.classList.remove("hidden");
+        this.dropdown.classList.add("dropdown-enter-active");
         this.searchInput.focus();
     }
-    
+
     closeDropdown() {
-        console.log('Closing dropdown');
-        this.dropdown.classList.add('hidden');
-        this.dropdown.classList.remove('dropdown-enter-active');
-        this.searchInput.value = '';
-        this.filterOptions('');
+        console.log("Closing dropdown");
+        this.dropdown.classList.add("hidden");
+        this.dropdown.classList.remove("dropdown-enter-active");
+        this.searchInput.value = "";
+        this.filterOptions("");
     }
-    
+
     filterOptions(searchTerm) {
-        const options = this.optionsContainer.querySelectorAll('.location-option');
-        options.forEach(option => {
+        const options =
+            this.optionsContainer.querySelectorAll(".location-option");
+        options.forEach((option) => {
             const text = option.textContent.toLowerCase();
             const matches = text.includes(searchTerm.toLowerCase());
-            option.style.display = matches ? 'flex' : 'none';
+            option.style.display = matches ? "flex" : "none";
         });
     }
-    
+
     handleOptionSelect(checkbox) {
         const value = checkbox.value;
-        
+
         // Get the location name from the label structure
-        const label = checkbox.closest('label');
-        const nameDiv = label.querySelector('.font-medium');
+        const label = checkbox.closest("label");
+        const nameDiv = label.querySelector(".font-medium");
         const text = nameDiv ? nameDiv.textContent.trim() : `Location ${value}`;
-        
-        console.log('Option selected:', { value, text, checked: checkbox.checked });
-        
+
+        console.log("Option selected:", {
+            value,
+            text,
+            checked: checkbox.checked,
+        });
+
         if (checkbox.checked) {
             this.selectedValues.add(value);
             this.addPill(value, text);
@@ -215,40 +237,46 @@ class MultiSelectDropdown {
             this.removePill(value);
             this.hideLocationForm(value);
         }
-        
+
         this.updateSearchPlaceholder();
-        
+
         // Trigger updateLocationDisplay if it exists
-        if (typeof window.updateLocationDisplay === 'function') {
-            console.log('Triggering updateLocationDisplay');
+        if (typeof window.updateLocationDisplay === "function") {
+            console.log("Triggering updateLocationDisplay");
             window.updateLocationDisplay();
         }
     }
-    
+
     addPill(value, text) {
-        console.log('Adding pill:', { value, text, pillsContainer: !!this.pillsContainer });
-        
+        console.log("Adding pill:", {
+            value,
+            text,
+            pillsContainer: !!this.pillsContainer,
+        });
+
         if (!this.pillsContainer) {
-            console.error('Pills container not found, cannot add pill');
+            console.error("Pills container not found, cannot add pill");
             return;
         }
-        
+
         // Remove the placeholder text if it exists
-        const placeholder = this.pillsContainer.querySelector('.text-gray-400');
+        const placeholder = this.pillsContainer.querySelector(".text-gray-400");
         if (placeholder) {
-            console.log('Removing placeholder');
+            console.log("Removing placeholder");
             placeholder.remove();
         }
-        
+
         // Check if pill already exists
-        const existingPill = this.pillsContainer.querySelector(`[data-value="${value}"]`);
+        const existingPill = this.pillsContainer.querySelector(
+            `[data-value="${value}"]`
+        );
         if (existingPill) {
-            console.log('Pill already exists for value:', value);
+            console.log("Pill already exists for value:", value);
             return;
         }
-        
-        const pill = document.createElement('div');
-        pill.className = 'location-pill';
+
+        const pill = document.createElement("div");
+        pill.className = "location-pill";
         pill.dataset.value = value;
         pill.style.cssText = `
             display: inline-flex;
@@ -279,131 +307,151 @@ class MultiSelectDropdown {
                 </svg>
             </div>
         `;
-        
-        console.log('Appending pill to container');
+
+        console.log("Appending pill to container");
         this.pillsContainer.appendChild(pill);
-        console.log('Pill added successfully, pills container now has', this.pillsContainer.children.length, 'children');
+        console.log(
+            "Pill added successfully, pills container now has",
+            this.pillsContainer.children.length,
+            "children"
+        );
     }
-    
+
     removePill(value) {
         if (!this.pillsContainer) {
-            console.error('Pills container not found, cannot remove pill');
+            console.error("Pills container not found, cannot remove pill");
             return;
         }
-        
-        const pill = this.pillsContainer.querySelector(`[data-value="${value}"]`);
+
+        const pill = this.pillsContainer.querySelector(
+            `[data-value="${value}"]`
+        );
         if (pill) {
             pill.remove();
         }
-        
+
         // Add placeholder back if no pills remain
         if (this.pillsContainer.children.length === 0) {
-            const placeholder = document.createElement('span');
-            placeholder.className = 'text-gray-400 text-sm italic';
-            placeholder.textContent = 'No locations selected';
+            const placeholder = document.createElement("span");
+            placeholder.className = "text-gray-400 text-sm italic";
+            placeholder.textContent = "No locations selected";
             this.pillsContainer.appendChild(placeholder);
         }
     }
-    
+
     // Helper method to clear all pills and reset to placeholder
     clearAllPills() {
         if (!this.pillsContainer) {
             return;
         }
-        
-        this.pillsContainer.innerHTML = '';
-        const placeholder = document.createElement('span');
-        placeholder.className = 'text-gray-400 text-sm italic';
-        placeholder.textContent = 'No locations selected';
+
+        this.pillsContainer.innerHTML = "";
+        const placeholder = document.createElement("span");
+        placeholder.className = "text-gray-400 text-sm italic";
+        placeholder.textContent = "No locations selected";
         this.pillsContainer.appendChild(placeholder);
     }
-    
+
     removePillByValue(value) {
         // Uncheck the corresponding checkbox
-        const checkbox = this.optionsContainer.querySelector(`input[value="${value}"]`);
+        const checkbox = this.optionsContainer.querySelector(
+            `input[value="${value}"]`
+        );
         if (checkbox) {
             checkbox.checked = false;
             this.handleOptionSelect(checkbox);
         }
     }
-    
+
     updateSearchPlaceholder() {
         if (!this.searchInput) {
             return;
         }
-        
+
         const count = this.selectedValues.size;
         if (count === 0) {
-            this.searchInput.placeholder = 'Search or select locations...';
+            this.searchInput.placeholder = "Search or select locations...";
         } else {
             this.searchInput.placeholder = `${count} location(s) selected`;
         }
     }
-    
+
     showLocationForm(locationId) {
-        const form = document.querySelector(`[data-location-id="${locationId}"]`);
+        const form = document.querySelector(
+            `[data-location-id="${locationId}"]`
+        );
         if (form) {
-            form.style.display = 'block';
+            form.style.display = "block";
             // Load records for this location
-            if (typeof window.loadRecordsForLocation === 'function') {
+            if (typeof window.loadRecordsForLocation === "function") {
                 window.loadRecordsForLocation(locationId);
             }
         }
     }
-    
+
     hideLocationForm(locationId) {
-        const form = document.querySelector(`[data-location-id="${locationId}"]`);
+        const form = document.querySelector(
+            `[data-location-id="${locationId}"]`
+        );
         if (form) {
-            form.style.display = 'none';
+            form.style.display = "none";
         }
     }
-    
+
     getSelectedValues() {
         return Array.from(this.selectedValues);
     }
-    
+
     setSelectedValues(values) {
         // Clear current selections
         this.selectedValues.clear();
-        this.pillsContainer.innerHTML = '';
-        
+        this.pillsContainer.innerHTML = "";
+
         // Uncheck all checkboxes
-        const checkboxes = this.optionsContainer.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(cb => cb.checked = false);
-        
+        const checkboxes = this.optionsContainer.querySelectorAll(
+            'input[type="checkbox"]'
+        );
+        checkboxes.forEach((cb) => (cb.checked = false));
+
         // Set new selections
-        values.forEach(value => {
-            const checkbox = this.optionsContainer.querySelector(`input[value="${value}"]`);
+        values.forEach((value) => {
+            const checkbox = this.optionsContainer.querySelector(
+                `input[value="${value}"]`
+            );
             if (checkbox) {
                 checkbox.checked = true;
                 this.handleOptionSelect(checkbox);
             }
         });
     }
-    
+
     selectAll() {
-        console.log('Selecting all locations');
-        const checkboxes = this.optionsContainer.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
+        console.log("Selecting all locations");
+        const checkboxes = this.optionsContainer.querySelectorAll(
+            'input[type="checkbox"]'
+        );
+        checkboxes.forEach((checkbox) => {
             if (!checkbox.checked) {
                 checkbox.checked = true;
                 this.handleOptionSelect(checkbox);
             }
         });
     }
-    
+
     deselectAll() {
-        console.log('Deselecting all locations');
-        
+        console.log("Deselecting all locations");
+
         // Clear all selected values
         this.selectedValues.clear();
-        
+
         // Clear all pills at once
         this.clearAllPills();
-        
+
         // Uncheck all checkboxes
-        const checkboxes = this.optionsContainer.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
+        const checkboxes = this.optionsContainer.querySelectorAll(
+            'input[type="checkbox"]'
+        );
+        checkboxes.forEach((checkbox) => {
             if (checkbox.checked) {
                 checkbox.checked = false;
                 // Hide the form for this location
@@ -411,13 +459,13 @@ class MultiSelectDropdown {
                 this.hideLocationForm(value);
             }
         });
-        
+
         // Update search placeholder
         this.updateSearchPlaceholder();
-        
+
         // Trigger updateLocationDisplay if it exists
-        if (typeof window.updateLocationDisplay === 'function') {
-            console.log('Triggering updateLocationDisplay after deselect all');
+        if (typeof window.updateLocationDisplay === "function") {
+            console.log("Triggering updateLocationDisplay after deselect all");
             window.updateLocationDisplay();
         }
     }
@@ -1022,7 +1070,16 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         columnDefs: [{ targets: "_all" }],
     });
     // Add margin-bottom to the DataTables search bar
-    $(".dataTables_filter").addClass("mb-4"); // or 'mb-2' for less space
+    const $filter = $(".dataTables_filter");
+
+    $filter.addClass("mb-4"); // or 'mb-2' for less space
+    $filter.css({
+        float: "none",
+        "text-align": "left",
+    });
+    $filter.prepend(
+        '<span class="datatable-title font-bold text-lg mr-4" style="vertical-align:middle;">Timesheet Preview</span>'
+    );
 }
 function validateRecords(locationId) {
     const locationRecords = records[locationId];
@@ -1303,6 +1360,9 @@ function renderTable(locationId) {
                 </button></div>
             </td>
         `;
+        if (rec.shiftType === "Default") {
+            tr.classList.add("bg-green-100");
+        }
         tbody.appendChild(tr);
     });
 
@@ -3756,6 +3816,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     window.toggleForm = async function (locationId) {
         const form = document.getElementById(`form_${locationId}`);
         const arrow = document.getElementById(`arrow_${locationId}`);
+        const totals = document.getElementById(`totalsDisplay_${locationId}`);
         renderTable(locationId); // Ensure the table is rendered before toggling
 
         // Only try to collapse if currently open
@@ -3772,6 +3833,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (form.classList.contains("max-h-0")) {
             form.classList.remove("max-h-0");
             // form.classList.add("mt-4");
+            totals.classList.add("hidden");
 
             form.classList.add("max-h-[1000px]");
 
@@ -3779,6 +3841,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             form.classList.add("p-2");
         } else {
             // form.classList.remove("mt-4");
+            totals.classList.remove("hidden");
 
             form.classList.add("max-h-0");
             form.classList.remove("max-h-[1000px]");
