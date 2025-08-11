@@ -7,6 +7,73 @@
         .location-form {
             display: none;
         }
+        
+        /* Custom styles for multiselect dropdown */
+        .location-pill {
+            display: inline-flex !important;
+            align-items: center !important;
+            background-color: #2563eb !important;
+            color: white !important;
+            padding: 0.375rem 0.75rem !important;
+            border-radius: 9999px !important;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            margin: 0.125rem !important;
+            transition: all 0.2s ease-in-out !important;
+            border: none !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24) !important;
+        }
+        
+        .location-pill:hover {
+            background-color: #1d4ed8 !important;
+            transform: translateY(-1px) !important;
+        }
+        
+        .location-pill .remove-btn {
+            margin-left: 0.5rem !important;
+            padding: 0.125rem !important;
+            border-radius: 50% !important;
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s ease-in-out !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        .location-pill .remove-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3) !important;
+        }
+        
+        .location-option:hover {
+            background-color: #eff6ff;
+        }
+        
+        .location-option input[type="checkbox"]:checked + div {
+            color: #2563eb;
+        }
+        
+        /* Dropdown animation */
+        .dropdown-enter {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        
+        .dropdown-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .dropdown-exit {
+            opacity: 1;
+        }
+        
+        .dropdown-exit-active {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.2s ease-in-out;
+        }
     </style>
     
 @endsection
@@ -25,40 +92,61 @@
     <div class="bg-white p-4 mb-6 rounded border">
         <h3 class="text-lg font-semibold text-[#2679b5] mb-4">Select Locations for this Quotation</h3>
         
-        <!-- Location Selection Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-            @foreach($locations as $location)
-                <div class="border rounded p-3 hover:bg-gray-50 cursor-pointer location-selector" 
-                     data-location-id="{{ $location->id }}">
-                    <div class="flex items-center">
-                        <input type="checkbox" 
-                               id="locationSelect_{{ $location->id }}" 
-                               value="{{ $location->id }}" 
-                               class="location-checkbox mr-3"
+        <!-- Multi-Select Dropdown -->
+        <div id="locationMultiSelect" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Choose Locations:</label>
+            
+            <!-- Search Input -->
+            <div class="relative">
+                <input type="text" 
+                       class="location-search w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="Search or select locations...">
+                
+                <!-- Dropdown -->
+                <div class="location-dropdown absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-64 overflow-y-auto">
+                    <!-- Location Options -->
+                    <div class="location-options py-1">
+                        @foreach($locations as $location)
+                        <label class="location-option flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer" 
+                               data-location-id="{{ $location->id }}"
                                data-name="{{ $location->name }}"
-                               data-address="{{ $location->address }}"
-                               onchange="updateLocationDisplay()">
-                        <div class="flex-1" onclick="toggleLocationSelection('{{ $location->id }}')">
-                            <div class="font-medium text-sm">{{ $location->name }}</div>
-                            <div class="text-xs text-gray-500">{{ $location->address }}</div>
-                        </div>
+                               data-address="{{ $location->address }}">
+                            <input type="checkbox" 
+                                   value="{{ $location->id }}" 
+                                   class="mr-3 text-blue-600 focus:ring-blue-500">
+                            <div class="flex-1">
+                                <div class="font-medium text-sm text-gray-900">{{ $location->name }}</div>
+                                <div class="text-xs text-gray-500">{{ $location->address }}</div>
+                            </div>
+                        </label>
+                        @endforeach
                     </div>
                 </div>
-            @endforeach
+            </div>
+            
+            <!-- Selected Locations Pills -->
+            <div class="mt-3">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-sm font-medium text-gray-700">Selected Locations:</label>
+                    <div class="flex gap-2">
+                        <button type="button" id="selectAllLocationsBtn" 
+                                class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition duration-200">
+                            Select All
+                        </button>
+                        <button type="button" id="deselectAllLocationsBtn" 
+                                class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded transition duration-200">
+                            Deselect All
+                        </button>
+                    </div>
+                </div>
+                <div class="selected-pills flex flex-wrap gap-2 min-h-[50px] p-3 border border-gray-200 rounded-lg bg-gray-50" style="align-items: flex-start;">
+                    <span class="text-gray-400 text-sm italic">No locations selected</span>
+                </div>
+            </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-2 mb-4">
-            <button type="button" id="selectAllLocations" class="bg-blue-500 text-white px-4 py-2 rounded text-sm">
-                Select All
-            </button>
-            <button type="button" id="clearAllLocations" class="bg-gray-500 text-white px-4 py-2 rounded text-sm">
-                Clear All
-            </button>
-        </div>
-
-        <!-- Selected Count Display -->
-        <div class="text-sm text-gray-600">
+        <!-- Summary -->
+        <div class="text-sm text-gray-600 bg-blue-50 p-2 rounded">
             <span id="selectedLocationCount">0</span> of {{ $locations->count() }} locations selected
         </div>
     </div>
@@ -504,12 +592,12 @@
         </div>
     </div>
     <!-- Preview Modal -->
-    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative">
+    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden  ">
+        <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative h-[90%]">
             <button type="button" id="closePreviewModal"
                 class="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
             <!-- Column Visibility Custom Dropdown -->
-            <div class="mb-6 p-4 border rounded bg-gray-50">
+            <div class="mb-6 p-4 border rounded bg-gray-50 column-visibility-dropdown">
                 <h3 class="text-lg font-semibold mb-4">Column Visibility</h3>
                 <div class="relative w-full">
                     <button id="columnDropdownBtn" type="button"
@@ -528,15 +616,16 @@
                 <p class="mt-2 text-sm text-gray-500">Core columns are required and cannot be deselected.</p>
             </div>
             <!-- Preview Table -->
-            <div class="mb-6">
+            <div class="mb-6 ">
                 <h3 class="text-lg font-semibold mb-4">Preview</h3>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto ">
                     <table id="previewTable" class="display  w-full table-fixed">
                         <thead id="previewTableHead1"></thead>
                         <tbody id="previewTableBody1"></tbody>
                     </table>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -551,53 +640,59 @@
             
             let selectedLocationIds = [];
 
+            // Initialize multiSelect dropdown
+            const initializeDropdown = () => {
+                console.log('Attempting to initialize dropdown, MultiSelectDropdown available:', !!window.MultiSelectDropdown);
+                if (window.MultiSelectDropdown) {
+                    console.log('Creating new MultiSelectDropdown instance');
+                    window.multiSelectDropdown = new window.MultiSelectDropdown('locationMultiSelect');
+                    // Load saved selections after dropdown is initialized
+                    setTimeout(loadSavedSelections, 100);
+                    return true;
+                } else {
+                    console.log('MultiSelectDropdown class not yet available');
+                    return false;
+                }
+            };
+            
+            if (!initializeDropdown()) {
+                console.log('Waiting for MultiSelectDropdown class to be available');
+                // Wait for the class to be available
+                const waitForDropdown = () => {
+                    if (!initializeDropdown()) {
+                        setTimeout(waitForDropdown, 100);
+                    }
+                };
+                waitForDropdown();
+            }
+            
             // Initialize functionality
             initLocationSelection();
             loadSavedShiftData();
 
             function initLocationSelection() {
-                // Select All button
-                const selectAllBtn = document.getElementById('selectAllLocations');
+                // Select All Locations button
+                const selectAllBtn = document.getElementById('selectAllLocationsBtn');
                 if (selectAllBtn) {
                     selectAllBtn.addEventListener('click', function() {
-                        document.querySelectorAll('.location-checkbox').forEach(checkbox => {
-                            checkbox.checked = true;
-                        });
-                        updateLocationDisplay();
-                    });
-                }
-
-                // Clear All button
-                const clearAllBtn = document.getElementById('clearAllLocations');
-                if (clearAllBtn) {
-                    clearAllBtn.addEventListener('click', function() {
-                        document.querySelectorAll('.location-checkbox').forEach(checkbox => {
-                            checkbox.checked = false;
-                        });
-                        updateLocationDisplay();
-                    });
-                }
-
-                // Show Selected button
-                const showSelectedBtn = document.getElementById('showSelectedLocations');
-                if (showSelectedBtn) {
-                    showSelectedBtn.addEventListener('click', function() {
-                        updateLocationDisplay();
-                        // Scroll to forms section
-                        const formsSection = document.getElementById('locationsContainer');
-                        if (formsSection) {
-                            formsSection.scrollIntoView({ behavior: 'smooth' });
+                        console.log('Select All button clicked');
+                        if (window.multiSelectDropdown) {
+                            window.multiSelectDropdown.selectAll();
+                        } else {
+                            console.error('multiSelectDropdown not available');
                         }
                     });
                 }
 
-                // Back to selection button
-                const backToSelectionBtn = document.getElementById('backToSelectionBtn');
-                if (backToSelectionBtn) {
-                    backToSelectionBtn.addEventListener('click', function() {
-                        const selectionSection = document.querySelector('.bg-white.p-4.mb-6.rounded.border');
-                        if (selectionSection) {
-                            selectionSection.scrollIntoView({ behavior: 'smooth' });
+                // Deselect All Locations button
+                const deselectAllBtn = document.getElementById('deselectAllLocationsBtn');
+                if (deselectAllBtn) {
+                    deselectAllBtn.addEventListener('click', function() {
+                        console.log('Deselect All button clicked');
+                        if (window.multiSelectDropdown) {
+                            window.multiSelectDropdown.deselectAll();
+                        } else {
+                            console.error('multiSelectDropdown not available');
                         }
                     });
                 }
@@ -608,8 +703,8 @@
                     saveAllBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         
-                        // Save all location data before submitting the form
-                        const selectedLocationIds = Array.from(document.querySelectorAll('.location-checkbox:checked')).map(cb => cb.value);
+                        // Get selected locations from multiSelect dropdown
+                        const selectedLocationIds = window.multiSelectDropdown.getSelectedValues();
                         let savePromises = [];
                         
                         selectedLocationIds.forEach(locationId => {
@@ -636,14 +731,6 @@
                         });
                     });
                 }
-
-                // Add change event listeners to all checkboxes
-                document.querySelectorAll('.location-checkbox').forEach(checkbox => {
-                    checkbox.addEventListener('change', updateLocationDisplay);
-                });
-
-                // Load saved selections
-                loadSavedSelections();
             }
 
             // Load saved shift data from database
@@ -714,19 +801,9 @@
                 });
             }
 
-            // Toggle individual location selection
-            window.toggleLocationSelection = function(locationId) {
-                const checkbox = document.getElementById(`locationSelect_${locationId}`);
-                if (checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    updateLocationDisplay();
-                }
-            }
-
-            // Update location display based on selections
+            // Update location display based on multiSelect selections
             function updateLocationDisplay() {
-                const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
-                selectedLocationIds = Array.from(checkedBoxes).map(cb => cb.value);
+                const selectedLocationIds = window.multiSelectDropdown.getSelectedValues();
                 
                 console.log('Selected location IDs:', selectedLocationIds); // Debug log
                 
@@ -794,12 +871,15 @@
                 // First try to load from saved schedules (database)
                 if (savedLocationSchedules && savedLocationSchedules.length > 0) {
                     savedLocationSchedules.forEach(schedule => {
-                        const checkbox = document.getElementById(`locationSelect_${schedule.location_id}`);
-                        if (checkbox) {
-                            checkbox.checked = true;
+                        // Select the location in multiSelect dropdown
+                        if (window.multiSelectDropdown) {
+                            const checkbox = document.querySelector(`#locationMultiSelect input[value="${schedule.location_id}"]`);
+                            if (checkbox) {
+                                checkbox.checked = true;
+                                window.multiSelectDropdown.handleOptionSelect(checkbox);
+                            }
                         }
                     });
-                    updateLocationDisplay();
                     return;
                 }
 
@@ -809,12 +889,14 @@
                     try {
                         const locationIds = JSON.parse(savedLocations);
                         locationIds.forEach(id => {
-                            const checkbox = document.getElementById(`locationSelect_${id}`);
-                            if (checkbox) {
-                                checkbox.checked = true;
+                            if (window.multiSelectDropdown) {
+                                const checkbox = document.querySelector(`#locationMultiSelect input[value="${id}"]`);
+                                if (checkbox) {
+                                    checkbox.checked = true;
+                                    window.multiSelectDropdown.handleOptionSelect(checkbox);
+                                }
                             }
                         });
-                        updateLocationDisplay();
                     } catch (e) {
                         console.error('Error loading saved locations:', e);
                     }
@@ -838,7 +920,7 @@
 
         // Compatibility function for step2.js
         window.getSelectedLocations = function() {
-            const selectedLocationIds = Array.from(document.querySelectorAll('.location-checkbox:checked')).map(cb => cb.value);
+            const selectedLocationIds = window.multiSelectDropdown ? window.multiSelectDropdown.getSelectedValues() : [];
             return selectedLocationIds.map(id => {
                 const location = locations.find(loc => loc.id == id);
                 return location || { id: id };
@@ -847,13 +929,69 @@
 
         // Compatibility function for step2.js validation
         window.validateStep2Form = function() {
-            const selectedLocationIds = Array.from(document.querySelectorAll('.location-checkbox:checked')).map(cb => cb.value);
+            const selectedLocationIds = window.multiSelectDropdown ? window.multiSelectDropdown.getSelectedValues() : [];
             if (selectedLocationIds.length === 0) {
                 alert('Please select at least one location.');
                 return false;
             }
             return true;
         };
+        
+        // // Test function to manually test pills
+        // window.testPills = function() {
+        //     console.log('Testing pills functionality');
+        //     const pillsContainer = document.querySelector('.selected-pills');
+        //     if (pillsContainer) {
+        //         // Remove placeholder
+        //         const placeholder = pillsContainer.querySelector('.text-gray-400');
+        //         if (placeholder) placeholder.remove();
+                
+        //         // Create a manual test pill
+        //         const testPill = document.createElement('div');
+        //         testPill.className = 'location-pill';
+        //         testPill.style.cssText = `
+        //             display: inline-flex;
+        //             align-items: center;
+        //             background-color: #2563eb;
+        //             color: white;
+        //             padding: 0.375rem 0.75rem;
+        //             border-radius: 9999px;
+        //             font-size: 0.875rem;
+        //             font-weight: 500;
+        //             margin: 0.125rem;
+        //             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        //         `;
+        //         testPill.innerHTML = `
+        //             <span style="margin-right: 0.5rem;">Test Location</span>
+        //             <div style="
+        //                 padding: 0.125rem;
+        //                 border-radius: 50%;
+        //                 background-color: rgba(255, 255, 255, 0.2);
+        //                 cursor: pointer;
+        //                 display: flex;
+        //                 align-items: center;
+        //                 justify-content: center;
+        //                 width: 16px;
+        //                 height: 16px;
+        //             " onclick="this.parentElement.remove()">
+        //                 <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        //                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        //                 </svg>
+        //             </div>
+        //         `;
+                
+        //         pillsContainer.appendChild(testPill);
+        //         console.log('Manual test pill added');
+        //     }
+            
+        //     if (window.multiSelectDropdown) {
+        //         console.log('Adding test pill via multiSelectDropdown');
+        //         window.multiSelectDropdown.addPill('test-1', 'Test Location 1');
+        //         console.log('Test pill added');
+        //     } else {
+        //         console.error('multiSelectDropdown not available');
+        //     }
+        // };
     </script>
     @vite('resources/js/Step2/step2.js')
 @endsection

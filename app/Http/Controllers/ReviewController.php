@@ -64,16 +64,17 @@ class ReviewController extends Controller
                 'Week Starting',
                 'Shift Type',
                 'Location',
+                'Date Range',
                 'Start Date',
                 'Scheduled Start',
                 'Scheduled Finish',
                 'Scheduled Hours',
                 'Emp. Numb',
-                'Day (06–18)',
-                'Night (18–06)',
+                'Day (0600–1800)',
+                'Night (1800–0600)',
                 'Saturday',
                 'Sunday',
-                'Public Holiday',
+                'PH',
                 'Client Day Rate',
                 'Client Night Rate',
                 'Client Sat Rate',
@@ -141,6 +142,7 @@ class ReviewController extends Controller
                         $weekStarting,
                         $result['shift_type'],  // Already a name, not ID
                         $locationName,
+                        $result['date_range'] ?? ($summary['date_range'] ?? ''), // <-- Date Range column
                         $result['date'],
                         $result['from'] ?? '',
                         $result['to'] ?? '',
@@ -255,6 +257,8 @@ foreach ($shifts as $shift) {
         if ($date->dayOfWeek === $dayMap[$day]) {
             $newShift = $shift;
             $newShift['date'] = $date->format('Y-m-d');
+                        $newShift['date_range'] = $dateRange; // <-- Add this line
+
             $expandedShifts[] = $newShift;
         }
     }
@@ -387,6 +391,7 @@ foreach ($shifts as $shift) {
                         'periods' => $periodResults,
 
                         'billable' => $billable,
+                        'date_range' => $shift['date_range'] ?? '', 
                     ];
                 } catch (Exception $e) {
                     Log::error('Error processing shift: ' . $e->getMessage(), ['shift' => $shift]);
@@ -431,7 +436,7 @@ foreach ($shifts as $shift) {
                 'headings' => 'required|array',
                 'hiddenColumns' => 'nullable|array',
                 'totals' => 'nullable|array',
-                'date_range' => 'nullable|string',
+                
             ]);
 
             if ($validator->fails()) {

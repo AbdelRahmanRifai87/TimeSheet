@@ -52,9 +52,360 @@ function loadRecordsForLocation(locationId) {
     console.log(`No records found for location ${locationId}`);
 }
 
+// MultiSelect Dropdown functionality
+class MultiSelectDropdown {
+    constructor(containerId) {
+        console.log('Initializing MultiSelectDropdown with container ID:', containerId);
+        this.container = document.getElementById(containerId);
+        if (!this.container) {
+            console.error(`Container with ID ${containerId} not found`);
+            return;
+        }
+        
+        console.log('Container found:', this.container);
+        
+        this.searchInput = this.container.querySelector('.location-search');
+        this.dropdown = this.container.querySelector('.location-dropdown');
+        this.optionsContainer = this.container.querySelector('.location-options');
+        this.pillsContainer = this.container.querySelector('.selected-pills');
+        
+        // Also try to find pills container outside the main container if it's not inside
+        if (!this.pillsContainer) {
+            this.pillsContainer = document.querySelector('.selected-pills');
+            console.log('Pills container found outside main container:', !!this.pillsContainer);
+        }
+        
+        this.selectedValues = new Set();
+        
+        console.log('Elements found:', {
+            searchInput: !!this.searchInput,
+            dropdown: !!this.dropdown,
+            optionsContainer: !!this.optionsContainer,
+            pillsContainer: !!this.pillsContainer
+        });
+        
+        this.init();
+    }
+    
+    init() {
+        const requiredElements = {
+            searchInput: !!this.searchInput,
+            dropdown: !!this.dropdown,
+            optionsContainer: !!this.optionsContainer,
+            pillsContainer: !!this.pillsContainer
+        };
+        
+        console.log('Required elements check:', requiredElements);
+        
+        if (!this.searchInput || !this.dropdown || !this.optionsContainer || !this.pillsContainer) {
+            console.error('Required elements not found in multiSelect container:', requiredElements);
+            return;
+        }
+        
+        console.log('MultiSelectDropdown initialized successfully');
+        
+        // Toggle dropdown
+        this.searchInput.addEventListener('click', () => {
+            console.log('Search input clicked, toggling dropdown');
+            this.toggleDropdown();
+        });
+        
+        // Also toggle on focus
+        this.searchInput.addEventListener('focus', () => {
+            console.log('Search input focused, opening dropdown');
+            this.openDropdown();
+        });
+        
+        // Filter options
+        this.searchInput.addEventListener('input', (e) => this.filterOptions(e.target.value));
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!this.container.contains(e.target)) {
+                this.closeDropdown();
+            }
+        });
+        
+        // Handle option selection
+        this.optionsContainer.addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox') {
+                this.handleOptionSelect(e.target);
+            }
+        });
+        
+        // Prevent dropdown from closing when clicking inside
+        this.dropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
+    
+    toggleDropdown() {
+        const isHidden = this.dropdown.classList.contains('hidden');
+        console.log('Toggling dropdown, currently hidden:', isHidden);
+        if (isHidden) {
+            this.openDropdown();
+        } else {
+            this.closeDropdown();
+        }
+    }
+    
+    openDropdown() {
+        console.log('Opening dropdown');
+        this.dropdown.classList.remove('hidden');
+        this.dropdown.classList.add('dropdown-enter-active');
+        this.searchInput.focus();
+    }
+    
+    closeDropdown() {
+        console.log('Closing dropdown');
+        this.dropdown.classList.add('hidden');
+        this.dropdown.classList.remove('dropdown-enter-active');
+        this.searchInput.value = '';
+        this.filterOptions('');
+    }
+    
+    filterOptions(searchTerm) {
+        const options = this.optionsContainer.querySelectorAll('.location-option');
+        options.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            const matches = text.includes(searchTerm.toLowerCase());
+            option.style.display = matches ? 'flex' : 'none';
+        });
+    }
+    
+    handleOptionSelect(checkbox) {
+        const value = checkbox.value;
+        
+        // Get the location name from the label structure
+        const label = checkbox.closest('label');
+        const nameDiv = label.querySelector('.font-medium');
+        const text = nameDiv ? nameDiv.textContent.trim() : `Location ${value}`;
+        
+        console.log('Option selected:', { value, text, checked: checkbox.checked });
+        
+        if (checkbox.checked) {
+            this.selectedValues.add(value);
+            this.addPill(value, text);
+            this.showLocationForm(value);
+        } else {
+            this.selectedValues.delete(value);
+            this.removePill(value);
+            this.hideLocationForm(value);
+        }
+        
+        this.updateSearchPlaceholder();
+        
+        // Trigger updateLocationDisplay if it exists
+        if (typeof window.updateLocationDisplay === 'function') {
+            console.log('Triggering updateLocationDisplay');
+            window.updateLocationDisplay();
+        }
+    }
+    
+    addPill(value, text) {
+        console.log('Adding pill:', { value, text, pillsContainer: !!this.pillsContainer });
+        
+        if (!this.pillsContainer) {
+            console.error('Pills container not found, cannot add pill');
+            return;
+        }
+        
+        // Remove the placeholder text if it exists
+        const placeholder = this.pillsContainer.querySelector('.text-gray-400');
+        if (placeholder) {
+            console.log('Removing placeholder');
+            placeholder.remove();
+        }
+        
+        // Check if pill already exists
+        const existingPill = this.pillsContainer.querySelector(`[data-value="${value}"]`);
+        if (existingPill) {
+            console.log('Pill already exists for value:', value);
+            return;
+        }
+        
+        const pill = document.createElement('div');
+        pill.className = 'location-pill';
+        pill.dataset.value = value;
+        pill.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            background-color: #3B82F7;
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin: 0.125rem;
+            transition: all 0.2s ease-in-out;
+        `;
+        pill.innerHTML = `
+            <span style="margin-right: 0.5rem;">${text}</span>
+            <div class="remove-btn" style="
+                padding: 0.125rem;
+                border-radius: 50%;
+                background-color: rgba(255, 255, 255, 0.2);
+                cursor: pointer;
+                transition: background-color 0.2s ease-in-out;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            " onclick="window.multiSelectDropdown.removePillByValue('${value}')">
+                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </div>
+        `;
+        
+        console.log('Appending pill to container');
+        this.pillsContainer.appendChild(pill);
+        console.log('Pill added successfully, pills container now has', this.pillsContainer.children.length, 'children');
+    }
+    
+    removePill(value) {
+        if (!this.pillsContainer) {
+            console.error('Pills container not found, cannot remove pill');
+            return;
+        }
+        
+        const pill = this.pillsContainer.querySelector(`[data-value="${value}"]`);
+        if (pill) {
+            pill.remove();
+        }
+        
+        // Add placeholder back if no pills remain
+        if (this.pillsContainer.children.length === 0) {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'text-gray-400 text-sm italic';
+            placeholder.textContent = 'No locations selected';
+            this.pillsContainer.appendChild(placeholder);
+        }
+    }
+    
+    // Helper method to clear all pills and reset to placeholder
+    clearAllPills() {
+        if (!this.pillsContainer) {
+            return;
+        }
+        
+        this.pillsContainer.innerHTML = '';
+        const placeholder = document.createElement('span');
+        placeholder.className = 'text-gray-400 text-sm italic';
+        placeholder.textContent = 'No locations selected';
+        this.pillsContainer.appendChild(placeholder);
+    }
+    
+    removePillByValue(value) {
+        // Uncheck the corresponding checkbox
+        const checkbox = this.optionsContainer.querySelector(`input[value="${value}"]`);
+        if (checkbox) {
+            checkbox.checked = false;
+            this.handleOptionSelect(checkbox);
+        }
+    }
+    
+    updateSearchPlaceholder() {
+        if (!this.searchInput) {
+            return;
+        }
+        
+        const count = this.selectedValues.size;
+        if (count === 0) {
+            this.searchInput.placeholder = 'Search or select locations...';
+        } else {
+            this.searchInput.placeholder = `${count} location(s) selected`;
+        }
+    }
+    
+    showLocationForm(locationId) {
+        const form = document.querySelector(`[data-location-id="${locationId}"]`);
+        if (form) {
+            form.style.display = 'block';
+            // Load records for this location
+            if (typeof window.loadRecordsForLocation === 'function') {
+                window.loadRecordsForLocation(locationId);
+            }
+        }
+    }
+    
+    hideLocationForm(locationId) {
+        const form = document.querySelector(`[data-location-id="${locationId}"]`);
+        if (form) {
+            form.style.display = 'none';
+        }
+    }
+    
+    getSelectedValues() {
+        return Array.from(this.selectedValues);
+    }
+    
+    setSelectedValues(values) {
+        // Clear current selections
+        this.selectedValues.clear();
+        this.pillsContainer.innerHTML = '';
+        
+        // Uncheck all checkboxes
+        const checkboxes = this.optionsContainer.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+        
+        // Set new selections
+        values.forEach(value => {
+            const checkbox = this.optionsContainer.querySelector(`input[value="${value}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+                this.handleOptionSelect(checkbox);
+            }
+        });
+    }
+    
+    selectAll() {
+        console.log('Selecting all locations');
+        const checkboxes = this.optionsContainer.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            if (!checkbox.checked) {
+                checkbox.checked = true;
+                this.handleOptionSelect(checkbox);
+            }
+        });
+    }
+    
+    deselectAll() {
+        console.log('Deselecting all locations');
+        
+        // Clear all selected values
+        this.selectedValues.clear();
+        
+        // Clear all pills at once
+        this.clearAllPills();
+        
+        // Uncheck all checkboxes
+        const checkboxes = this.optionsContainer.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                checkbox.checked = false;
+                // Hide the form for this location
+                const value = checkbox.value;
+                this.hideLocationForm(value);
+            }
+        });
+        
+        // Update search placeholder
+        this.updateSearchPlaceholder();
+        
+        // Trigger updateLocationDisplay if it exists
+        if (typeof window.updateLocationDisplay === 'function') {
+            console.log('Triggering updateLocationDisplay after deselect all');
+            window.updateLocationDisplay();
+        }
+    }
+}
+
+// Make it globally available
+window.MultiSelectDropdown = MultiSelectDropdown;
+
 // Make the function globally available so it can be called from the window script
 window.loadRecordsForLocation = loadRecordsForLocation;
 
+// Store the latest calculate response for each location
+const latestCalculateResponses = {};
 async function loadShiftTypes() {
     try {
         shiftTypes = await apiService.getShiftTypes(); // Fetch shift types from the API
@@ -183,9 +534,88 @@ function initializeSaveButtons() {
         console.log(`Initializing save button for location ${saveButton}`);
         if (saveButton) {
             saveButton.addEventListener("click", function () {
+                console.log(`Save button clicked for location: ${location.id}`);
                 renderTable(location.id);
                 handleSaveButtonClick(location.id);
             });
+        }
+    });
+}
+
+function renderExportButton(locationId) {
+    // Remove any existing export button for this location
+    const oldExportBtn = document.getElementById(
+        `exportTimesheetBtn_${locationId}`
+    );
+    if (oldExportBtn) oldExportBtn.remove();
+
+    // Create the export button
+    const exportBtn = document.createElement("button");
+    exportBtn.id = `exportTimesheetBtn_${locationId}`;
+    exportBtn.type = "button";
+    exportBtn.className =
+        "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow mt-4";
+    exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
+
+    const previewTable = document.getElementById("previewTable");
+    if (previewTable) {
+        previewTable.insertAdjacentElement("afterend", exportBtn);
+    }
+
+    // Add export logic
+    exportBtn.addEventListener("click", async function () {
+        const exportData = latestCalculateResponses[locationId];
+        if (!exportData) {
+            showToast("No data to export. Please calculate first.", "error");
+            return;
+        }
+        exportBtn.disabled = true;
+        exportBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Exporting...`;
+        console.log("Exporting data for location:", locationId, exportData);
+        // Get the DataTable instance
+        const table = $("#previewTable").DataTable();
+
+        // Get all rows in the current order (after sorting, filtering, etc.)
+        const sortedData = table
+            .rows({ order: "applied", search: "applied" })
+            .data()
+            .toArray();
+
+        console.log(sortedData);
+
+        try {
+            const res = await apiService.exportReview({
+                data: sortedData,
+                headings: exportData.timesheet_headings,
+                totals: exportData.totals,
+            });
+            if (res.data.type === "application/json") {
+                // Read the error message from the blob
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const errorJson = JSON.parse(reader.result);
+                    showToast(errorJson.error || "Export failed.", "error");
+                    console.error("Export error:", errorJson);
+                };
+                reader.readAsText(res.data);
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
+                return;
+            }
+            if (res.data && res.data.success && res.data.download_url) {
+                console.log("Export successful:", res.data);
+                window.open(res.data.download_url, "_blank");
+                showToast("Export successful!", "success");
+            } else {
+                console.error("Export failed:", res.data);
+                showToast("Export failed.", "error");
+            }
+        } catch (e) {
+            console.error("Export error:", e);
+            showToast("Export failed.", "error");
+        } finally {
+            exportBtn.disabled = false;
+            exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
         }
     });
 }
@@ -271,11 +701,13 @@ function handleSaveButtonClick(locationId, silent = false) {
                 console.log("API response from calculateReview:", response);
 
                 if (response.data.success) {
-                    // Save shift data to database after successful calculation
-                    if (typeof window.saveShiftDataToDatabase === 'function') {
-                        window.saveShiftDataToDatabase(locationId, records[locationId]);
-                    }
-
+                    latestCalculateResponses[locationId] = response.data; // Store for export
+                    console.log(
+                        "Latest calculate response stored for location:",
+                        locationId,
+                        "latestCalculateResponses:",
+                        latestCalculateResponses
+                    );
                     // ...update UI...
                     if (!silent)
                         showToast("Totals calculated successfully!", "success");
@@ -306,6 +738,8 @@ function handleSaveButtonClick(locationId, silent = false) {
                         document.body.classList.add("overflow-hidden");
                         console.log("Preview modal opened");
                     }
+                    // Render the export button
+                    renderExportButton(locationId);
 
                     // Store data locally
                     const previewHeadings = response.data.timesheet_headings;
@@ -397,7 +831,7 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         "Emp. Numb": "Emp.<wbr>Numb",
         "Shift Type": "Shift<wbr> Type",
         "Week Starting": "Week<wbr> Starting",
-
+        "Date Range": "Date<wbr> Range",
         "Day (06–18)": "Day<wbr>(06–18)",
         "Night (18–06)": "Night<wbr>(18–06)",
         "Scheduled Hours": "Scheduled<wbr> Hours",
@@ -416,9 +850,9 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
     const trHead = document.createElement("tr");
     visibleColumns.forEach((heading) => {
         const th = document.createElement("th");
-        th.innerHTML = headingBreaks[heading] || heading; // Use breaks if defined
+        th.innerHTML = heading; // Use breaks if defined
         th.className =
-            "border border-gray-300 px-1 py-1 text-xs break-words w-[30px] max-w-[70px] text-center align-middle";
+            "border border-gray-300 px-1 py-1 text-xs break-words w-[50px] text-center align-middle";
         trHead.appendChild(th);
     });
     thead.appendChild(trHead);
@@ -454,16 +888,16 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             let value = idx !== -1 ? row[idx] : "-";
             const td = document.createElement("td");
             td.className =
-                "border border-gray-300 px-1 py-1 text-xs break-words w-[70px] max-w-[90px] text-center align-middle";
+                "border border-gray-300 px-1 py-1 text-xs break-words  text-center align-middle";
 
             // Format hours columns
             const hourColumns = [
                 "Scheduled Hours",
-                "Day (06–18)",
-                "Night (18–06)",
+                "Day (0600–1800)",
+                "Night (1800–0600)",
                 "Saturday",
                 "Sunday",
-                "Public Holiday",
+                "PH",
             ];
             // Format currency columns
             const currencyColumns = [
@@ -480,15 +914,31 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             } else if (currencyColumns.includes(heading) && value !== "-") {
                 value = "$" + Number(value).toFixed(2);
             }
-            // Special formatting for Start Date
-            if (heading === "Start Date" && value && value !== "-") {
+            // // Special formatting for Start Date
+            // if (heading === "Start Date" && value && value !== "-") {
+            //     const dateObj = new Date(value);
+            //     const dayName = dateObj.toLocaleDateString("en-US", {
+            //         weekday: "long",
+            //     });
+            //     value = isPublicHoliday
+            //         ? `${value}<br>(${dayName}) PH`
+            //         : `${value}<br>(${dayName})`;
+            //     td.innerHTML = value; // Use innerHTML for <br>
+            // } else {
+            //     td.textContent = value;
+            // }
+            if (heading === "Date Range" && value && value !== "-") {
+                // Insert <wbr> after 'to' for better wrapping
+                // value = value.replace(/\s+to\s+/, " <wbr>to<wbr> ");
+                td.innerHTML = value; // Use innerHTML to allow <wbr>
+            } else if (heading === "Start Date" && value && value !== "-") {
                 const dateObj = new Date(value);
                 const dayName = dateObj.toLocaleDateString("en-US", {
                     weekday: "long",
                 });
                 value = isPublicHoliday
-                    ? `${value}<br>(${dayName}) PH`
-                    : `${value}<br>(${dayName})`;
+                    ? `${value} (${dayName}) PH`
+                    : `${value} (${dayName})`;
                 td.innerHTML = value; // Use innerHTML for <br>
             } else {
                 td.textContent = value;
@@ -503,15 +953,16 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
 
     // (Re)initialize DataTable
     $("#previewTable").DataTable({
-        paging: true,
+        paging: false,
         searching: true,
         ordering: true,
         responsive: true,
         scrollX: true,
-        columnDefs: [
-            { targets: "_all", width: "120px", className: "dt-nowrap" },
-        ],
+        scrollY: "320px",
+        columnDefs: [{ targets: "_all" }],
     });
+    // Add margin-bottom to the DataTables search bar
+    $(".dataTables_filter").addClass("mb-4"); // or 'mb-2' for less space
 }
 function validateRecords(locationId) {
     const locationRecords = records[locationId];
@@ -1447,6 +1898,10 @@ function saveRowEdits(locationId, previousFormData, clickedRow) {
                 dateRange,
             });
         }
+        localStorage.setItem(
+            `records_${locationId}`,
+            JSON.stringify(records[locationId])
+        );
     });
     // Construct the record object for rendering the updated row
     const recordToBeRendered = {
@@ -3334,6 +3789,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             });
         }
     });
+    // Add event listeners for each export button after rendering the preview modal/table
 
     // Add event listeners to all "Add Shift Type" buttons
     const addShiftTypeButtons = document.querySelectorAll(
