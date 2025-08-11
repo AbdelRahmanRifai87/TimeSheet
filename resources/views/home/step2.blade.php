@@ -633,6 +633,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+        // Set quotation ID globally
+        window.quotationId = @json($quotation->id);
+
+
+
+
         // Simplified Location Selection and Display Logic
         document.addEventListener('DOMContentLoaded', function() {
             const locations = @json($locations);
@@ -757,7 +763,7 @@
                         window.records[locationId] = shiftDetails;
                         
                         // Also save to localStorage for compatibility
-                        localStorage.setItem(`records_${locationId}`, JSON.stringify(shiftDetails));
+                        // localStorage.setItem(`records_${locationId}`, JSON.stringify(shiftDetails));
                         
                         // If the location form is visible, render the table
                         const locationForm = document.querySelector(`[data-location-id="${locationId}"]`);
@@ -860,49 +866,76 @@
                     selectedLocationsInput.value = JSON.stringify(selectedLocationIds);
                 }
                 
-                // Save to localStorage
-                localStorage.setItem(`quotation_${quotationId}_selected_locations`, JSON.stringify(selectedLocationIds));
+                // Save to localStorage with quotation-specific key (centralized save location)
+                localStorage.setItem(`quotation${quotationId}_selected_locations`, JSON.stringify(selectedLocationIds));
             }
 
             // Make functions globally available
             window.updateLocationDisplay = updateLocationDisplay;
             window.saveShiftDataToDatabase = saveShiftDataToDatabase;
 
-            function loadSavedSelections() {
-                // First try to load from saved schedules (database)
-                if (savedLocationSchedules && savedLocationSchedules.length > 0) {
-                    savedLocationSchedules.forEach(schedule => {
-                        // Select the location in multiSelect dropdown
-                        if (window.multiSelectDropdown) {
-                            const checkbox = document.querySelector(`#locationMultiSelect input[value="${schedule.location_id}"]`);
-                            if (checkbox) {
-                                checkbox.checked = true;
-                                window.multiSelectDropdown.handleOptionSelect(checkbox);
-                            }
-                        }
-                    });
-                    return;
-                }
+            // function loadSavedSelections() {
+            //     // First try to load from saved schedules (database)
+            //     if (savedLocationSchedules && savedLocationSchedules.length > 0) {
+            //         savedLocationSchedules.forEach(schedule => {
+            //             // Select the location in multiSelect dropdown
+            //             if (window.multiSelectDropdown) {
+            //                 const checkbox = document.querySelector(`#locationMultiSelect input[value="${schedule.location_id}"]`);
+            //                 if (checkbox) {
+            //                     checkbox.checked = true;
+            //                     window.multiSelectDropdown.handleOptionSelect(checkbox);
+            //                 }
+            //             }
+            //         });
+            //         return;
+            //     }
 
-                // Fallback to localStorage
-                const savedLocations = localStorage.getItem(`quotation_${quotationId}_selected_locations`);
-                if (savedLocations) {
-                    try {
-                        const locationIds = JSON.parse(savedLocations);
-                        locationIds.forEach(id => {
-                            if (window.multiSelectDropdown) {
-                                const checkbox = document.querySelector(`#locationMultiSelect input[value="${id}"]`);
-                                if (checkbox) {
-                                    checkbox.checked = true;
-                                    window.multiSelectDropdown.handleOptionSelect(checkbox);
-                                }
-                            }
-                        });
-                    } catch (e) {
-                        console.error('Error loading saved locations:', e);
+            //     // Fallback to localStorage
+            //     const savedLocations = localStorage.getItem(`quotation_${quotationId}_selected_locations`);
+            //     if (savedLocations) {
+            //         try {
+            //             const locationIds = JSON.parse(savedLocations);
+            //             locationIds.forEach(id => {
+            //                 if (window.multiSelectDropdown) {
+            //                     const checkbox = document.querySelector(`#locationMultiSelect input[value="${id}"]`);
+            //                     if (checkbox) {
+            //                         checkbox.checked = true;
+            //                         window.multiSelectDropdown.handleOptionSelect(checkbox);
+            //                     }
+            //                 }
+            //             });
+            //         } catch (e) {
+            //             console.error('Error loading saved locations:', e);
+            //         }
+            //     }
+            // }
+            function loadSavedSelections() {
+                    const quotationId = window.quotationId;
+                    const savedLocations = localStorage.getItem(`quotation${quotationId}_selected_locations`);
+                    
+                    if (savedLocations && window.multiSelectDropdown) {
+                        try {
+                            const locationIds = JSON.parse(savedLocations);
+                            console.log(`Loading saved location selections for quotation ${quotationId}:`, locationIds);
+                            window.multiSelectDropdown.setSelectedValues(locationIds);
+                        } catch (e) {
+                            console.error('Error loading saved location selections:', e);
+                        }
                     }
                 }
+
+            // Initialize location selection with quotation-specific data
+            function initLocationSelection() {
+                if (typeof MultiSelectDropdown !== 'undefined') {
+                    window.multiSelectDropdown = new MultiSelectDropdown('locationMultiSelect');
+                    
+                    // Load saved selections after initialization
+                    setTimeout(loadSavedSelections, 100);
+                } else {
+                    console.error('MultiSelectDropdown class not found');
+                }
             }
+
         });
 
         // Global variables for step2.js compatibility
