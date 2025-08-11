@@ -35,6 +35,8 @@ const apiService = {
         axios.get("/api/review", axiosConfig()).then((r) => r.data),
     calculateReview: (data) =>
         axios.post("/api/review/calculate", data, axiosConfig()),
+    calculateReviewMulti: (data) =>
+        axios.post("/api/review/calculate-multi-merged", data, axiosConfig()),
     exportReview: (data, config = {}) =>
         axios.post("/api/review/export", data, { ...axiosConfig(), ...config }),
     saveReview: (data) => axios.post("/api/review/save", data, axiosConfig()),

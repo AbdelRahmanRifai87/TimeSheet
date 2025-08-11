@@ -183,6 +183,73 @@ class ReviewController extends Controller
         }
     }
 
+    public function calculateMultiMerged(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'locations' => 'required|array',
+            'locations.*.location_id' => 'required|integer|exists:locations,id',
+            'locations.*.shifts' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $allData = [];
+        $allHeadings = [];
+        $allTotals = [
+            'scheduled_hours' => 0,
+            'day' => 0,
+            'night' => 0,
+            'saturday' => 0,
+            'sunday' => 0,
+            'public_holiday' => 0,
+            'billable' => 0,
+        ];
+
+        foreach ($request->input('locations') as $locationData) {
+            $fakeRequest = new Request([
+                'shifts' => $locationData['shifts'],
+                'location_id' => $locationData['location_id'],
+            ]);
+            $response = $this->calculate($fakeRequest);
+            $responseData = $response->getData(true);
+
+            // Merge data
+            if (!empty($responseData['timesheet_data'])) {
+                $allData = array_merge($allData, $responseData['timesheet_data']);
+            }
+            if (empty($allHeadings) && !empty($responseData['timesheet_headings'])) {
+                $allHeadings = $responseData['timesheet_headings'];
+            }
+            // Sum totals
+            foreach ($allTotals as $key => $val) {
+                if (isset($responseData['totals'][$key])) {
+                    $allTotals[$key] += $responseData['totals'][$key];
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'timesheet_data' => $allData,
+            'timesheet_headings' => $allHeadings,
+            'totals' => $allTotals,
+        ]);
+    } catch (Exception $e) {
+        Log::error('calculateMultiMerged failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'error' => 'Multi-location calculation failed: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
     // Calculate totals and billable (AJAX)
     public function calculate(Request $request)
     {

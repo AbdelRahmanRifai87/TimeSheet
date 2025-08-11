@@ -10,14 +10,39 @@ import { SelectionManager } from "./SelectionManager";
 const records = {}; // Keyed by location ID
 let previousFormData = {}; // Store previous form data for each location
 let shiftTypes = []; // Initialize shiftTypes as an empty array
+// Store the latest calculate response for each location
+
+async function calculateForMultipleLocations(locationsData) {
+    // locationsData: Array of { location_id, shifts: [...] }
+    try {
+        const response = await apiService.calculateReviewMulti({
+            locations: locationsData,
+        });
+        if (response.data.success) {
+            // response.data.results is expected to be an object keyed by location_id
+            // Each value contains timesheet_data, timesheet_headings, totals, etc.
+            return response.data.results;
+        } else {
+            showToast("Failed to calculate for multiple locations.", "error");
+            return null;
+        }
+    } catch (error) {
+        showToast("Error calculating for multiple locations.", "error");
+        console.error(error);
+        return null;
+    }
+}
 
 // Helper function to save records to both localStorage and database
 function saveRecordsToStorage(locationId) {
     // Save to localStorage for immediate use
-    localStorage.setItem(`records_${locationId}`, JSON.stringify(records[locationId]));
-    
+    localStorage.setItem(
+        `records_${locationId}`,
+        JSON.stringify(records[locationId])
+    );
+
     // Save to database for persistence
-    if (typeof window.saveShiftDataToDatabase === 'function') {
+    if (typeof window.saveShiftDataToDatabase === "function") {
         window.saveShiftDataToDatabase(locationId, records[locationId]);
     }
 }
@@ -25,30 +50,30 @@ function saveRecordsToStorage(locationId) {
 // Function to load records from database/localStorage when location form is shown
 function loadRecordsForLocation(locationId) {
     console.log(`Loading records for location ${locationId}`);
-    
     // Check if we already have records loaded
     if (records[locationId] && records[locationId].length > 0) {
         console.log(`Records already loaded for location ${locationId}`);
         renderTable(locationId);
         return;
     }
-    
     // Try localStorage first (for immediate response)
     const localData = localStorage.getItem(`records_${locationId}`);
     if (localData) {
         try {
             const parsedRecords = JSON.parse(localData);
             if (Array.isArray(parsedRecords) && parsedRecords.length > 0) {
-                console.log(`Loading ${parsedRecords.length} records from localStorage for location ${locationId}`);
+                console.log(
+                    `Loading ${parsedRecords.length} records from localStorage for location ${locationId}`
+                );
                 records[locationId] = parsedRecords;
                 renderTable(locationId);
                 return;
             }
         } catch (e) {
-            console.error('Error parsing localStorage data:', e);
+            console.error("Error parsing localStorage data:", e);
         }
     }
-    
+
     console.log(`No records found for location ${locationId}`);
 }
 
@@ -548,6 +573,7 @@ function renderExportButton(locationId) {
         `exportTimesheetBtn_${locationId}`
     );
     if (oldExportBtn) oldExportBtn.remove();
+    console.log(`Rendering export button for location: ${locationId}`);
 
     // Create the export button
     const exportBtn = document.createElement("button");
@@ -557,10 +583,7 @@ function renderExportButton(locationId) {
         "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow mt-4";
     exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
 
-    const previewTable = document.getElementById("previewTable");
-    if (previewTable) {
-        previewTable.insertAdjacentElement("afterend", exportBtn);
-    }
+    document.getElementById("exportBTN").appendChild(exportBtn);
 
     // Add export logic
     exportBtn.addEventListener("click", async function () {
@@ -618,6 +641,7 @@ function renderExportButton(locationId) {
             exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
         }
     });
+    console.log("Export button rendered for location:", locationId);
 }
 
 function handleSaveButtonClick(locationId, silent = false) {
@@ -637,7 +661,7 @@ function handleSaveButtonClick(locationId, silent = false) {
             showToast("No records to save.", "error");
             btnSpinner.classList.add("hidden");
             btnText.classList.remove("hidden");
-            resolve(false);
+            resolve(true);
             return;
         }
 
@@ -664,7 +688,7 @@ function handleSaveButtonClick(locationId, silent = false) {
             );
             btnSpinner.classList.add("hidden");
             btnText.classList.remove("hidden");
-            resolve(false);
+            resolve(true);
         }
         if (!silent)
             showToast("No duplicates found. Proceeding to save.", "success");
@@ -708,6 +732,14 @@ function handleSaveButtonClick(locationId, silent = false) {
                         "latestCalculateResponses:",
                         latestCalculateResponses
                     );
+                    // Save shift data to database after successful calculation
+                    if (typeof window.saveShiftDataToDatabase === "function") {
+                        window.saveShiftDataToDatabase(
+                            locationId,
+                            records[locationId]
+                        );
+                    }
+
                     // ...update UI...
                     if (!silent)
                         showToast("Totals calculated successfully!", "success");
@@ -739,7 +771,6 @@ function handleSaveButtonClick(locationId, silent = false) {
                         console.log("Preview modal opened");
                     }
                     // Render the export button
-                    renderExportButton(locationId);
 
                     // Store data locally
                     const previewHeadings = response.data.timesheet_headings;
@@ -764,10 +795,23 @@ function handleSaveButtonClick(locationId, silent = false) {
                         coreColumns,
                         previewData
                     );
+                    console.log(
+                        "Column dropdown rendered with headings:",
+                        previewHeadings,
+                        "and selected columns:",
+                        selectedColumnIds
+                    );
                     populatePreviewTable(
                         previewHeadings,
                         previewData,
                         selectedColumnIds
+                    );
+                    renderExportButton(locationId);
+                    console.log(
+                        "Preview table populated with headings:",
+                        previewHeadings,
+                        "and data:",
+                        previewData
                     );
 
                     // Dropdown toggle logic (unchanged)
@@ -813,38 +857,55 @@ function handleSaveButtonClick(locationId, silent = false) {
 }
 function populatePreviewTable(headings, data, selectedColumnIds) {
     // Destroy DataTable before clearing table
+    console.log("Destroying DataTable if it exists");
+    const table = document.getElementById("previewTable");
+    console.log("Clearing preview table", table);
     if ($.fn.DataTable.isDataTable("#previewTable")) {
         $("#previewTable").DataTable().destroy();
     }
+    // if (!table.querySelector("thead")) {
+    //     table.appendChild(document.createElement("thead"));
+    // }
+    // if (!table.querySelector("tbody")) {
+    //     table.appendChild(document.createElement("tbody"));
+    // }
 
-    const thead = document.getElementById("previewTableHead1");
-    const tbody = document.getElementById("previewTableBody1");
-    tbody.innerHTML = "";
+    let thead = table.querySelector("thead");
+    if (!thead) {
+        thead = document.createElement("thead");
+        table.appendChild(thead);
+    }
+    let tbody = table.querySelector("tbody");
+    if (!tbody) {
+        tbody = document.createElement("tbody");
+        table.appendChild(tbody);
+    }
     thead.innerHTML = "";
+    tbody.innerHTML = "";
 
     // Only show columns that are selected
     const visibleColumns = headings.filter((h) =>
         selectedColumnIds.has(h.toLowerCase().replace(/[^a-z0-9]/g, "_"))
     );
 
-    const headingBreaks = {
-        "Emp. Numb": "Emp.<wbr>Numb",
-        "Shift Type": "Shift<wbr> Type",
-        "Week Starting": "Week<wbr> Starting",
-        "Date Range": "Date<wbr> Range",
-        "Day (06–18)": "Day<wbr>(06–18)",
-        "Night (18–06)": "Night<wbr>(18–06)",
-        "Scheduled Hours": "Scheduled<wbr> Hours",
-        "Scheduled Start": "Scheduled<wbr> Start",
-        "Scheduled Finish": "Scheduled<wbr> Finish",
-        "Client Day Rate": "Client<wbr> Day<wbr> Rate",
-        "Client Night Rate": "Client<wbr> Night<wbr> Rate",
-        "Client Sat Rate": "Client<wbr> Sat<wbr> Rate",
-        "Client Sun Rate": "Client<wbr> Sun<wbr> Rate",
-        "Client PH Rate": "Client<wbr> PH<wbr> Rate",
-        "Client Billable": "Client<wbr> Billable",
-        // Add more as needed
-    };
+    // const headingBreaks = {
+    //     "Emp. Numb": "Emp.<wbr>Numb",
+    //     "Shift Type": "Shift<wbr> Type",
+    //     "Week Starting": "Week<wbr> Starting",
+    //     "Date Range": "Date<wbr> Range",
+    //     "Day (06–18)": "Day<wbr>(06–18)",
+    //     "Night (18–06)": "Night<wbr>(18–06)",
+    //     "Scheduled Hours": "Scheduled<wbr> Hours",
+    //     "Scheduled Start": "Scheduled<wbr> Start",
+    //     "Scheduled Finish": "Scheduled<wbr> Finish",
+    //     "Client Day Rate": "Client<wbr> Day<wbr> Rate",
+    //     "Client Night Rate": "Client<wbr> Night<wbr> Rate",
+    //     "Client Sat Rate": "Client<wbr> Sat<wbr> Rate",
+    //     "Client Sun Rate": "Client<wbr> Sun<wbr> Rate",
+    //     "Client PH Rate": "Client<wbr> PH<wbr> Rate",
+    //     "Client Billable": "Client<wbr> Billable",
+    //     // Add more as needed
+    // };
 
     // Build table header
     const trHead = document.createElement("tr");
@@ -877,8 +938,7 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         // Highlight row if public_holiday is set and not empty/zero/"-"
         // Find the index of "Public Holiday" in visibleColumns and in headings
         const phIndex = headings.findIndex(
-            (h) =>
-                h.toLowerCase().replace(/[^a-z0-9]/g, "_") === "public_holiday"
+            (h) => h.toLowerCase().replace(/[^a-z0-9]/g, "_") === "ph"
         );
         const isPublicHoliday = phIndex !== -1 && Number(row[phIndex]) > 0;
 
@@ -921,8 +981,8 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
             //         weekday: "long",
             //     });
             //     value = isPublicHoliday
-            //         ? `${value}<br>(${dayName}) PH`
-            //         : `${value}<br>(${dayName})`;
+            //         ? `${value} (${dayName}) PH`
+            //         : `${value} (${dayName})`;
             //     td.innerHTML = value; // Use innerHTML for <br>
             // } else {
             //     td.textContent = value;
@@ -958,7 +1018,7 @@ function populatePreviewTable(headings, data, selectedColumnIds) {
         ordering: true,
         responsive: true,
         scrollX: true,
-        scrollY: "320px",
+        scrollY: "30vh",
         columnDefs: [{ targets: "_all" }],
     });
     // Add margin-bottom to the DataTables search bar
@@ -1877,8 +1937,9 @@ function saveRowEdits(locationId, previousFormData, clickedRow) {
         } else {
             // Add a new record for the updated day
             records[locationId].push({
+                groupedId: rowId,
                 id: generateRecordId(),
-                groupedId: rowId, // Use the unique ID from the previous form data
+                // Use the unique ID from the previous form data
                 // Add the unique ID
                 day,
                 shiftType,
@@ -2436,18 +2497,18 @@ function addDefaultShiftRow(locationId) {
     records[locationId].push(...newRecords);
     console.log("records after adding default shift row:", records[locationId]);
 
-    // Handle localStorage
-    const storageKey = `records_${locationId}`;
-    let storedRecords = [];
-    const existing = localStorage.getItem(storageKey);
-    if (existing) {
-        try {
-            storedRecords = JSON.parse(existing);
-        } catch (e) {
-            storedRecords = [];
-        }
-    }
-    storedRecords.push(...newRecords);
+    // // Handle localStorage
+    // const storageKey = `records_${locationId}`;
+    // let storedRecords = [];
+    // const existing = localStorage.getItem(storageKey);
+    // if (existing) {
+    //     try {
+    //         storedRecords = JSON.parse(existing);
+    //     } catch (e) {
+    //         storedRecords = [];
+    //     }
+    // }
+    // storedRecords.push(...newRecords);
     saveRecordsToStorage(locationId);
 
     // Re-render the table to reflect the new record
@@ -2696,110 +2757,113 @@ async function loadStep2Options() {
                 filterOpt.textContent = option.name;
                 filterShiftTypeSelect.appendChild(filterOpt);
             });
+            console.log("ddd");
             const dateRangeInput = document.getElementById(
                 `dateRange_${location.id}`
             );
-            console.log(dateRangeInput);
-            // Add event listener for date range changes
-            dateRangeInput.addEventListener("change", () => {
-                console.log(`Date range updated for location ${location.id}`);
+            // console.log(dateRangeInput);
+            // // Add event listener for date range changes
+            // dateRangeInput.addEventListener("change", () => {
+            //     console.log(`Date range updated for location ${location.id}`);
 
-                // Update the <p> tag beside the address
-                const addressElement = document
-                    .querySelector(`#form_${location.id}`)
-                    .parentElement.querySelector("p");
+            //     // Update the <p> tag beside the address
+            //     const addressElement = document
+            //         .querySelector(`#form_${location.id}`)
+            //         .parentElement.querySelector("p");
 
-                if (addressElement) {
-                    const selectedShiftTypes = Array.from(
-                        shiftTypesSelect.selectedOptions
-                    ).map((option) => option.textContent);
+            //     if (addressElement) {
+            //         const selectedShiftTypes = Array.from(
+            //             shiftTypesSelect.selectedOptions
+            //         ).map((option) => option.textContent);
 
-                    // Update the <p> tag with the new date range and preserve the shift types
-                    addressElement.textContent = `${
-                        locations.find((loc) => loc.id === location.id).address
-                    } | Shift Types: ${selectedShiftTypes.join(
-                        ", "
-                    )} | Date Range: ${dateRangeInput.value}`;
+            //         // Update the <p> tag with the new date range and preserve the shift types
+            //         addressElement.textContent = `${
+            //             locations.find((loc) => loc.id === location.id).address
+            //         } | Shift Types: ${selectedShiftTypes.join(
+            //             ", "
+            //         )} | Date Range: ${dateRangeInput.value}`;
 
-                    // Update localStorage with the new date range
-                    const savedData = localStorage.getItem(
-                        `location_${location.id}`
-                    );
-                    const locationData = savedData
-                        ? JSON.parse(savedData)
-                        : { shiftTypes: selectedShiftTypes, dateRange: "" };
+            //         // Update localStorage with the new date range
+            //         const savedData = localStorage.getItem(
+            //             `location_${location.id}`
+            //         );
+            //         const locationData = savedData
+            //             ? JSON.parse(savedData)
+            //             : { shiftTypes: selectedShiftTypes, dateRange: "" };
 
-                    locationData.dateRange = dateRangeInput.value; // Update the date range
-                    localStorage.setItem(
-                        `location_${location.id}`,
-                        JSON.stringify(locationData)
-                    );
-                }
-            });
+            //         locationData.dateRange = dateRangeInput.value; // Update the date range
+            //         localStorage.setItem(
+            //             `location_${location.id}`,
+            //             JSON.stringify(locationData)
+            //         );
+            //     }
+            // });
 
-            // Clear existing options
-            shiftTypesSelect.innerHTML = "";
+            // // Clear existing options
+            // shiftTypesSelect.innerHTML = "";
 
             // Populate the select element with shift types
-            shiftTypes.forEach((st) => {
-                const opt = document.createElement("option");
-                opt.value = st.id; // Use the shift type ID as the value
-                opt.textContent = st.name; // Use the shift type name as the label
-                shiftTypesSelect.appendChild(opt);
-            });
+            // shiftTypes.forEach((st) => {
+            //     const opt = document.createElement("option");
+            //     opt.value = st.id; // Use the shift type ID as the value
+            //     opt.textContent = st.name; // Use the shift type name as the label
+            //     shiftTypesSelect.appendChild(opt);
+            // });
+            console.log("debugging");
 
-            // Handle pre-selected options (if saved in localStorage)
-            const savedData = localStorage.getItem(`location_${location.id}`);
-            if (savedData) {
-                const { shiftTypes: savedShiftTypes } = JSON.parse(savedData);
+            // // Handle pre-selected options (if saved in localStorage)
+            // const savedData = localStorage.getItem(`location_${location.id}`);
+            // if (savedData) {
+            //     const { shiftTypes: savedShiftTypes } = JSON.parse(savedData);
 
-                // Pre-select saved shift types
-                if (
-                    Array.isArray(savedShiftTypes) &&
-                    savedShiftTypes.length > 0
-                ) {
-                    Array.from(shiftTypesSelect.options).forEach((option) => {
-                        if (savedShiftTypes.includes(option.textContent)) {
-                            option.selected = true;
-                        }
-                    });
-                }
-            }
+            //     // Pre-select saved shift types
+            //     if (
+            //         Array.isArray(savedShiftTypes) &&
+            //         savedShiftTypes.length > 0
+            //     ) {
+            //         Array.from(shiftTypesSelect.options).forEach((option) => {
+            //             if (savedShiftTypes.includes(option.textContent)) {
+            //                 option.selected = true;
+            //             }
+            //         });
+            //     }
+            // }
 
             // Initialize custom dropdown behavior (if needed)
-            initializeCustomDropdown(location.id, shiftTypesSelect);
+            // initializeCustomDropdown(location.id, shiftTypesSelect);
             // Initialize Flatpickr for the date range input
-            flatpickr(dateRangeInput, {
-                mode: "range",
-                dateFormat: "y-m-d",
-                allowInput: true,
-                onClose: function (selectedDates, dateStr, instance) {
-                    // Ensure at least two dates are selected
-                    if (selectedDates.length === 2) {
-                        const startDate = selectedDates[0];
-                        const endDate = selectedDates[1];
+            // flatpickr(dateRangeInput, {
+            //     mode: "range",
+            //     dateFormat: "y-m-d",
+            //     allowInput: true,
+            //     onClose: function (selectedDates, dateStr, instance) {
+            //         // Ensure at least two dates are selected
+            //         if (selectedDates.length === 2) {
+            //             const startDate = selectedDates[0];
+            //             const endDate = selectedDates[1];
 
-                        // Calculate the difference in days
-                        const diffInDays = Math.ceil(
-                            (endDate - startDate) / (1000 * 60 * 60 * 24)
-                        );
+            //             // Calculate the difference in days
+            //             const diffInDays = Math.ceil(
+            //                 (endDate - startDate) / (1000 * 60 * 60 * 24)
+            //             );
 
-                        // Check if the range is less than 7 days
-                        if (diffInDays < 7) {
-                            showToast(
-                                "The selected date range must be at least 7 days.",
-                                "error"
-                            );
+            //             // Check if the range is less than 7 days
+            //             if (diffInDays < 7) {
+            //                 showToast(
+            //                     "The selected date range must be at least 7 days.",
+            //                     "error"
+            //                 );
 
-                            // Clear the input field or reset the selection
-                            instance.clear();
-                        }
-                    }
-                },
-                onChange: function (selectedDates, dateStr, instance) {
-                    console.log("Selected Date Range:", dateStr);
-                },
-            });
+            //                 // Clear the input field or reset the selection
+            //                 instance.clear();
+            //             }
+            //         }
+            //     },
+            //     onChange: function (selectedDates, dateStr, instance) {
+            //         console.log("Selected Date Range:", dateStr);
+            //     },
+            // });
+            console.log("ww");
         });
     } catch (error) {
         showToast(
@@ -3615,7 +3679,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                 });
 
                 // Populate shift types
-                if (Array.isArray(shiftTypes) && shiftTypes.length > 0 && shiftTypesSelect) {
+                if (
+                    Array.isArray(shiftTypes) &&
+                    shiftTypes.length > 0 &&
+                    shiftTypesSelect
+                ) {
                     // Iterate over the options in the select element
                     Array.from(shiftTypesSelect.options).forEach((option) => {
                         // Check if the option's text matches any of the saved shift types
@@ -3853,6 +3921,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         closeBtn.addEventListener("click", function () {
             document.getElementById("previewModal").classList.add("hidden");
             document.body.classList.remove("overflow-hidden");
+            const exportBtn = document.querySelector("#exportBTN button");
+            if (exportBtn) exportBtn.remove();
         });
     }
     // Add Event Listeners for Modal Actions
@@ -3917,7 +3987,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             );
             selectedLocationsInput.value = JSON.stringify(selectedLocations);
 
-            showToast("Step 2 validated! Proceeding to next step...", "success");
+            showToast(
+                "Step 2 validated! Proceeding to next step...",
+                "success"
+            );
         });
     }
 
@@ -3931,248 +4004,245 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 });
 
-
-
-
 //selected location logic - COMMENTED OUT TO PREVENT CONFLICTS WITH NEW SYSTEM
 
-    // document.addEventListener('DOMContentLoaded', function() {
-    //     const locationDropdown = document.getElementById('locationDropdown');
-    //     const locationOptions = document.getElementById('locationOptions');
-    //     const selectedLocations = document.getElementById('selectedLocations');
-    //     const placeholderText = document.getElementById('placeholderText');
-    //     const selectedLocationsForms = document.getElementById('selectedLocationsForms');
-    //     const selectedLocationsInput = document.getElementById('selectedLocationsInput');
-    //     const selectedCount = document.getElementById('selectedCount');
-        
-    //     let selectedLocationIds = [];
+// document.addEventListener('DOMContentLoaded', function() {
+//     const locationDropdown = document.getElementById('locationDropdown');
+//     const locationOptions = document.getElementById('locationOptions');
+//     const selectedLocations = document.getElementById('selectedLocations');
+//     const placeholderText = document.getElementById('placeholderText');
+//     const selectedLocationsForms = document.getElementById('selectedLocationsForms');
+//     const selectedLocationsInput = document.getElementById('selectedLocationsInput');
+//     const selectedCount = document.getElementById('selectedCount');
 
-    //     // Toggle dropdown
-    //     locationDropdown.addEventListener('click', function() {
-    //         locationOptions.style.display = locationOptions.style.display === 'block' ? 'none' : 'block';
-    //     });
+//     let selectedLocationIds = [];
 
-    //     // Close dropdown when clicking outside
-    //     document.addEventListener('click', function(e) {
-    //         if (!locationDropdown.contains(e.target) && !locationOptions.contains(e.target)) {
-    //             locationOptions.style.display = 'none';
-    //         }
-    //     });
+//     // Toggle dropdown
+//     locationDropdown.addEventListener('click', function() {
+//         locationOptions.style.display = locationOptions.style.display === 'block' ? 'none' : 'block';
+//     });
 
-    //     // Handle checkbox changes
-    //     document.querySelectorAll('.location-checkbox').forEach(checkbox => {
-    //         checkbox.addEventListener('change', function() {
-    //             updateSelectedLocations();
-    //         });
-    //     });
+//     // Close dropdown when clicking outside
+//     document.addEventListener('click', function(e) {
+//         if (!locationDropdown.contains(e.target) && !locationOptions.contains(e.target)) {
+//             locationOptions.style.display = 'none';
+//         }
+//     });
 
-    //     // Select All button
-    //     document.getElementById('selectAllBtn').addEventListener('click', function() {
-    //         document.querySelectorAll('.location-checkbox').forEach(checkbox => {
-    //             checkbox.checked = true;
-    //         });
-    //         updateSelectedLocations();
-    //     });
+//     // Handle checkbox changes
+//     document.querySelectorAll('.location-checkbox').forEach(checkbox => {
+//         checkbox.addEventListener('change', function() {
+//             updateSelectedLocations();
+//         });
+//     });
 
-    //     // Clear All button
-    //     document.getElementById('clearAllBtn').addEventListener('click', function() {
-    //         document.querySelectorAll('.location-checkbox').forEach(checkbox => {
-    //             checkbox.checked = false;
-    //         });
-    //         updateSelectedLocations();
-    //     });
+//     // Select All button
+//     document.getElementById('selectAllBtn').addEventListener('click', function() {
+//         document.querySelectorAll('.location-checkbox').forEach(checkbox => {
+//             checkbox.checked = true;
+//         });
+//         updateSelectedLocations();
+//     });
 
-    //     // Confirm Selection button
-    //     document.getElementById('confirmSelectionBtn').addEventListener('click', function() {
-    //         generateLocationForms();
-    //         locationOptions.style.display = 'none';
-    //     });
+//     // Clear All button
+//     document.getElementById('clearAllBtn').addEventListener('click', function() {
+//         document.querySelectorAll('.location-checkbox').forEach(checkbox => {
+//             checkbox.checked = false;
+//         });
+//         updateSelectedLocations();
+//     });
 
-    //     // Back button to show location selection again
-    //     document.getElementById('backBtn').addEventListener('click', function() {
-    //         document.querySelector('.bg-white.p-4.mb-6.rounded.border').scrollIntoView({
-    //             behavior: 'smooth'
-    //         });
-    //     });
+//     // Confirm Selection button
+//     document.getElementById('confirmSelectionBtn').addEventListener('click', function() {
+//         generateLocationForms();
+//         locationOptions.style.display = 'none';
+//     });
 
-    //     function updateSelectedLocations() {
-    //         const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
-    //         selectedLocationIds = Array.from(checkedBoxes).map(cb => cb.value);
-            
-    //         // Update selected count
-    //         selectedCount.textContent = checkedBoxes.length;
-    //         
-    //         // Update selected locations display
-    //         selectedLocations.innerHTML = '';
-            
-    //         if (checkedBoxes.length === 0) {
-    //             placeholderText.style.display = 'block';
-    //             selectedLocations.appendChild(placeholderText);
-    //         } else {
-    //             placeholderText.style.display = 'none';
-    //             checkedBoxes.forEach(checkbox => {
-    //                 const locationTag = document.createElement('div');
-    //                 locationTag.className = 'location-tag';
-    //                 locationTag.innerHTML = `
-    //                     ${checkbox.dataset.name}
-    //                     <span class="remove-btn" onclick="removeLocation('${checkbox.value}')">&times;</span>
-    //                 `;
-    //                 selectedLocations.appendChild(locationTag);
-    //             });
-    //         }
-            
-    //         // Update hidden input
-    //         selectedLocationsInput.value = JSON.stringify(selectedLocationIds);
-    //     }
+//     // Back button to show location selection again
+//     document.getElementById('backBtn').addEventListener('click', function() {
+//         document.querySelector('.bg-white.p-4.mb-6.rounded.border').scrollIntoView({
+//             behavior: 'smooth'
+//         });
+//     });
 
-    //     function generateLocationForms() {
-    //         const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
-    //         selectedLocationsForms.innerHTML = '';
-            
-    //         if (checkedBoxes.length === 0) {
-    //             selectedLocationsForms.innerHTML = '<div class="text-center text-gray-500 py-8">No locations selected. Please select locations above.</div>';
-    //             return;
-    //         }
-            
-    //         checkedBoxes.forEach(checkbox => {
-    //             const locationId = checkbox.value;
-    //             const locationName = checkbox.dataset.name;
-    //             const locationAddress = checkbox.dataset.address;
-                
-    //             const locationForm = createLocationForm(locationId, locationName, locationAddress);
-    //             selectedLocationsForms.appendChild(locationForm);
-    //         });
-            
-    //         // Initialize JavaScript for the new forms
-    //         if (typeof initializeLocationForms === 'function') {
-    //             initializeLocationForms();
-    //         }
-    //     }
+//     function updateSelectedLocations() {
+//         const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
+//         selectedLocationIds = Array.from(checkedBoxes).map(cb => cb.value);
 
-    //     function createLocationForm(locationId, locationName, locationAddress) {
-    //         const div = document.createElement('div');
-    //         div.className = 'border border-gray-300 rounded mt-2 mb-6 bg-gray-100';
-    //         div.innerHTML = `
-    //             <!-- Location Header -->
-    //             <div class="cursor-pointer p-2" onclick="toggleForm('${locationId}')">
-    //                 <div class="flex justify-between items-center mb-2">
-    //                     <h3 class="text-lg text-[#2679b5]">${locationName}</h3>
-    //                     <span id="arrow_${locationId}" class="text-sm text-gray-500">
-    //                         <i class="fas fa-chevron-down"></i>
-    //                     </span>
-    //                 </div>
-    //                 <div class="flex justify-between items-center">
-    //                     <p class="text-sm text-gray-600">${locationAddress}</p>
-    //                     <p id="totalsDisplay_${locationId}" class="text-sm text-gray-700 mt-2"></p>
-    //                 </div>
-    //             </div>
+//         // Update selected count
+//         selectedCount.textContent = checkedBoxes.length;
+//
+//         // Update selected locations display
+//         selectedLocations.innerHTML = '';
 
-    //             <!-- Hidden Form -->
-    //             <div id="form_${locationId}" class="overflow-hidden max-h-0 transition-all duration-700 ease-in-out bg-white">
-    //                 <div class="mt-1 rounded mx-5" id="batchForm_${locationId}">
-    //                     <div class="flex justify-between items-center mt-2">
-    //                         <div class="flex items-center gap-4 p-2">
-    //                             <label>Filter by Day:</label>
-    //                             <select id="filterDay_${locationId}" class="border rounded px-2 py-1">
-    //                                 <option value="">All</option>
-    //                                 <option value="Mon">Monday</option>
-    //                                 <option value="Tue">Tuesday</option>
-    //                                 <option value="Wed">Wednesday</option>
-    //                                 <option value="Thu">Thursday</option>
-    //                                 <option value="Fri">Friday</option>
-    //                                 <option value="Sat">Saturday</option>
-    //                                 <option value="Sun">Sunday</option>
-    //                             </select>
-    //                             <label class="ml-4">Filter by Shift Type:</label>
-    //                             <select id="filterShiftType_${locationId}" class="border rounded px-2 py-1">
-    //                                 <option value="">All</option>
-    //                             </select>
-    //                         </div>
-    //                         <button type="button"
-    //                             class="bg-[#428bca] text-white px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 add-shift-type-btn"
-    //                             data-location-id="${locationId}">
-    //                             Add New Entry
-    //                         </button>
-    //                     </div>
+//         if (checkedBoxes.length === 0) {
+//             placeholderText.style.display = 'block';
+//             selectedLocations.appendChild(placeholderText);
+//         } else {
+//             placeholderText.style.display = 'none';
+//             checkedBoxes.forEach(checkbox => {
+//                 const locationTag = document.createElement('div');
+//                 locationTag.className = 'location-tag';
+//                 locationTag.innerHTML = `
+//                     ${checkbox.dataset.name}
+//                     <span class="remove-btn" onclick="removeLocation('${checkbox.value}')">&times;</span>
+//                 `;
+//                 selectedLocations.appendChild(locationTag);
+//             });
+//         }
 
-    //                     <!-- Shift Details Table -->
-    //                     <table class="min-w-full border mt-1" id="shiftTable_${locationId}">
-    //                         <thead>
-    //                             <tr>
-    //                                 <th class="border px-2 py-1">Day</th>
-    //                                 <th class="border px-2 py-1">Shift Type</th>
-    //                                 <th class="border px-2 py-1">Date Range</th>
-    //                                 <th class="border px-2 py-1">From</th>
-    //                                 <th class="border px-2 py-1">To</th>
-    //                                 <th class="border px-2 py-1"># Employees</th>
-    //                                 <th class="border px-2 py-1">Actions</th>
-    //                             </tr>
-    //                         </thead>
-    //                         <tbody>
-    //                             <!-- Rows will be rendered by JS -->
-    //                         </tbody>
-    //                     </table>
-                        
-    //                     <div class="flex justify-end">
-    //                         <button type="button" id="saveBtn_${locationId}"
-    //                             class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3">
-    //                             <span class="save-btn-text">Save and Review</span>
-    //                             <span class="save-btn-spinner hidden">
-    //                                 <i class="fas fa-spinner fa-spin"></i>
-    //                             </span>
-    //                             <span class="save-btn-check hidden" id="checkIcon_${locationId}">
-    //                                 <i class="fas fa-check"></i>
-    //                             </span>
-    //                         </button>
-    //                     </div>
-    //                 </div>
-    //             </div>
-    //         `;
-    //         return div;
-    //     }
+//         // Update hidden input
+//         selectedLocationsInput.value = JSON.stringify(selectedLocationIds);
+//     }
 
-    //     // Function to remove location
-    //     window.removeLocation = function(locationId) {
-    //         const checkbox = document.getElementById(`location_${locationId}`);
-    //         if (checkbox) {
-    //             checkbox.checked = false;
-    //             updateSelectedLocations();
-    //             generateLocationForms(); // Regenerate forms after removing location
-    //         }
-    //     };
+//     function generateLocationForms() {
+//         const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
+//         selectedLocationsForms.innerHTML = '';
 
-    //     // Function to toggle forms (will be used by dynamically created forms)
-    //     window.toggleForm = function(locationId) {
-    //         const form = document.getElementById(`form_${locationId}`);
-    //         const arrow = document.getElementById(`arrow_${locationId}`);
+//         if (checkedBoxes.length === 0) {
+//             selectedLocationsForms.innerHTML = '<div class="text-center text-gray-500 py-8">No locations selected. Please select locations above.</div>';
+//             return;
+//         }
 
-    //         if (form.style.maxHeight === '0px' || form.style.maxHeight === '') {
-    //             form.style.maxHeight = form.scrollHeight + 'px';
-    //             arrow.innerHTML = '<i class="fas fa-chevron-up"></i>';
-    //         } else {
-    //             form.style.maxHeight = '0px';
-    //             arrow.innerHTML = '<i class="fas fa-chevron-down"></i>';
-    //         }
-    //     };
+//         checkedBoxes.forEach(checkbox => {
+//             const locationId = checkbox.value;
+//             const locationName = checkbox.dataset.name;
+//             const locationAddress = checkbox.dataset.address;
 
-    //     // Load any previously selected locations
-    //     const savedLocations = localStorage.getItem(`quotation_${quotationId}_selected_locations`);
-    //     if (savedLocations) {
-    //         const locationIds = JSON.parse(savedLocations);
-    //         locationIds.forEach(id => {
-    //             const checkbox = document.getElementById(`location_${id}`);
-    //             if (checkbox) {
-    //                 checkbox.checked = true;
-    //             }
-    //         });
-    //         updateSelectedLocations();
-    //         generateLocationForms();
-    //     }
+//             const locationForm = createLocationForm(locationId, locationName, locationAddress);
+//             selectedLocationsForms.appendChild(locationForm);
+//         });
 
-    //     // Save selections to localStorage when they change
-    //     document.addEventListener('change', function(e) {
-    //         if (e.target.classList.contains('location-checkbox')) {
-    //             localStorage.setItem(`quotation_${quotationId}_selected_locations`, JSON.stringify(selectedLocationIds));
-    //         }
-    //     });
-    // });
+//         // Initialize JavaScript for the new forms
+//         if (typeof initializeLocationForms === 'function') {
+//             initializeLocationForms();
+//         }
+//     }
+
+//     function createLocationForm(locationId, locationName, locationAddress) {
+//         const div = document.createElement('div');
+//         div.className = 'border border-gray-300 rounded mt-2 mb-6 bg-gray-100';
+//         div.innerHTML = `
+//             <!-- Location Header -->
+//             <div class="cursor-pointer p-2" onclick="toggleForm('${locationId}')">
+//                 <div class="flex justify-between items-center mb-2">
+//                     <h3 class="text-lg text-[#2679b5]">${locationName}</h3>
+//                     <span id="arrow_${locationId}" class="text-sm text-gray-500">
+//                         <i class="fas fa-chevron-down"></i>
+//                     </span>
+//                 </div>
+//                 <div class="flex justify-between items-center">
+//                     <p class="text-sm text-gray-600">${locationAddress}</p>
+//                     <p id="totalsDisplay_${locationId}" class="text-sm text-gray-700 mt-2"></p>
+//                 </div>
+//             </div>
+
+//             <!-- Hidden Form -->
+//             <div id="form_${locationId}" class="overflow-hidden max-h-0 transition-all duration-700 ease-in-out bg-white">
+//                 <div class="mt-1 rounded mx-5" id="batchForm_${locationId}">
+//                     <div class="flex justify-between items-center mt-2">
+//                         <div class="flex items-center gap-4 p-2">
+//                             <label>Filter by Day:</label>
+//                             <select id="filterDay_${locationId}" class="border rounded px-2 py-1">
+//                                 <option value="">All</option>
+//                                 <option value="Mon">Monday</option>
+//                                 <option value="Tue">Tuesday</option>
+//                                 <option value="Wed">Wednesday</option>
+//                                 <option value="Thu">Thursday</option>
+//                                 <option value="Fri">Friday</option>
+//                                 <option value="Sat">Saturday</option>
+//                                 <option value="Sun">Sunday</option>
+//                             </select>
+//                             <label class="ml-4">Filter by Shift Type:</label>
+//                             <select id="filterShiftType_${locationId}" class="border rounded px-2 py-1">
+//                                 <option value="">All</option>
+//                             </select>
+//                         </div>
+//                         <button type="button"
+//                             class="bg-[#428bca] text-white px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 add-shift-type-btn"
+//                             data-location-id="${locationId}">
+//                             Add New Entry
+//                         </button>
+//                     </div>
+
+//                     <!-- Shift Details Table -->
+//                     <table class="min-w-full border mt-1" id="shiftTable_${locationId}">
+//                         <thead>
+//                             <tr>
+//                                 <th class="border px-2 py-1">Day</th>
+//                                 <th class="border px-2 py-1">Shift Type</th>
+//                                 <th class="border px-2 py-1">Date Range</th>
+//                                 <th class="border px-2 py-1">From</th>
+//                                 <th class="border px-2 py-1">To</th>
+//                                 <th class="border px-2 py-1"># Employees</th>
+//                                 <th class="border px-2 py-1">Actions</th>
+//                             </tr>
+//                         </thead>
+//                         <tbody>
+//                             <!-- Rows will be rendered by JS -->
+//                         </tbody>
+//                     </table>
+
+//                     <div class="flex justify-end">
+//                         <button type="button" id="saveBtn_${locationId}"
+//                             class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3">
+//                             <span class="save-btn-text">Save and Review</span>
+//                             <span class="save-btn-spinner hidden">
+//                                 <i class="fas fa-spinner fa-spin"></i>
+//                             </span>
+//                             <span class="save-btn-check hidden" id="checkIcon_${locationId}">
+//                                 <i class="fas fa-check"></i>
+//                             </span>
+//                         </button>
+//                     </div>
+//                 </div>
+//             </div>
+//         `;
+//         return div;
+//     }
+
+//     // Function to remove location
+//     window.removeLocation = function(locationId) {
+//         const checkbox = document.getElementById(`location_${locationId}`);
+//         if (checkbox) {
+//             checkbox.checked = false;
+//             updateSelectedLocations();
+//             generateLocationForms(); // Regenerate forms after removing location
+//         }
+//     };
+
+//     // Function to toggle forms (will be used by dynamically created forms)
+//     window.toggleForm = function(locationId) {
+//         const form = document.getElementById(`form_${locationId}`);
+//         const arrow = document.getElementById(`arrow_${locationId}`);
+
+//         if (form.style.maxHeight === '0px' || form.style.maxHeight === '') {
+//             form.style.maxHeight = form.scrollHeight + 'px';
+//             arrow.innerHTML = '<i class="fas fa-chevron-up"></i>';
+//         } else {
+//             form.style.maxHeight = '0px';
+//             arrow.innerHTML = '<i class="fas fa-chevron-down"></i>';
+//         }
+//     };
+
+//     // Load any previously selected locations
+//     const savedLocations = localStorage.getItem(`quotation_${quotationId}_selected_locations`);
+//     if (savedLocations) {
+//         const locationIds = JSON.parse(savedLocations);
+//         locationIds.forEach(id => {
+//             const checkbox = document.getElementById(`location_${id}`);
+//             if (checkbox) {
+//                 checkbox.checked = true;
+//             }
+//         });
+//         updateSelectedLocations();
+//         generateLocationForms();
+//     }
+
+//     // Save selections to localStorage when they change
+//     document.addEventListener('change', function(e) {
+//         if (e.target.classList.contains('location-checkbox')) {
+//             localStorage.setItem(`quotation_${quotationId}_selected_locations`, JSON.stringify(selectedLocationIds));
+//         }
+//     });
+// });
