@@ -393,7 +393,7 @@ function handleLocationCrudTableClick(e) {
         };
         const id = tr.dataset.id;
         if (!data.name) {
-            alert("Name is required.");
+            showToast("Name is required.", "error");
             return;
         }
         showLoading();
