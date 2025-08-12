@@ -228,7 +228,7 @@
                             class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border">
                             Add/Edit Location
                         </button>
-                        <button type="submit" id="saveAllLocationsBtn"
+                        <button type="button" id="openShiftTypeCrudBtn"
                             class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border">
                             Add/Edit Shift Types
                         </button>
@@ -678,6 +678,36 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                 </svg>
                 <span class="text-blue-600 font-semibold">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Shift Types CRUD Modal -->
+        <div id="shiftTypeCrudModal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl p-6 relative">
+                <button type="button" id="closeShiftTypeCrudModal"
+                    class="absolute top-2 right-4 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+                <h2 class="text-2xl text-[#2679b5] mb-4">Manage Shift Types</h2>
+                <div class="flex justify-end mb-2">
+                    <button id="addShiftTypeBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Add Shift Type</button>
+                </div>
+                <table id="shiftTypeCrudTable" class="min-w-full border">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border px-2 py-1">Name</th>
+                            <th class="border px-2 py-1">Description</th>
+                            <th class="border px-2 py-1">Day Rate</th>
+                            <th class="border px-2 py-1">Night Rate</th>
+                            <th class="border px-2 py-1">Saturday Rate</th>
+                            <th class="border px-2 py-1">Sunday Rate</th>
+                            <th class="border px-2 py-1">PH Rate</th>
+                            <th class="border px-2 py-1">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be rendered by JS -->
+                    </tbody>
+                </table>
             </div>
         </div>
 

@@ -11,6 +11,316 @@ const records = {}; // Keyed by location ID
 let previousFormData = {}; // Store previous form data for each location
 let shiftTypes = []; // Initialize shiftTypes as an empty array
 // Store the latest calculate response for each location
+let dayTypes = [];
+
+async function loadDayTypes() {
+    try {
+        dayTypes = await apiService.getDayTypes();
+    } catch (error) {
+        showToast("Failed to load day types.", "error");
+    }
+}
+
+function createShiftTypeRow(shiftType = {}, isEdit = false) {
+    const tr = document.createElement("tr");
+    tr.setAttribute("data-id", shiftType.id || "");
+    tr.className = "hover:bg-gray-50 border";
+    if (isEdit) {
+        tr.classList.add("editing-row", "shadow-lg", "bg-blue-50", "rounded");
+        tr.innerHTML = `
+            <td class='px-2 py-1 border-b border'><input type="text" class="form-input w-full" value="${
+                shiftType.name || ""
+            }" required></td>
+         <td class="px-2 py-1 border-b border description-cell group relative w-[180px] max-w-[180px]">
+        <textarea class="form-textarea w-full resize-y transition-all duration-200 ease-in-out
+            max-w-[180px] max-h-[1.5em] overflow-hidden whitespace-nowrap text-ellipsis cursor-pointer
+            focus:whitespace-normal focus:max-h-[300px] focus:bg-gray-50 focus:shadow-lg focus:z-10 focus:p-1 focus:overflow-auto"
+            rows="1"
+            style="min-height:1.5em;"
+        >${shiftType.description || ""}</textarea>
+    </td>
+            ${dayTypes
+                .map((dt) => {
+                    const rateObj = (shiftType.rates || []).find(
+                        (r) => r.day_type_id === dt.id
+                    );
+                    return `<td class='px-2 py-1 border-b border'>
+                    <input type="number" step="0.01" class="form-input w-full"
+                        data-day-type-id="${dt.id}"
+                        data-rate-id="${rateObj ? rateObj.id : ""}"
+                        value="${rateObj ? rateObj.rate : ""}">
+                </td>`;
+                })
+                .join("")}
+                 <td class="px-2 py-1 border-b border align-middle h-full">
+    <div class="flex  justify-center items-center h-full min-h-[40px] gap-2">
+        <button type="button" class="saveShiftTypeBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save"><i class="fas fa-check"></i></button>
+                <button type="button" class="cancelShiftTypeBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel"><i class="fas fa-times"></i></button>
+    </div>
+</td>
+           
+        `;
+    } else {
+        tr.innerHTML = `
+            <td class='px-2 py-1 border-b border'>${shiftType.name || ""}</td>
+              <td class="px-2 py-1 border-b border description-cell group relative w-[180px] max-w-[180px]">
+    <div class="transition-all duration-200 ease-in-out
+        w-full max-w-[180px] max-h-[1.5em] overflow-hidden whitespace-nowrap text-ellipsis cursor-pointer
+        group-hover:whitespace-normal group-hover:max-h-[300px] group-hover:bg-gray-50 group-hover:shadow-lg group-hover:z-10 group-hover:p-1">
+        ${shiftType.description || ""}
+    </div>
+</td>
+            ${dayTypes
+                .map((dt) => {
+                    const rateObj = (shiftType.rates || []).find(
+                        (r) => r.day_type_id === dt.id
+                    );
+                    return `<td class='px-2 py-1 border-b border'>${
+                        rateObj ? rateObj.rate : ""
+                    }</td>`;
+                })
+                .join("")}
+                <td class="px-2 py-1 border-b border align-middle h-full">
+    <div class="flex  justify-center items-center h-full min-h-[40px] gap-2">
+        <button type="button" class="editShiftTypeBtn text-blue-600" title="Edit"><i class="fas fa-edit"></i></button>
+                <button type="button" class="deleteShiftTypeBtn text-red-600" title="Delete"><i class="fas fa-trash"></i></button>
+    </div>
+</td>
+           
+        `;
+    }
+    return tr;
+}
+// async function handleSaveShiftType(tr) {
+//     showLoading();
+//     const id = tr.getAttribute("data-id");
+//     const name = tr.querySelector("input[type='text']").value.trim();
+//     const description = tr.querySelectorAll("input[type='text']")[1].value.trim();
+//     let shiftTypeRes;
+//     if (id) {
+//         shiftTypeRes = await apiService.updateShiftType(id, { name, description });
+//     } else {
+//         shiftTypeRes = await apiService.createShiftType({ name, description });
+//     }
+//     const shiftTypeId = id || shiftTypeRes.data.id;
+
+//     // Save rates
+//     const rateInputs = Array.from(tr.querySelectorAll("input[type='number'][data-day-type-id]"));
+//     for (const input of rateInputs) {
+//         const rateId = input.getAttribute("data-rate-id");
+//         const dayTypeId = input.getAttribute("data-day-type-id");
+//         const rateValue = input.value;
+//         if (rateId) {
+//             await apiService.updateRate(rateId, {
+//                 shift_type_id: shiftTypeId,
+//                 day_type_id: dayTypeId,
+//                 rate: rateValue
+//             });
+//         } else {
+//             await apiService.createRate({
+//                 shift_type_id: shiftTypeId,
+//                 day_type_id: dayTypeId,
+//                 rate: rateValue
+//             });
+//         }
+//     }
+//     await loadShiftTypesTable();
+//     hideLoading();
+// }
+async function handleDeleteShiftType(tr) {
+    const id = tr.getAttribute("data-id");
+    if (!id) {
+        tr.remove();
+        return;
+    }
+    showLoading();
+    await apiService.deleteShiftType(id);
+    await loadShiftTypesTable();
+    hideLoading();
+}
+
+// Open modal
+function openShiftTypeCrudModal() {
+    document.getElementById("shiftTypeCrudModal").classList.remove("hidden");
+    loadShiftTypesTable();
+}
+
+// Close modal
+function closeShiftTypeCrudModal() {
+    document.getElementById("shiftTypeCrudModal").classList.add("hidden");
+}
+
+// Add new row (inline editing)
+function addShiftTypeRow() {
+    const tbody = document.querySelector("#shiftTypeCrudTable tbody");
+    if (tbody.querySelector(".editing-row")) return;
+    const tr = createShiftTypeRow({}, true); // Empty object for new row
+    // tr.classList.add("editing-row", "shadow-lg", "bg-blue-50", "rounded");
+    tbody.prepend(tr);
+}
+
+// Handle table actions (edit, save, cancel, delete)
+async function handleShiftTypeCrudTableClick(e) {
+    const tr = e.target.closest("tr");
+    if (!tr) return;
+
+    // Save new or edited shift type
+    if (e.target.closest(".saveShiftTypeBtn")) {
+        const id = tr.getAttribute("data-id");
+        const inputs = tr.querySelectorAll("input[type='text']");
+        const name = inputs[0].value.trim();
+        const description = inputs[1].value.trim();
+        const rateInputs = Array.from(
+            tr.querySelectorAll("input[type='number'][data-day-type-id]")
+        );
+        const rates = rateInputs.map((input) => ({
+            id: input.getAttribute("data-rate-id") || null,
+            day_type_id: parseInt(input.getAttribute("data-day-type-id")),
+            rate: parseFloat(input.value) || 0,
+        }));
+        console.log("the rates:", rates);
+
+        // --- VALIDATION START ---
+        // 1. Name cannot be empty
+        if (!name) {
+            showToast("Shift type name is required.", "error");
+            return;
+        }
+        // 2. Name must be unique (case-insensitive, except for current row in edit)
+        const nameExists = shiftTypes.some(
+            (st) =>
+                st.name.trim().toLowerCase() === name.toLowerCase() &&
+                String(st.id) !== String(id)
+        );
+        if (nameExists) {
+            showToast("Shift type name must be unique.", "error");
+            return;
+        }
+        // 3. All rates must be filled and valid numbers
+        const emptyRate = rates.some(
+            (r) => r.rate === "" || isNaN(Number(r.rate)) || r.rate === 0
+        );
+        if (emptyRate) {
+            console.log("All rate fields are required and must be numbers.");
+            showToast(
+                "All rate fields are required and must be numbers.",
+                "error"
+            );
+            return;
+        }
+        // --- VALIDATION END ---
+        showLoading();
+        let shiftTypeRes;
+        if (id) {
+            shiftTypeRes = await apiService.updateShiftType(id, {
+                name,
+                description,
+            });
+        } else {
+            shiftTypeRes = await apiService.createShiftType({
+                name,
+                description,
+            });
+        }
+        const shiftTypeId = id || shiftTypeRes.data.id;
+
+        // Save rates (create or update)
+        for (const rate of rates) {
+            if (rate.id) {
+                await apiService.updateRate(rate.id, {
+                    shift_type_id: shiftTypeId,
+                    day_type_id: rate.day_type_id,
+                    rate: rate.rate,
+                });
+            } else {
+                await apiService.createRate({
+                    shift_type_id: shiftTypeId,
+                    day_type_id: rate.day_type_id,
+                    rate: rate.rate,
+                });
+            }
+        }
+        await loadShiftTypesTable();
+        hideLoading();
+    }
+
+    // Cancel add/edit
+    if (e.target.closest(".cancelShiftTypeBtn")) {
+        await loadShiftTypesTable();
+    }
+
+    // Edit existing shift type
+    if (e.target.closest(".editShiftTypeBtn")) {
+        if (document.querySelector(".editing-row")) return;
+        const shiftTypeId = tr.getAttribute("data-id");
+        const shiftType = shiftTypes.find(
+            (st) => String(st.id) === String(shiftTypeId)
+        );
+        const editTr = createShiftTypeRow(shiftType, true);
+        tr.replaceWith(editTr);
+    }
+
+    // Delete shift type
+    if (e.target.closest(".deleteShiftTypeBtn")) {
+        const id = tr.getAttribute("data-id");
+        if (confirm("Are you sure you want to delete this shift type?")) {
+            showLoading();
+            await apiService.deleteShiftType(id);
+            await loadShiftTypesTable();
+            hideLoading();
+        }
+    }
+}
+
+async function loadShiftTypesTable() {
+    showLoading();
+    // Fetch day types and shift types (with rates)
+    const [dayTypesRes, shiftTypesRes] = await Promise.all([
+        apiService.getDayTypes(),
+        apiService.getShiftTypes(),
+    ]);
+    dayTypes = dayTypesRes; // global
+    shiftTypes = shiftTypesRes;
+
+    const tbody = document.querySelector("#shiftTypeCrudTable tbody");
+    tbody.innerHTML = "";
+    shiftTypes.forEach((st) => {
+        tbody.appendChild(createShiftTypeRow(st));
+    });
+    hideLoading();
+}
+
+// // Load all shift types from API
+// function loadShiftTypesTable() {
+//     showLoading();
+//     axios
+//         .get("/api/shift-types")
+//         .then((res) => {
+//             const tbody = document.querySelector("#shiftTypeCrudTable tbody");
+//             tbody.innerHTML = "";
+//             res.data.forEach((st) => {
+//                 const tr = document.createElement("tr");
+//                 tr.dataset.id = st.id;
+//                 tr.innerHTML = `
+//                 <td class="border px-2 py-1">${st.name}</td>
+//                 <td class="border px-2 py-1">${st.description || ""}</td>
+//                 <td class="border px-2 py-1">${st.day_rate || ""}</td>
+//                 <td class="border px-2 py-1">${st.night_rate || ""}</td>
+//                 <td class="border px-2 py-1">${st.saturday_rate || ""}</td>
+//                 <td class="border px-2 py-1">${st.sunday_rate || ""}</td>
+//                 <td class="border px-2 py-1">${
+//                     st.public_holiday_rate || ""
+//                 }</td>
+//                 <td class="border px-2 py-1 flex gap-2">
+//                     <button class="editShiftTypeBtn text-blue-600" title="Edit"><i class="fas fa-edit"></i></button>
+//                     <button class="deleteShiftTypeBtn text-red-600" title="Delete"><i class="fas fa-trash"></i></button>
+//                 </td>
+//             `;
+//                 tbody.appendChild(tr);
+//             });
+//         })
+//         .finally(hideLoading);
+// }
 
 function showLoading() {
     document.getElementById("globalLoadingOverlay").classList.remove("hidden");
@@ -113,12 +423,12 @@ function handleLocationCrudTableClick(e) {
             .slice(0, 4)
             .map((td) => td.textContent.trim());
         tr.innerHTML = `
-            <td class="border px-2 py-1"><input type="text" class="form-input w-full" value="${name}"></td>
-            <td class="border px-2 py-1"><input type="text" class="form-input w-full" value="${address}"></td>
-            <td class="border px-2 py-1"><input type="text" class="form-input w-full" value="${city}"></td>
- <td class="border px-2 py-1">
-            <select class="form-select w-full">
-                <option value="">Select State</option>
+            <td class="border px-2 py-1"><input type="text" class="form-input w-full px-2 py-1 border" value="${name}"></td>
+            <td class="border px-2 py-1"><input type="text" class="form-input w-full px-2 py-1 border" value="${address}"></td>
+            <td class="border px-2 py-1"><input type="text" class="form-input w-full px-2 py-1 border" value="${city}"></td>
+            <td class="border px-2 py-1">
+                <select class="form-select w-full px-2 py-1 border">
+                    <option value="">Select State</option>
                 ${AU_STATES.map(
                     (s) =>
                         `<option value="${s}" ${
@@ -4648,6 +4958,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     document
         .querySelector("#locationCrudTable tbody")
         .addEventListener("click", handleLocationCrudTableClick);
+
+    document
+        .getElementById("addShiftTypeBtn")
+        .addEventListener("click", addShiftTypeRow);
+    document
+        .getElementById("closeShiftTypeCrudModal")
+        .addEventListener("click", closeShiftTypeCrudModal);
+    document
+        .querySelector("#shiftTypeCrudTable tbody")
+        .addEventListener("click", handleShiftTypeCrudTableClick);
+    document
+        .getElementById("openShiftTypeCrudBtn")
+        .addEventListener("click", openShiftTypeCrudModal);
 
     locations.forEach((location) => {
         const addShiftBtn = document.getElementById(

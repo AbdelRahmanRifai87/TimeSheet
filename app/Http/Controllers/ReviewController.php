@@ -514,6 +514,9 @@ foreach ($shifts as $shift) {
                 ], 422);
             }
 
+                    $perLocationTabs = $request->input('per_location_tabs', false); // <-- NEW
+
+
             $data = $request->input('data', []);
             $headings = $request->input('headings', []);
             $hiddenColumns = $request->input('hiddenColumns', []);
@@ -549,8 +552,29 @@ foreach ($shifts as $shift) {
                     mkdir(storage_path('app/public/timesheets'), 0755, true);
                 }
 
+                 // --- NEW: Handle per-location tabs ---
+            if ($perLocationTabs) {
+                // Find the index of the Location column
+                $locationIndex = array_search('Location', $headings);
+                if ($locationIndex === false) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Location column not found in headings'
+                    ], 400);
+                }
+                // Group rows by location
+                $groupedData = [];
+                foreach ($data as $row) {
+                    $location = $row[$locationIndex] ?? 'Unknown';
+                    $groupedData[$location][] = $row;
+                }
+                $export = new \App\Exports\TimesheetExport($groupedData, $headings, $hiddenColumns, $totals, $weekGroups, true);
+            } else {
+                $export = new \App\Exports\TimesheetExport($data, $headings, $hiddenColumns, $totals, $weekGroups, false);
+            }
+            // --- END NEW ---
+
                 // Create Excel file
-                $export = new TimesheetExport($data, $headings, $hiddenColumns, $totals, $weekGroups);
                 \Maatwebsite\Excel\Facades\Excel::store($export, $filePath, 'public');
 
                 // Verify file was created

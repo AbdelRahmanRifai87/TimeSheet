@@ -71,7 +71,7 @@
 </head>
 
 <body>
-    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+    <div id="toastContainer" class="fixed top-4 right-4 z-100 space-y-2"></div>
 
     <!-- Blue Header with Bigger Logos -->
     <div class="bg-[#438eb9] text-white w-full">
