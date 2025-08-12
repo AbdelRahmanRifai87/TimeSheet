@@ -701,19 +701,59 @@
                     <p class="mt-2 text-sm text-gray-500">Core columns are required and cannot be deselected.</p>
                 </div>
                 <!-- Preview Table -->
-                <div class="mb-6 preview-table-container">
-                    <h3 class="text-lg font-semibold mb-4">Preview</h3>
-                    <div class="overflow-x-auto ">
-                        <table id="previewTable" class="display  w-full table-fixed">
-                            <thead id="previewTableHead1"></thead>
-                            <tbody id="previewTableBody1"></tbody>
-                        </table>
-                    </div>
+
+
+                <div class="overflow-x-auto ">
+                    <table id="previewTable" class="display  w-full table-fixed">
+                        <thead id="previewTableHead1"></thead>
+                        <tbody id="previewTableBody1"></tbody>
+                    </table>
                 </div>
+
                 <div id="exportBTN"></div>
 
             </div>
         </div>
+        <!-- Location CRUD Modal -->
+        <div id="locationCrudModal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl p-6 relative">
+                <button type="button" id="closeLocationCrudModal"
+                    class="absolute top-2 right-4 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+                <h2 class="text-2xl  text-[#2679b5] mb-4">Manage Locations</h2>
+                <div class="flex justify-end mb-2">
+                    <button id="addLocationBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Add Location</button>
+                </div>
+                <table id="locationCrudTable" class="min-w-full border">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border px-2 py-1">Name</th>
+                            <th class="border px-2 py-1">Address</th>
+                            <th class="border px-2 py-1">City</th>
+                            <th class="border px-2 py-1">State</th>
+                            <th class="border px-2 py-1">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Loading Overlay -->
+        <div id="globalLoadingOverlay"
+            class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[9999] hidden">
+            <div class="bg-white rounded-full p-6 shadow-lg flex flex-col items-center">
+                <svg class="animate-spin h-8 w-8 text-blue-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                        stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                <span class="text-blue-600 font-semibold">Loading...</span>
+            </div>
+        </div>
+
 
 
         <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
