@@ -224,6 +224,10 @@
                         </p>
                     </div>
                     <div class="flex gap-4">
+
+                        <button type="button" id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded border">
+                            <i class="fas fa-download mr-1"></i> Export Options
+                        </button>
                         <button type="button" id="backToSelectionBtn"
                             class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border">
                             Add/Edit Location
@@ -356,6 +360,9 @@
                                     </div>
                                 </div>
                             </div> --}}
+
+
+                            
                                     <div class="flex justify-between items-center mt-2 ">
 
 
@@ -497,6 +504,8 @@
                                         <i class="fa-solid fa-arrow-right ml-1"></i></button>
                                 </div>
 
+
+
                             </div>
                         </div>
                     @endforeach
@@ -515,7 +524,71 @@
 
             </form>
 
+            <!-- Export Options Modal -->
+            <div id="exportModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-[#2679b5]">Export Timesheet Options</h3>
+                        <button type="button" id="closeExportModal" class="text-gray-500 hover:text-gray-700 text-xl">
+                            &times;
+                        </button>
+                    </div>
 
+                    <div class="space-y-6">
+                        <!-- Export Type Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Export Type:</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="exportType" value="all" class="mr-2" checked>
+                                    <span>Export All Locations</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="exportType" value="specific" class="mr-2">
+                                    <span>Export Specific Locations</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Format Options for All Locations -->
+                        <div id="allLocationsOptions" class="border-l-4 border-blue-500 pl-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Format for All Locations:</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="allLocationsFormat" value="single" class="mr-2" checked>
+                                    <span>All in One Page</span>
+                                    <span class="text-xs text-gray-500 ml-2">(Single document with all locations)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="allLocationsFormat" value="separate" class="mr-2">
+                                    <span>Separate Pages</span>
+                                    <span class="text-xs text-gray-500 ml-2">(Different pagination for each location)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Specific Locations Selection -->
+                        <div id="specificLocationsOptions" class="border-l-4 border-green-500 pl-4 hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Select Locations with Saved Shifts:</label>
+                            <div id="availableLocationsContainer" class="space-y-2 max-h-48 overflow-y-auto">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Only locations with saved shift data are available for export.</p>
+                        </div>
+                    <!-- Modal Actions -->
+                    <div class="flex justify-end mt-6 space-x-2">
+                        <button type="button" id="cancelExportBtn" 
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                            Cancel
+                        </button>
+                        <button type="button" id="processExportBtn" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                            <i class="fas fa-download mr-1"></i>
+                            Export
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Modal for Adding Shift Type -->
             <div id="addShiftTypeModal"
@@ -689,6 +762,381 @@
                 // Initialize functionality
                 initLocationSelection();
                 loadSavedShiftData();
+                initializeExportModal();
+
+                // Initialize export modal functionality
+                function initializeExportModal() {
+                    const exportBtn = document.getElementById('exportBtn');
+                    const exportModal = document.getElementById('exportModal');
+                    const closeExportModal = document.getElementById('closeExportModal');
+                    const cancelExportBtn = document.getElementById('cancelExportBtn');
+                    const processExportBtn = document.getElementById('processExportBtn');
+                    
+                    // Export type radio buttons
+                    const exportTypeRadios = document.querySelectorAll('input[name="exportType"]');
+                    const allLocationsOptions = document.getElementById('allLocationsOptions');
+                    const specificLocationsOptions = document.getElementById('specificLocationsOptions');
+
+                    console.log('Initializing export modal...', {
+                        exportBtn: !!exportBtn,
+                        exportModal: !!exportModal,
+                        closeExportModal: !!closeExportModal,
+                        cancelExportBtn: !!cancelExportBtn,
+                        processExportBtn: !!processExportBtn
+                    });
+
+                    // Open export modal
+                    if (exportBtn) {
+                        exportBtn.addEventListener('click', function() {
+                            console.log('Export button clicked - opening modal');
+                            updateAvailableLocations();
+                            exportModal.classList.remove('hidden');
+                            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                        });
+                    }
+
+                    // Close export modal function
+                    function closeModal() {
+                        console.log('Closing export modal');
+                        exportModal.classList.add('hidden');
+                        document.body.style.overflow = 'auto'; // Restore scrolling
+                    }
+
+                    // Close modal event listeners
+                    if (closeExportModal) {
+                        closeExportModal.addEventListener('click', closeModal);
+                    }
+                    if (cancelExportBtn) {
+                        cancelExportBtn.addEventListener('click', closeModal);
+                    }
+
+                    // Close modal on backdrop click
+                    if (exportModal) {
+                        exportModal.addEventListener('click', function(e) {
+                            if (e.target === exportModal) {
+                                closeModal();
+                            }
+                        });
+                    }
+
+                    // Close modal on ESC key
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape' && !exportModal.classList.contains('hidden')) {
+                            closeModal();
+                        }
+                    });
+
+                    // Handle export type change
+                    exportTypeRadios.forEach(radio => {
+                        radio.addEventListener('change', function() {
+                            console.log('Export type changed to:', this.value);
+                            if (this.value === 'all') {
+                                allLocationsOptions.classList.remove('hidden');
+                                specificLocationsOptions.classList.add('hidden');
+                            } else {
+                                allLocationsOptions.classList.add('hidden');
+                                specificLocationsOptions.classList.remove('hidden');
+                            }
+                        });
+                    });
+
+                    // Process export (placeholder for now)
+                    if (processExportBtn) {
+                        processExportBtn.addEventListener('click', function() {
+                            console.log('Process export clicked - functionality to be implemented');
+                            alert('Export functionality will be implemented here!');
+                            // closeModal(); // Uncomment this when actual export is implemented
+                        });
+                    }
+                }
+
+                function updateAvailableLocations() {
+                    const container = document.getElementById('availableLocationsContainer');
+                    if (!container) {
+                        console.log('Available locations container not found');
+                        return;
+                    }
+
+                    container.innerHTML = '';
+
+                    // Get locations that have saved shift data
+                    const locationsWithData = getLocationsWithShiftData();
+                    console.log('Locations with data:', locationsWithData);
+
+                    if (locationsWithData.length === 0) {
+                        container.innerHTML = '<p class="text-sm text-gray-500">No locations with saved shift data found.</p>';
+                        return;
+                    }
+
+                    locationsWithData.forEach(location => {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center justify-between p-2 border rounded';
+                        
+                        // Use the record count from the enhanced getLocationsWithShiftData function
+                        const recordCount = location.recordCount || 0;
+                        
+                        div.innerHTML = `
+                            <label class="flex items-center flex-1">
+                                <input type="checkbox" name="specificLocations" value="${location.id}" class="mr-2">
+                                <div>
+                                    <span class="font-medium">${location.name}</span>
+                                    <div class="text-xs text-gray-500">${location.address}</div>
+                                </div>
+                            </label>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                ${recordCount} shift${recordCount !== 1 ? 's' : ''}
+                            </span>
+                        `;
+                        
+                        container.appendChild(div);
+                    });
+                }
+
+                function getLocationsWithShiftData() {
+                    const locationsWithData = [];
+                    
+                    locations.forEach(location => {
+                        let recordCount = 0;
+                        let hasData = false;
+                        let dataSource = '';
+
+                        // ONLY check localStorage - ignore window.records completely
+                        const quotationId = window.quotationId;
+                        const possibleKeys = [
+                            `quotation${quotationId}_location_${location.id}_records`,
+                            `records_${location.id}`,
+                            `quotation${quotationId}selectedlocation${location.id}Records`,
+                            `quotation_${quotationId}selectedlocations${location.id}Records`, // Primary pattern
+                            `quotation_${quotationId}_selectedlocations${location.id}Records`,
+                            `quotation${quotationId}_selectedlocations${location.id}Records`
+                        ];
+
+                        // Check only localStorage keys
+                        for (const key of possibleKeys) {
+                            const savedRecords = localStorage.getItem(key);
+                            if (savedRecords) {
+                                try {
+                                    const parsedRecords = JSON.parse(savedRecords);
+                                    console.log(`Checking localStorage key: ${key}`, {
+                                        isArray: Array.isArray(parsedRecords),
+                                        length: Array.isArray(parsedRecords) ? parsedRecords.length : 'N/A',
+                                        data: parsedRecords
+                                    });
+                                    
+                                    // Only include if localStorage has valid, non-empty array
+                                    if (Array.isArray(parsedRecords) && parsedRecords.length > 0) {
+                                        recordCount = parsedRecords.length;
+                                        hasData = true;
+                                        dataSource = `localStorage[${key}]`;
+                                        console.log(`   Found ${recordCount} valid records for location ${location.name} in ${key}`);
+                                        break; // Found valid data, stop checking other keys
+                                    } else if (Array.isArray(parsedRecords) && parsedRecords.length === 0) {
+                                        console.log(`  Found empty array for location ${location.name} in ${key} - excluding from export`);
+                                        dataSource = `localStorage[${key}] (empty)`;
+                                        // Continue checking other keys in case there's valid data elsewhere
+                                    } else {
+                                        console.log(`  Invalid data format for location ${location.name} in ${key}`);
+                                    }
+                                } catch (e) {
+                                    console.error(`Error parsing localStorage key ${key}:`, e);
+                                }
+                            }
+                        }
+
+                        // Add location only if localStorage has valid data
+                        if (hasData) {
+                            console.log(`   Including location ${location.name} in export (${recordCount} shifts from ${dataSource})`);
+                            locationsWithData.push({
+                                ...location,
+                                recordCount: recordCount
+                            });
+                        } else {
+                            console.log(`  Excluding location ${location.name} from export (no valid localStorage data found)`);
+                        }
+                    });
+
+                    console.log('Final locations with localStorage data:', locationsWithData.map(loc => ({
+                        name: loc.name, 
+                        recordCount: loc.recordCount
+                    })));
+
+                    return locationsWithData;
+                }
+
+                // Testing function to check localStorage for saved records (can be called from browser console)
+                function debugLocationRecords() {
+                    console.log('=== DEBUGGING LOCATION RECORDS (localStorage ONLY) ===');
+                    const quotationId = window.quotationId;
+                    console.log('Current quotation ID:', quotationId);
+                    
+                    locations.forEach(location => {
+                        console.log(`\n--- Location: ${location.name} (ID: ${location.id}) ---`);
+                        
+                        // ONLY check localStorage - ignore window.records
+                        const possibleKeys = [
+                            `quotation${quotationId}_location_${location.id}_records`,
+                            `records_${location.id}`,
+                            `quotation${quotationId}selectedlocation${location.id}Records`,
+                            `quotation_${quotationId}selectedlocations${location.id}Records`, // Primary pattern
+                            `quotation_${quotationId}_selectedlocations${location.id}Records`,
+                            `quotation${quotationId}_selectedlocations${location.id}Records`
+                        ];
+                        
+                        let foundInLocalStorage = false;
+                        possibleKeys.forEach(key => {
+                            const savedData = localStorage.getItem(key);
+                            if (savedData) {
+                                try {
+                                    const parsed = JSON.parse(savedData);
+                                    if (Array.isArray(parsed) && parsed.length > 0) {
+                                        console.log(`   Found in localStorage[${key}]: ${parsed.length} records`);
+                                        foundInLocalStorage = true;
+                                    } else if (Array.isArray(parsed) && parsed.length === 0) {
+                                        console.log(`Found EMPTY array in localStorage[${key}] - will be excluded from export`);
+                                    } else {
+                                        console.log(`Found in localStorage[${key}] but invalid format (not an array)`);
+                                    }
+                                } catch (e) {
+                                    console.log(`Found in localStorage[${key}] but invalid JSON: ${e.message}`);
+                                }
+                            }
+                        });
+                        
+                        if (!foundInLocalStorage) {
+                            console.log('  No valid data found in localStorage');
+                        }
+                    });
+                    
+                    console.log('\n=== FINAL RESULT (localStorage ONLY) ===');
+                    const detectedLocations = getLocationsWithShiftData();
+                    console.log('Detected locations with localStorage data:', detectedLocations.map(loc => ({
+                        name: loc.name,
+                        id: loc.id,
+                        recordCount: loc.recordCount
+                    })));
+                }
+
+                // Make debug function available globally
+                window.debugLocationRecords = debugLocationRecords;
+
+                // Quick test function for your specific localStorage key
+                function testSpecificKey() {
+                    const quotationId = window.quotationId || 16; // Default to 16 if not set
+                    const testKey = `quotation_${quotationId}selectedlocations1Records`;
+                    console.log('Testing specific localStorage key:', testKey);
+                    
+                    const data = localStorage.getItem(testKey);
+                    if (data) {
+                        try {
+                            const parsed = JSON.parse(data);
+                            console.log('   Found data:', {
+                                key: testKey,
+                                recordCount: Array.isArray(parsed) ? parsed.length : 'Not an array',
+                                firstRecord: parsed[0] || 'No records'
+                            });
+                        } catch (e) {
+                            console.log('  Invalid JSON in localStorage key:', testKey);
+                        }
+                    } else {
+                        console.log('  No data found in localStorage key:', testKey);
+                    }
+                    
+                    // Also test the detection function
+                    console.log('\n--- Testing detection function ---');
+                    const detectedLocations = getLocationsWithShiftData();
+                    console.log('Detected locations:', detectedLocations);
+                }
+                
+                window.testSpecificKey = testSpecificKey;
+
+                // Test function specifically for empty array scenarios
+                function testEmptyArrayScenario() {
+                    console.log('=== TESTING EMPTY ARRAY SCENARIO ===');
+                    const quotationId = window.quotationId || 17; // Test with quotation 17
+                    
+                    // Test the specific keys mentioned by user
+                    const testKeys = [
+                        `quotation${quotationId}_selected_locations`,
+                        `quotation_${quotationId}selectedlocations1Records`
+                    ];
+                    
+                    testKeys.forEach(key => {
+                        const data = localStorage.getItem(key);
+                        console.log(`\nTesting key: ${key}`);
+                        if (data) {
+                            try {
+                                const parsed = JSON.parse(data);
+                                console.log('Raw data:', data);
+                                console.log('Parsed data:', parsed);
+                                console.log('Is array:', Array.isArray(parsed));
+                                console.log('Length:', Array.isArray(parsed) ? parsed.length : 'N/A');
+                                console.log('Should be included in export:', Array.isArray(parsed) && parsed.length > 0 ? 'YES' : 'NO');
+                            } catch (e) {
+                                console.log('Invalid JSON:', e.message);
+                            }
+                        } else {
+                            console.log('Key not found in localStorage');
+                        }
+                    });
+                    
+                    console.log('\n--- Detection result ---');
+                    const detectedLocations = getLocationsWithShiftData();
+                    console.log('Locations that will appear in export:', detectedLocations);
+                }
+                
+                window.testEmptyArrayScenario = testEmptyArrayScenario;
+
+                // Function to refresh export modal data (localStorage only)
+                function refreshExportData() {
+                    console.log('=== REFRESHING EXPORT DATA (localStorage ONLY) ===');
+                    
+                    // Re-detect locations from localStorage only
+                    const detectedLocations = getLocationsWithShiftData();
+                    console.log('Refreshed detection result from localStorage:', detectedLocations);
+                    
+                    // Update the export modal if it's open
+                    const exportModal = document.getElementById('exportModal');
+                    if (exportModal && !exportModal.classList.contains('hidden')) {
+                        console.log('Export modal is open, updating location list...');
+                        updateAvailableLocations();
+                    }
+                    
+                    return detectedLocations;
+                }
+                
+                window.refreshExportData = refreshExportData;
+
+                // Function to test localStorage data directly
+                function testLocalStorageData() {
+                    console.log('=== TESTING localStorage DATA DIRECTLY ===');
+                    const quotationId = window.quotationId;
+                    
+                    locations.forEach(location => {
+                        const primaryKey = `quotation_${quotationId}selectedlocations${location.id}Records`;
+                        const data = localStorage.getItem(primaryKey);
+                        
+                        console.log(`\nLocation: ${location.name} (ID: ${location.id})`);
+                        console.log(`Primary key: ${primaryKey}`);
+                        
+                        if (data) {
+                            try {
+                                const parsed = JSON.parse(data);
+                                console.log(`Data: ${JSON.stringify(parsed)}`);
+                                console.log(`Type: ${Array.isArray(parsed) ? 'Array' : typeof parsed}`);
+                                console.log(`Length: ${Array.isArray(parsed) ? parsed.length : 'N/A'}`);
+                                console.log(`Will be included in export: ${Array.isArray(parsed) && parsed.length > 0 ? 'YES' : 'NO'}`);
+                            } catch (e) {
+                                console.log(`Invalid JSON: ${e.message}`);
+                                console.log('Will be included in export: NO');
+                            }
+                        } else {
+                            console.log('No data found');
+                            console.log('Will be included in export: NO');
+                        }
+                    });
+                }
+                
+                window.testLocalStorageData = testLocalStorageData;
 
                 function initLocationSelection() {
                     if (typeof MultiSelectDropdown !== 'undefined') {
