@@ -932,23 +932,6 @@ class MultiSelectDropdown {
         }
     }
 
-    // Debug method to check current state
-    // debugState() {
-    //     console.log('=== MultiSelectDropdown Debug State ===');
-    //     console.log('Selected values:', Array.from(this.selectedValues));
-    //     console.log('Pills in container:', this.pillsContainer ? this.pillsContainer.children.length : 'No container');
-    //     console.log('Checkboxes:',
-    //         Array.from(this.optionsContainer.querySelectorAll('input[type="checkbox"]'))
-    //             .map(cb => ({
-    //                 value: cb.value,
-    //                 checked: cb.checked,
-    //                 display: cb.closest('.location-option').style.display,
-    //                 visible: cb.closest('.location-option').offsetHeight > 0
-    //             }))
-    //     );
-    //     console.log('========================================');
-    // }
-
     // Force show all options - debug method
     showAllOptions() {
         const options =
@@ -5116,7 +5099,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
     }
 });
-
 //selected location logic - COMMENTED OUT TO PREVENT CONFLICTS WITH NEW SYSTEM
 
 // document.addEventListener('DOMContentLoaded', function() {
