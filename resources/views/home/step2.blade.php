@@ -146,10 +146,7 @@
                     </div>
                 </div>
 
-                <!-- Summary -->
-                <div class="text-sm text-gray-600 bg-blue-50 p-2 rounded">
-                    <span id="selectedLocationCount">0</span> of {{ $locations->count() }} locations selected
-                </div>
+
             </div>
             <!-- Modal for Adding Shift Type -->
             <div id="addShiftTypeModal"
@@ -800,16 +797,13 @@
                 // Set quotation ID globally
                 window.quotationId = @json($quotation->id);
 
-
-
-
                 // Simplified Location Selection and Display Logic
                 document.addEventListener('DOMContentLoaded', function() {
                     const locations = @json($locations);
                     const quotationId = @json($quotation->id);
                     const savedLocationSchedules = @json($savedLocationSchedules ?? []);
 
-                    let selectedLocationIds = [];
+                    // let selectedLocationIds = [];
 
                     // Initialize multiSelect dropdown
                     const initializeDropdown = () => {
@@ -863,6 +857,212 @@
                     // Initialize functionality
                     // initLocationSelection();
                     loadSavedShiftData();
+                    initializeExportModal();
+
+                    // Initialize export modal functionality
+                    function initializeExportModal() {
+                        const exportBtn = document.getElementById('exportBtn');
+                        const exportModal = document.getElementById('exportModal');
+                        const closeExportModal = document.getElementById('closeExportModal');
+                        const cancelExportBtn = document.getElementById('cancelExportBtn');
+                        const processExportBtn = document.getElementById('processExportBtn');
+
+                        // Export type radio buttons
+                        const exportTypeRadios = document.querySelectorAll('input[name="exportType"]');
+                        const allLocationsOptions = document.getElementById('allLocationsOptions');
+                        const specificLocationsOptions = document.getElementById('specificLocationsOptions');
+
+                        console.log('Initializing export modal...', {
+                            exportBtn: !!exportBtn,
+                            exportModal: !!exportModal,
+                            closeExportModal: !!closeExportModal,
+                            cancelExportBtn: !!cancelExportBtn,
+                            processExportBtn: !!processExportBtn
+                        });
+
+                        // Open export modal
+                        if (exportBtn) {
+                            exportBtn.addEventListener('click', function() {
+                                console.log('Export button clicked - opening modal');
+                                updateAvailableLocations();
+                                exportModal.classList.remove('hidden');
+                                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                            });
+                        }
+
+                        // Close export modal function
+                        function closeModal() {
+                            console.log('Closing export modal');
+                            exportModal.classList.add('hidden');
+                            document.body.style.overflow = 'auto'; // Restore scrolling
+                        }
+
+                        // Close modal event listeners
+                        if (closeExportModal) {
+                            closeExportModal.addEventListener('click', closeModal);
+                        }
+                        if (cancelExportBtn) {
+                            cancelExportBtn.addEventListener('click', closeModal);
+                        }
+
+                        // Close modal on backdrop click
+                        if (exportModal) {
+                            exportModal.addEventListener('click', function(e) {
+                                if (e.target === exportModal) {
+                                    closeModal();
+                                }
+                            });
+                        }
+
+                        // Close modal on ESC key
+                        document.addEventListener('keydown', function(e) {
+                            if (e.key === 'Escape' && !exportModal.classList.contains('hidden')) {
+                                closeModal();
+                            }
+                        });
+
+                        // Handle export type change
+                        exportTypeRadios.forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                console.log('Export type changed to:', this.value);
+                                if (this.value === 'all') {
+                                    allLocationsOptions.classList.remove('hidden');
+                                    specificLocationsOptions.classList.add('hidden');
+                                } else {
+                                    allLocationsOptions.classList.add('hidden');
+                                    specificLocationsOptions.classList.remove('hidden');
+                                }
+                            });
+                        });
+
+                        // Process export (placeholder for now)
+                        if (processExportBtn) {
+                            processExportBtn.addEventListener('click', function() {
+                                console.log('Process export clicked - functionality to be implemented');
+                                alert('Export functionality will be implemented here!');
+                                // closeModal(); // Uncomment this when actual export is implemented
+                            });
+                        }
+                    }
+
+                    function updateAvailableLocations() {
+                        const container = document.getElementById('availableLocationsContainer');
+                        if (!container) {
+                            console.log('Available locations container not found');
+                            return;
+                        }
+
+                        container.innerHTML = '';
+
+                        // Get locations that have saved shift data
+                        const locationsWithData = getLocationsWithShiftData();
+                        console.log('Locations with data:', locationsWithData);
+
+                        if (locationsWithData.length === 0) {
+                            container.innerHTML = '<p class="text-sm text-gray-500">No locations with saved shift data found.</p>';
+                            return;
+                        }
+
+                        locationsWithData.forEach(location => {
+                            const div = document.createElement('div');
+                            div.className = 'flex items-center justify-between p-2 border rounded';
+
+                            // Use the record count from the enhanced getLocationsWithShiftData function
+                            const recordCount = location.recordCount || 0;
+
+                            div.innerHTML = `
+                    <label class="flex items-center flex-1">
+                        <input type="checkbox" name="specificLocations" value="${location.id}" class="mr-2">
+                        <div>
+                            <span class="font-medium">${location.name}</span>
+                            <div class="text-xs text-gray-500">${location.address}</div>
+                        </div>
+                    </label>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        ${recordCount} shift${recordCount !== 1 ? 's' : ''}
+                    </span>
+                `;
+
+                            container.appendChild(div);
+                        });
+                    }
+
+                    function getLocationsWithShiftData() {
+                        const locationsWithData = [];
+
+                        locations.forEach(location => {
+                            let recordCount = 0;
+                            let hasData = false;
+                            let dataSource = '';
+
+                            // ONLY check localStorage - ignore window.records completely
+                            const quotationId = window.quotationId;
+                            const possibleKeys = [
+                                `quotation${quotationId}_location_${location.id}_records`,
+                                `records_${location.id}`,
+                                `quotation${quotationId}selectedlocation${location.id}Records`,
+                                `quotation_${quotationId}selectedlocations${location.id}Records`, // Primary pattern
+                                `quotation_${quotationId}_selectedlocations${location.id}Records`,
+                                `quotation${quotationId}_selectedlocations${location.id}Records`
+                            ];
+
+                            // Check only localStorage keys
+                            for (const key of possibleKeys) {
+                                const savedRecords = localStorage.getItem(key);
+                                if (savedRecords) {
+                                    try {
+                                        const parsedRecords = JSON.parse(savedRecords);
+                                        console.log(`Checking localStorage key: ${key}`, {
+                                            isArray: Array.isArray(parsedRecords),
+                                            length: Array.isArray(parsedRecords) ? parsedRecords.length : 'N/A',
+                                            data: parsedRecords
+                                        });
+
+                                        // Only include if localStorage has valid, non-empty array
+                                        if (Array.isArray(parsedRecords) && parsedRecords.length > 0) {
+                                            recordCount = parsedRecords.length;
+                                            hasData = true;
+                                            dataSource = `localStorage[${key}]`;
+                                            console.log(`   Found ${recordCount} valid records for location ${location.name} in ${key}`);
+                                            break; // Found valid data, stop checking other keys
+                                        } else if (Array.isArray(parsedRecords) && parsedRecords.length === 0) {
+                                            console.log(`  Found empty array for location ${location.name} in ${key} - excluding from export`);
+                                            dataSource = `localStorage[${key}] (empty)`;
+                                            // Continue checking other keys in case there's valid data elsewhere
+                                        } else {
+                                            console.log(`  Invalid data format for location ${location.name} in ${key}`);
+                                        }
+                                    } catch (e) {
+                                        console.error(`Error parsing localStorage key ${key}:`, e);
+                                    }
+                                }
+                            }
+
+                            // Add location only if localStorage has valid data
+                            if (hasData) {
+                                console.log(`   Including location ${location.name} in export (${recordCount} shifts from ${dataSource})`);
+                                locationsWithData.push({
+                                    ...location,
+                                    recordCount: recordCount
+                                });
+                            } else {
+                                console.log(`  Excluding location ${location.name} from export (no valid localStorage data found)`);
+                            }
+                        });
+
+                        console.log('Final locations with localStorage data:', locationsWithData.map(loc => ({
+                            name: loc.name, 
+                            recordCount: loc.recordCount
+                        })));
+
+                        return locationsWithData;
+                    }
+
+
+
+
+
+
                     // Load saved shift data from database
                     function loadSavedShiftData() {
                         console.log('Loading saved shift data...',
@@ -959,12 +1159,15 @@
                         console.log('Selected location IDs:',
                             selectedLocationIds); // Debug log
 
-                        // Update the count display
-                        const countDisplay = document.getElementById(
-                            'selectedLocationCount');
-                        if (countDisplay) {
-                            countDisplay.textContent = selectedLocationIds.length;
-                        }
+                    // // Update the count display and total locations in summary
+                    // const countDisplay = document.getElementById('selectedLocationCount');
+                    // const summary = document.querySelector('.text-sm.text-gray-600.bg-blue-50.p-2.rounded');
+                    // if (countDisplay && summary) {
+                    //     const total = (typeof locations !== 'undefined' && Array.isArray(locations)) ? locations.length : selectedLocationIds.length;
+                    //     countDisplay.textContent = selectedLocationIds.length;
+                    //     // Update the summary text to reflect the new total
+                    //     summary.innerHTML = `<span id="selectedLocationCount">${selectedLocationIds.length}</span> of ${total} locations selected`;
+                    // }
 
                         // Update status message
                         const statusMessage = document.getElementById(
