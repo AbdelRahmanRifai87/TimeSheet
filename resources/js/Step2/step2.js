@@ -442,6 +442,7 @@ function handleLocationCrudTableClick(e) {
 
                     console.log("trying to add the new location using the create form method");
                     locations.push(response.data);
+                    window.locations.push(response.data);
                     records[response.data.id] = []; // Initialize empty records array for the new location
                     const container = document.getElementById('selectedLocationsForms');
                     container.style.display = '';
@@ -461,16 +462,24 @@ function handleLocationCrudTableClick(e) {
                     if (saveButton) {
                         saveButton.addEventListener("click", function () {
                             renderTable(response.data.id);
+                            // console.log("Fetching locations with shift data...");
+                            // updateAvailableLocations();
+                            locations.push(response.data);
+                            
                             handleSaveButtonClick(response.data.id);
+                            updateAvailableLocations();
+                            getLocationsWithShiftData();
+                            if (updateAvailableLocations() && getLocationsWithShiftData()) {
+                                console.log("Location added and update successfulllllly!!!!:", response.data);
+                            }
                         });
                     }
                     // loadLocationsTable();
                     addLocationToDropdown(response.data); // <-- here
                     window.updateLocationDisplay();
                     renderSelectedLocationContainers();
+                    
                     loadLocationsTable();
-
-                    console.log("Location added successfully:", response.data);
                 })
                 .finally(hideLoading);
         }
@@ -2103,6 +2112,7 @@ function renderRow(rec, locationId) {
         );
         tr.remove();
         saveRecordsToStorage(locationId);
+        updateAvailableLocations();
         renderTable(locationId); // Optionally re-render the table
     });
 
@@ -2241,6 +2251,7 @@ function renderTable(locationId) {
             // Update localStorage after removing the record
             saveRecordsToStorage(locationId);
 
+            updateAvailableLocations();
             // Optionally re-render the table to reflect changes
             renderTable(locationId);
         });
@@ -2872,6 +2883,7 @@ function saveRowEdits(locationId, previousFormData, clickedRow) {
         }
         //save using quotation specific key
         saveRecordsToStorage(locationId);
+        updateAvailableLocations();
         // localStorage.setItem(
         //     `records_${locationId}`,
         //     JSON.stringify(records[locationId])

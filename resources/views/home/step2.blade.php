@@ -584,11 +584,11 @@
                                 class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
                                 Cancel
                             </button>
-                            <button type="button" id="processExportBtn"
+                            {{-- <button type="button" id="processExportBtn"
                                 class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
                                 <i class="fas fa-download mr-1"></i>
                                 Export
-                            </button>
+                            </button> --}}
                             <button type="button" id="reviewExportBtn"
                                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                                 <i class="fas fa-eye mr-1"></i>
@@ -804,6 +804,7 @@
             <script>
                 // Set quotation ID globally
                 window.quotationId = @json($quotation->id);
+                window.locations = @json($locations);
 
 
                 function showLoading() {
@@ -1221,7 +1222,7 @@
                         }
                     }
 
-                    function updateAvailableLocations() {
+               window.updateAvailableLocations=     function updateAvailableLocations() {
                         const container = document.getElementById('availableLocationsContainer');
                         if (!container) {
                             console.log('Available locations container not found');
@@ -1264,10 +1265,12 @@
                         });
                     }
 
-                    function getLocationsWithShiftData() {
+                window.getLocationsWithShiftData=    function getLocationsWithShiftData() {
                         const locationsWithData = [];
+                        console.log("locations........",locations);
 
-                        locations.forEach(location => {
+                       
+                        window.locations.forEach(location => {
                             let recordCount = 0;
                             let hasData = false;
                             let dataSource = '';
@@ -1283,10 +1286,19 @@
                                 // `quotation_${quotationId}_selectedlocations${location.id}Records`,
                                 // `quotation${quotationId}_selectedlocations${location.id}Records`
                             ];
+                            // Log all localStorage data
+                        console.log('--- All localStorage data ---');
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            const value = localStorage.getItem(key);
+                            console.log(`${key}:`, value);
+                        }
+                        console.log('--- End of localStorage data ---');
 
                             // Check only localStorage keys
                             for (const key of possibleKeys) {
                                 const savedRecords = localStorage.getItem(key);
+                                console.log(`Checking localStorage key: ${key}`, savedRecords);
                                 if (savedRecords) {
                                     try {
                                         const parsedRecords = JSON.parse(savedRecords);
@@ -1346,6 +1358,9 @@
                             recordCount: loc.recordCount
                         })));
 
+                       
+
+                                               
                         return locationsWithData;
                     }
 

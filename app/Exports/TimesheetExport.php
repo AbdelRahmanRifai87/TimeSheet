@@ -614,7 +614,7 @@ if (strpos($heading, 'Start Date') !== false) {
     if (is_string($value) && preg_match('/[\d.]+/', $value, $matches)) {
         return $matches[0];
     }
-            return ''; // Empty for zero rates
+            return 0; // Empty for zero rates
         }
 
         // Format hour columns - show with 2 decimal places
