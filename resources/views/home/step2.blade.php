@@ -719,6 +719,8 @@
                             <tbody id="previewTableBody1"></tbody>
                         </table>
                     </div>
+                    <!-- Add this where you want the radio options to appear -->
+                    <div id="previewLocationOptionPlaceholder"></div>
 
                     <div id="exportBTN"></div>
 
@@ -767,7 +769,8 @@
             <!-- Shift Types CRUD Modal -->
             <div id="shiftTypeCrudModal"
                 class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-                <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl p-6 relative">
+                <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl p-6 relative"
+                    style="max-height:80vh;overflow-y:auto">
                     <button type="button" id="closeShiftTypeCrudModal"
                         class="absolute top-2 right-4 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
                     <h2 class="text-2xl text-[#2679b5] mb-4">Manage Shift Types</h2>
@@ -1065,7 +1068,7 @@
                                     )
                                 );
                                 window.originalPreviewHeadings =
-                                previewHeadings; // Do this in your code where you first get the headings
+                                    previewHeadings; // Do this in your code where you first get the headings
 
                                 // Render dropdown and table
                                 renderColumnDropdown(

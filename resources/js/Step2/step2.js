@@ -175,7 +175,7 @@ async function handleShiftTypeCrudTableClick(e) {
         const id = tr.getAttribute("data-id");
         const inputs = tr.querySelectorAll("input[type='text']");
         const name = inputs[0].value.trim();
-        const description = inputs[1].value.trim();
+        const description = tr.querySelector("textarea").value.trim();
         const rateInputs = Array.from(
             tr.querySelectorAll("input[type='number'][data-day-type-id]")
         );
@@ -1326,6 +1326,11 @@ function initializeSaveButtons() {
     });
 }
 
+// Normalize function for headings
+function normalizeHeading(h) {
+    return h.toLowerCase().replace(/[^a-z0-9]/g, "_");
+}
+
 window.renderExportButton = function renderExportButton(locationId) {
     console.log("export button renderes");
     // Remove any existing export button for this location
@@ -1375,15 +1380,14 @@ window.renderExportButton = function renderExportButton(locationId) {
         exportBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Exporting...`;
         console.log("Exporting data for location:", locationId, exportData);
         // Get the DataTable instance
-        const table = $("#previewTable").DataTable();
+        // const table = $("#previewTable").DataTable();
 
-        // Get all rows in the current order (after sorting, filtering, etc.)
-        const sortedData = table
-            .rows({ order: "applied", search: "applied" })
-            .data()
-            .toArray();
+        // // Get all rows in the current order (after sorting, filtering, etc.)
+        // const sortedData = table
+        //     .rows({ order: "applied", search: "applied" })
+        //     .data()
+        //     .toArray();
 
-        console.log(sortedData);
         // Get the export mode from the radio buttons (if present)
         let perLocationTabs = false;
         const exportModeRadio = document.querySelector(
@@ -1392,11 +1396,49 @@ window.renderExportButton = function renderExportButton(locationId) {
         if (exportModeRadio) {
             perLocationTabs = exportModeRadio.value === "separate";
         }
+        // Get the currently visible columns (from the preview table)
+        // Get DataTable instance
+        const table = $("#previewTable").DataTable();
+
+        // Get all rows in the current order (after sorting, filtering, etc.)
+        const sortedData = table
+            .rows({ order: "applied", search: "applied" })
+            .data()
+            .toArray();
+
+        // Get the full headings from the latest calculate response
+        const allHeadings = exportData?.timesheet_headings || [];
+        console.log("all headings", allHeadings);
+        const selectedColumnIds = window.latestSelectedColumnIds; // Make sure you set this when rendering the table
+        // Get the visible columns as per the dropdown
+        const visibleColumns = allHeadings.filter((h) =>
+            selectedColumnIds.has(h.toLowerCase().replace(/[^a-z0-9]/g, "_"))
+        );
+
+        // Build export rows using sortedData and visibleColumns
+        const exportRows = sortedData.map((row) =>
+            visibleColumns.map((h) => {
+                const idx = visibleColumns.indexOf(h);
+                return row[idx];
+            })
+        );
+        const hiddenColumns = allHeadings.filter(
+            (h) => !visibleColumns.includes(h)
+        );
+
+        console.log("the payload:", {
+            data: exportRows,
+            headings: visibleColumns,
+            hiddenColumns: hiddenColumns,
+            totals: exportData?.totals || [],
+            per_location_tabs: perLocationTabs,
+        });
 
         // Prepare payload
         const payload = {
-            data: sortedData,
-            headings: exportData?.timesheet_headings || [],
+            data: exportRows,
+            headings: visibleColumns,
+            hiddenColumns: hiddenColumns,
             totals: exportData?.totals || [],
             per_location_tabs: perLocationTabs, // from radio button
         };
@@ -1650,6 +1692,7 @@ window.populatePreviewTable = function populatePreviewTable(
     data,
     selectedColumnIds
 ) {
+    window.latestSelectedColumnIds = selectedColumnIds;
     // Destroy DataTable before clearing table
     const table = document.getElementById("previewTable");
     const previewContainer = table.parentElement; // The div containing the table
@@ -1708,11 +1751,13 @@ window.populatePreviewTable = function populatePreviewTable(
         `;
         console.log(document.getElementById("previewLocationOptionDiv"));
 
-        // Insert above the table
-        previewContainer.parentElement.insertBefore(
-            optionDiv,
-            previewContainer
+        const placeholder = document.getElementById(
+            "previewLocationOptionPlaceholder"
         );
+        if (placeholder) {
+            placeholder.innerHTML = ""; // Clear previous content
+            placeholder.appendChild(optionDiv);
+        }
         console.log(document.getElementById("previewLocationOptionDiv"));
     }
     console.log(document.getElementById("previewLocationOptionDiv"));
