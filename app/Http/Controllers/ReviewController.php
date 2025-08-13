@@ -199,6 +199,7 @@ class ReviewController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
+        Log::info('Received locations data:', $request->all());
 
         $allData = [];
         $allHeadings = [];

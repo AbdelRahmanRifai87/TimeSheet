@@ -51,7 +51,7 @@ class AuthController extends Controller
         $jwt = JWT::encode($payload, env('JWT_SECRET', 'changeme'), 'HS256');
         Log::info('JWT generated', ['jwt' => $jwt]);
         // Set JWT as HttpOnly, Secure cookie and redirect
-        return redirect('/dataentry')
+        return redirect('/quotation')
             ->withCookie(
                 cookie(
                     'jwt_token',

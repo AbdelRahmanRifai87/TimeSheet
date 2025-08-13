@@ -589,6 +589,11 @@
                                 <i class="fas fa-download mr-1"></i>
                                 Export
                             </button>
+                            <button type="button" id="reviewExportBtn"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                                <i class="fas fa-eye mr-1"></i>
+                                Review
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -680,7 +685,7 @@
             <!-- Preview Modal -->
             <div id="previewModal"
                 class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden  ">
-                <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative overflow-y-auto max-h-[95vh]">
+                <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative overflow-y-auto h-[95vh]">
                     <button type="button" id="closePreviewModal"
                         class="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
                     <h2 class="text-2xl  text-[#2679b5] mb-4">Timesheet Preview</h2>
@@ -797,8 +802,40 @@
                 // Set quotation ID globally
                 window.quotationId = @json($quotation->id);
 
+
+                function showLoading() {
+                    document.getElementById("globalLoadingOverlay").classList.remove("hidden");
+                }
+
+                function hideLoading() {
+                    document.getElementById("globalLoadingOverlay").classList.add("hidden");
+                }
+                async function calculateForMultipleLocations(locationsData) {
+                    // locationsData: Array of { location_id, shifts: [...] }
+                    try {
+
+                        const response = await apiService.calculateReviewMulti({
+                            locations: locationsData,
+                        });
+                        if (response.data.success) {
+                            console.log("success");
+                            console.log("Calculation result:", response);
+                            // response.data.results is expected to be an object keyed by location_id
+                            // Each value contains timesheet_data, timesheet_headings, totals, etc.
+                            return response.data;
+                        } else {
+                            console.log("Failed to calculate for multiple locations.", );
+                            return null;
+                        }
+                    } catch (error) {
+                        console.log("Error calculating for multiple locations.", );
+                        console.error(error);
+                        return null;
+                    }
+                }
+
                 // Simplified Location Selection and Display Logic
-                document.addEventListener('DOMContentLoaded', function() {
+                document.addEventListener('DOMContentLoaded', async function() {
                     const locations = @json($locations);
                     const quotationId = @json($quotation->id);
                     const savedLocationSchedules = @json($savedLocationSchedules ?? []);
@@ -837,7 +874,8 @@
 
                     if (selectAllBtn) {
                         selectAllBtn.addEventListener('click', function() {
-                            if (window.multiSelectDropdown && typeof window.multiSelectDropdown.selectAll === 'function') {
+                            if (window.multiSelectDropdown && typeof window.multiSelectDropdown.selectAll ===
+                                'function') {
                                 window.multiSelectDropdown.selectAll();
                             } else {
                                 console.error('multiSelectDropdown or selectAll method not available');
@@ -847,7 +885,8 @@
 
                     if (deselectAllBtn) {
                         deselectAllBtn.addEventListener('click', function() {
-                            if (window.multiSelectDropdown && typeof window.multiSelectDropdown.deselectAll === 'function') {
+                            if (window.multiSelectDropdown && typeof window.multiSelectDropdown.deselectAll ===
+                                'function') {
                                 window.multiSelectDropdown.deselectAll();
                             } else {
                                 console.error('multiSelectDropdown or deselectAll method not available');
@@ -879,6 +918,8 @@
                             cancelExportBtn: !!cancelExportBtn,
                             processExportBtn: !!processExportBtn
                         });
+
+
 
                         // Open export modal
                         if (exportBtn) {
@@ -934,12 +975,244 @@
                                 }
                             });
                         });
+                        if (reviewExportBtn) {
+                            reviewExportBtn.addEventListener('click', async function() {
+
+
+                                // Gather selected locations as in export logic
+                                // ... (same as export logic up to calculation)
+                                // 1. Determine export type and selected locations
+                                const exportType = document.querySelector(
+                                        'input[name="exportType"]:checked')
+                                    .value;
+                                let selectedLocations = [];
+
+                                if (exportType === "specific") {
+                                    // Get checked checkboxes in the specific locations section
+                                    const checkedBoxes = document.querySelectorAll(
+                                        '#availableLocationsContainer input[name="specificLocations"]:checked'
+                                    );
+                                    const allWithData = getLocationsWithShiftData();
+                                    selectedLocations = Array.from(checkedBoxes).map(cb => {
+                                        return allWithData.find(loc => String(loc.id) === String(cb
+                                            .value));
+                                    }).filter(Boolean);
+                                } else {
+                                    // All locations with data
+                                    selectedLocations = getLocationsWithShiftData();
+                                }
+
+                                if (selectedLocations.length === 0) {
+                                    showToast("Please select at least one location with shift data.",
+                                        "error");
+                                    return;
+                                }
+
+                                const locationsData = selectedLocations.map(loc => ({
+                                    location_id: loc.id,
+                                    shifts: loc.shiftData.map(shift => {
+                                        // Find the shift type by name
+                                        const shiftTypeObj = shiftTypes.find(st => st
+                                            .name === shift.shiftType || st.id ===
+                                            shift.shiftTypeId || st.id === shift
+                                            .shift_type_id);
+                                        return {
+                                            shift_type_id: shiftTypeObj ? shiftTypeObj
+                                                .id : null, // must be integer
+                                            from: shift.from,
+                                            to: shift.to,
+                                            employees: parseInt(shift.employees, 10),
+                                            day: shift.day,
+                                            date_range: shift.dateRange || shift
+                                                .date_range,
+                                        };
+                                    })
+                                }));
+
+
+                                showLoading();
+                                const calcResult = await calculateForMultipleLocations(locationsData);
+                                hideLoading();
+
+                                if (!calcResult || !calcResult.success) {
+                                    showToast("Failed to prepare preview data.", "error");
+                                    return;
+                                }
+                                latestMultiCalculateResponses = calcResult;
+
+                                // Show the preview modal
+                                document.getElementById("previewModal").classList.remove("hidden");
+                                document.body.classList.add("overflow-hidden");
+
+                                // Populate the preview table
+                                // If multiple locations, you may want to show tabs or a summary
+                                // If one location, just show the table as usual
+                                // Example for one location:
+                                // By default, select all columns
+                                // Store data locally
+                                const previewHeadings = calcResult.timesheet_headings;
+                                const previewData = calcResult.timesheet_data;
+                                const coreColumns = [
+                                    "week_starting",
+                                    "shift_type",
+                                    "location",
+                                ]; // match backend keys
+
+                                // By default, select all columns
+                                const selectedColumnIds = new Set(
+                                    previewHeadings.map((h) =>
+                                        h.toLowerCase().replace(/[^a-z0-9]/g, "_")
+                                    )
+                                );
+                                window.originalPreviewHeadings =
+                                previewHeadings; // Do this in your code where you first get the headings
+
+                                // Render dropdown and table
+                                renderColumnDropdown(
+                                    previewHeadings,
+                                    selectedColumnIds,
+                                    coreColumns,
+                                    previewData
+                                );
+                                populatePreviewTable(
+                                    calcResult.timesheet_headings,
+                                    calcResult.timesheet_data,
+                                    selectedColumnIds
+                                );
+                                const id = generateRecordId();
+                                renderExportButton(id);
+                                // Dropdown toggle logic (unchanged)
+                                document.getElementById("columnDropdownBtn").onclick =
+                                    function(e) {
+                                        e.stopPropagation();
+                                        document
+                                            .getElementById("columnDropdownMenu")
+                                            .classList.toggle("hidden");
+                                    };
+                                document.addEventListener("click", function(e) {
+                                    const menu =
+                                        document.getElementById("columnDropdownMenu");
+                                    const btn =
+                                        document.getElementById("columnDropdownBtn");
+                                    if (
+                                        !menu.contains(e.target) &&
+                                        !btn.contains(e.target)
+                                    ) {
+                                        menu.classList.add("hidden");
+                                    }
+                                });
+                            });
+                        }
 
                         // Process export (placeholder for now)
                         if (processExportBtn) {
-                            processExportBtn.addEventListener('click', function() {
+                            processExportBtn.addEventListener('click', async function() {
                                 console.log('Process export clicked - functionality to be implemented');
-                                alert('Export functionality will be implemented here!');
+                                // 1. Determine export type and selected locations
+                                const exportType = document.querySelector(
+                                        'input[name="exportType"]:checked')
+                                    .value;
+                                let selectedLocations = [];
+
+                                if (exportType === "specific") {
+                                    // Get checked checkboxes in the specific locations section
+                                    const checkedBoxes = document.querySelectorAll(
+                                        '#availableLocationsContainer input[name="specificLocations"]:checked'
+                                    );
+                                    const allWithData = getLocationsWithShiftData();
+                                    selectedLocations = Array.from(checkedBoxes).map(cb => {
+                                        return allWithData.find(loc => String(loc.id) === String(cb
+                                            .value));
+                                    }).filter(Boolean);
+                                } else {
+                                    // All locations with data
+                                    selectedLocations = getLocationsWithShiftData();
+                                }
+
+                                if (selectedLocations.length === 0) {
+                                    showToast("Please select at least one location with shift data.",
+                                        "error");
+                                    return;
+                                }
+                                // 2. Prepare data for calculateForMultipleLocations
+                                let locationsData = selectedLocations.map(loc => ({
+                                    location_id: loc.id,
+                                    shifts: loc.shiftData
+                                }));
+                                const shiftTypes = window.shiftTypes || []; // or however you store them
+
+                                locationsData = selectedLocations.map(loc => ({
+                                    location_id: loc.id,
+                                    shifts: loc.shiftData.map(shift => {
+                                        // Find the shift type by name
+                                        const shiftTypeObj = shiftTypes.find(st => st
+                                            .name === shift.shiftType || st.id ===
+                                            shift.shiftTypeId || st.id === shift
+                                            .shift_type_id);
+                                        return {
+                                            shift_type_id: shiftTypeObj ? shiftTypeObj
+                                                .id : null, // must be integer
+                                            from: shift.from,
+                                            to: shift.to,
+                                            employees: parseInt(shift.employees, 10),
+                                            day: shift.day,
+                                            date_range: shift.dateRange || shift
+                                                .date_range,
+                                        };
+                                    })
+                                }));
+                                console.log('Locations data prepared for export:', locationsData);
+
+
+                                // 3. Call calculateForMultipleLocations to get export-ready data
+                                showLoading();
+                                const calcResult = await calculateForMultipleLocations(locationsData);
+
+                                hideLoading();
+                                console.log('Calculation result:', calcResult);
+
+                                if (!calcResult || !calcResult.success) {
+                                    showToast("Failed to prepare export data.", "error");
+                                    return;
+                                }
+
+                                // 4. Prepare export payload
+                                const exportMode = exportType === "all" ?
+                                    document.querySelector('input[name="allLocationsFormat"]:checked')
+                                    .value :
+                                    "single"; // default to single for specific
+
+                                const perLocationTabs = exportMode ===
+                                    "separate"; // "separate" means one tab per location
+                                console.log("hhhh");
+                                console.log("payload:", {
+                                    data: calcResult.timesheet_data,
+                                    headings: calcResult.timesheet_headings,
+                                    totals: calcResult.totals,
+                                    per_location_tabs: perLocationTabs
+                                });
+
+                                const payload = {
+                                    data: calcResult.timesheet_data,
+                                    headings: calcResult.timesheet_headings,
+                                    totals: calcResult.totals,
+                                    per_location_tabs: perLocationTabs,
+                                };
+
+                                // 5. Export and download
+                                showLoading();
+                                try {
+                                    const res = await apiService.exportReview(payload);
+                                    if (res.data && res.data.success && res.data.download_url) {
+                                        window.open(res.data.download_url, "_blank");
+                                        showToast("Export successful!", "success");
+                                    } else {
+                                        showToast("Export failed.", "error");
+                                    }
+                                } catch (e) {
+                                    showToast("Export failed.", "error");
+                                }
+                                hideLoading();
                                 // closeModal(); // Uncomment this when actual export is implemented
                             });
                         }
@@ -959,7 +1232,8 @@
                         console.log('Locations with data:', locationsWithData);
 
                         if (locationsWithData.length === 0) {
-                            container.innerHTML = '<p class="text-sm text-gray-500">No locations with saved shift data found.</p>';
+                            container.innerHTML =
+                                '<p class="text-sm text-gray-500">No locations with saved shift data found.</p>';
                             return;
                         }
 
@@ -995,15 +1269,16 @@
                             let hasData = false;
                             let dataSource = '';
 
+
                             // ONLY check localStorage - ignore window.records completely
                             const quotationId = window.quotationId;
                             const possibleKeys = [
-                                `quotation${quotationId}_location_${location.id}_records`,
-                                `records_${location.id}`,
-                                `quotation${quotationId}selectedlocation${location.id}Records`,
-                                `quotation_${quotationId}selectedlocations${location.id}Records`, // Primary pattern
-                                `quotation_${quotationId}_selectedlocations${location.id}Records`,
-                                `quotation${quotationId}_selectedlocations${location.id}Records`
+                                `quotation_${quotationId}selectedlocations${location.id}Records`,
+                                // `records_${location.id}`,
+                                // `quotation${quotationId}selectedlocation${location.id}Records`,
+                                // `quotation_${quotationId}selectedlocations${location.id}Records`, // Primary pattern
+                                // `quotation_${quotationId}_selectedlocations${location.id}Records`,
+                                // `quotation${quotationId}_selectedlocations${location.id}Records`
                             ];
 
                             // Check only localStorage keys
@@ -1014,7 +1289,8 @@
                                         const parsedRecords = JSON.parse(savedRecords);
                                         console.log(`Checking localStorage key: ${key}`, {
                                             isArray: Array.isArray(parsedRecords),
-                                            length: Array.isArray(parsedRecords) ? parsedRecords.length : 'N/A',
+                                            length: Array.isArray(parsedRecords) ? parsedRecords
+                                                .length : 'N/A',
                                             data: parsedRecords
                                         });
 
@@ -1023,14 +1299,21 @@
                                             recordCount = parsedRecords.length;
                                             hasData = true;
                                             dataSource = `localStorage[${key}]`;
-                                            console.log(`   Found ${recordCount} valid records for location ${location.name} in ${key}`);
+                                            shiftData = parsedRecords;
+                                            console.log(
+                                                `   Found ${recordCount} valid records for location ${location.name} in ${key} with these records ${shiftData}`
+                                            );
                                             break; // Found valid data, stop checking other keys
                                         } else if (Array.isArray(parsedRecords) && parsedRecords.length === 0) {
-                                            console.log(`  Found empty array for location ${location.name} in ${key} - excluding from export`);
+                                            console.log(
+                                                `  Found empty array for location ${location.name} in ${key} - excluding from export`
+                                            );
                                             dataSource = `localStorage[${key}] (empty)`;
                                             // Continue checking other keys in case there's valid data elsewhere
                                         } else {
-                                            console.log(`  Invalid data format for location ${location.name} in ${key}`);
+                                            console.log(
+                                                `  Invalid data format for location ${location.name} in ${key}`
+                                            );
                                         }
                                     } catch (e) {
                                         console.error(`Error parsing localStorage key ${key}:`, e);
@@ -1040,27 +1323,28 @@
 
                             // Add location only if localStorage has valid data
                             if (hasData) {
-                                console.log(`   Including location ${location.name} in export (${recordCount} shifts from ${dataSource})`);
+                                console.log(
+                                    `   Including location ${location.name} in export (${recordCount} shifts from ${dataSource})`
+                                );
                                 locationsWithData.push({
                                     ...location,
-                                    recordCount: recordCount
+                                    recordCount: recordCount,
+                                    shiftData: shiftData
                                 });
                             } else {
-                                console.log(`  Excluding location ${location.name} from export (no valid localStorage data found)`);
+                                console.log(
+                                    `  Excluding location ${location.name} from export (no valid localStorage data found)`
+                                );
                             }
                         });
 
                         console.log('Final locations with localStorage data:', locationsWithData.map(loc => ({
-                            name: loc.name, 
+                            name: loc.name,
                             recordCount: loc.recordCount
                         })));
 
                         return locationsWithData;
                     }
-
-
-
-
 
 
                     // Load saved shift data from database
@@ -1336,6 +1620,7 @@
                     }
                     return true;
                 };
+                console.log("tttttttttttttttttttttttttttttttttt");
 
                 // // Test function to manually test pills
                 // window.testPills = function() {

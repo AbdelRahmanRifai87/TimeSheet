@@ -13,6 +13,10 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Concerns\WithTitle;
+
+
 
 class TimesheetExport implements WithMultipleSheets
 {
@@ -36,20 +40,44 @@ class TimesheetExport implements WithMultipleSheets
     }
 
 
-    public function sheets(): array
+public function sheets(): array
 {
+    $sheets = [];
+
     if ($this->perLocationTabs) {
-        $sheets = [];
         foreach ($this->data as $location => $rows) {
-            $sheets[$location] = new TimesheetSingleSheetExport($rows, $this->headings, $this->hiddenColumns, $this->totals, $this->weekGroups);
+            $sheets[] = $this->makeSheet($rows, $location);
         }
-        return $sheets;
     } else {
-        return [
-            'Timesheet' => new TimesheetSingleSheetExport($this->data, $this->headings, $this->hiddenColumns, $this->totals, $this->weekGroups)
-        ];
+        $sheets[] = $this->makeSheet($this->data, 'Timesheet');
     }
+
+    return $sheets;
 }
+
+protected function makeSheet(array $rows, string $name)
+{
+    $sheetName = $this->sanitizeSheetName($name);
+
+    Log::info("Creating sheet: {$sheetName}");
+
+    return new TimesheetSingleSheetExport(
+        $rows,
+        $this->headings,
+        $this->hiddenColumns,
+        $this->totals,
+        $this->weekGroups,
+        $sheetName
+    );
+}
+private function sanitizeSheetName($name)
+{
+    // Remove invalid characters
+    $name = preg_replace('/[:\\\\\\/\\?\\*\\[\\]]/', '', $name);
+    // Trim and limit to 31 characters
+    return mb_substr(trim($name), 0, 31);
+}
+
 // public function collection()
 // {
 //     $rows = $this->data;
@@ -451,7 +479,7 @@ class TimesheetExport implements WithMultipleSheets
 //     }
 }
 
-class TimesheetSingleSheetExport implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
+class TimesheetSingleSheetExport implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping,WithTitle
 {
     // ...copy all your methods and properties here...    
     protected $data;
@@ -461,8 +489,10 @@ class TimesheetSingleSheetExport implements FromCollection, WithHeadings, WithSt
     protected $weekGroups;
     private $currentRow = 0;
     protected $perLocationTabs;
+    protected string $sheetName;
+
     
-   public function __construct($data, $headings, $hiddenColumns, $totals, $weekGroups)
+   public function __construct($data, $headings, $hiddenColumns, $totals, $weekGroups,string $sheetName)
     {
         $this->data = $data;
         $this->headings = $headings;
@@ -470,6 +500,12 @@ class TimesheetSingleSheetExport implements FromCollection, WithHeadings, WithSt
         $this->totals = $totals;
         $this->weekGroups = $weekGroups;
         $this->currentRow = 0;
+        $this->sheetName = $sheetName;
+    }
+
+     public function title(): string
+    {
+        return $this->sheetName;
     }
    
 
@@ -546,11 +582,11 @@ if (strpos($heading, 'Start Date') !== false) {
         $formatted = $value;
     }
 
-    // // Check if PH column exists and is set for this row
-    // $phColIndex = array_search('PH', $this->headings);
-    // if ($phColIndex !== false && isset($row[$phColIndex]) && floatval($row[$phColIndex]) > 0) {
-    //     $formatted .= ' PH';
-    // }
+    // Check if PH column exists and is set for this row
+    $phColIndex = array_search('PH', $this->headings);
+    if ($phColIndex !== false && isset($row[$phColIndex]) && floatval($row[$phColIndex]) > 0) {
+        $formatted .= ' PH';
+    }
     return $formatted;
 }
 
