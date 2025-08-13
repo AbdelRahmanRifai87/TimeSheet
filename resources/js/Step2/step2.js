@@ -429,6 +429,8 @@ function handleLocationCrudTableClick(e) {
                     window.updateLocationDisplay();
                     renderSelectedLocationContainers();
                     console.log("Location updated successfully with this id : ", id);
+                    loadLocationsTable();
+
                 })
                 .finally(() => hideLoading());
         } else {
@@ -466,6 +468,8 @@ function handleLocationCrudTableClick(e) {
                     addLocationToDropdown(response.data); // <-- here
                     window.updateLocationDisplay();
                     renderSelectedLocationContainers();
+                    loadLocationsTable();
+
                     console.log("Location added successfully:", response.data);
                 })
                 .finally(hideLoading);

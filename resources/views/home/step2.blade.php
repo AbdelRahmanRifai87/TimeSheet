@@ -727,7 +727,7 @@
             <!-- Location CRUD Modal -->
             <div id="locationCrudModal"
                 class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-                <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl p-6 relative">
+                <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl p-6 relative" style="max-height:80vh;overflow-y:auto;">
                     <button type="button" id="closeLocationCrudModal"
                         class="absolute top-2 right-4 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
                     <h2 class="text-2xl  text-[#2679b5] mb-4">Manage Locations</h2>
