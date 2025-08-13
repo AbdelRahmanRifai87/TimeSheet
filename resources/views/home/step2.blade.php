@@ -146,10 +146,7 @@
                     </div>
                 </div>
 
-                <!-- Summary -->
-                <div class="text-sm text-gray-600 bg-blue-50 p-2 rounded">
-                    <span id="selectedLocationCount">0</span> of {{ $locations->count() }} locations selected
-                </div>
+
             </div>
             <!-- Modal for Adding Shift Type -->
             <div id="addShiftTypeModal"
@@ -846,7 +843,7 @@
                     const quotationId = @json($quotation->id);
                     const savedLocationSchedules = @json($savedLocationSchedules ?? []);
 
-                    let selectedLocationIds = [];
+                    // let selectedLocationIds = [];
 
                     // Initialize multiSelect dropdown
                     const initializeDropdown = () => {
@@ -902,7 +899,6 @@
                     // Initialize functionality
                     // initLocationSelection();
                     loadSavedShiftData();
-
                     initializeExportModal();
 
                     // Initialize export modal functionality
@@ -1450,12 +1446,15 @@
                         console.log('Selected location IDs:',
                             selectedLocationIds); // Debug log
 
-                        // Update the count display
-                        const countDisplay = document.getElementById(
-                            'selectedLocationCount');
-                        if (countDisplay) {
-                            countDisplay.textContent = selectedLocationIds.length;
-                        }
+                    // // Update the count display and total locations in summary
+                    // const countDisplay = document.getElementById('selectedLocationCount');
+                    // const summary = document.querySelector('.text-sm.text-gray-600.bg-blue-50.p-2.rounded');
+                    // if (countDisplay && summary) {
+                    //     const total = (typeof locations !== 'undefined' && Array.isArray(locations)) ? locations.length : selectedLocationIds.length;
+                    //     countDisplay.textContent = selectedLocationIds.length;
+                    //     // Update the summary text to reflect the new total
+                    //     summary.innerHTML = `<span id="selectedLocationCount">${selectedLocationIds.length}</span> of ${total} locations selected`;
+                    // }
 
                         // Update status message
                         const statusMessage = document.getElementById(

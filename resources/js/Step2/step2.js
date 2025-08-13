@@ -403,15 +403,71 @@ function handleLocationCrudTableClick(e) {
             return;
         }
         showLoading();
-        if (id) {
-            axios
-                .put(`/api/locations/${id}`, data)
-                .then(() => loadLocationsTable())
+        if (id) { 
+            // Edit location
+            axios.put(`/api/locations/${id}`, data)
+                .then(() => {
+                    // 1. Update global locations array
+                    const idx = locations.findIndex(loc => String(loc.id) === String(id));
+                    if (idx !== -1) {
+                        locations[idx] = { ...locations[idx], ...data, id };
+                    }
+
+                    // 2. Update dropdown and pills
+                    updateLocationInDropdown({ ...data, id });
+
+                    // 3. Update the form in the locations container
+                    const form = document.querySelector(`.location-form[data-location-id="${id}"]`);
+                    if (form) {
+                        const nameElem = form.querySelector('h3');
+                        const addressElem = form.querySelector('p.text-sm.text-gray-600');
+                        if (nameElem) nameElem.textContent = data.name;
+                        if (addressElem) addressElem.textContent = data.address;
+                    }
+
+                    // 4. Optionally, update display
+                    window.updateLocationDisplay();
+                    renderSelectedLocationContainers();
+                    console.log("Location updated successfully with this id : ", id);
+                })
                 .finally(() => hideLoading());
         } else {
+            //adding new location
             axios
                 .post(`/api/locations`, data)
-                .then(() => loadLocationsTable())
+                .then(response => {
+                    console.log("the response data is for adding new location is:", response.data);
+
+                    console.log("trying to add the new location using the create form method");
+                    locations.push(response.data);
+                    records[response.data.id] = []; // Initialize empty records array for the new location
+                    const container = document.getElementById('selectedLocationsForms');
+                    container.style.display = '';
+                    if (container && !container.querySelector(`[data-location-id="${response.data.id}"]`)) {
+                        container.appendChild(createLocationForm(response.data));
+                        console.log("New location form added successfully to the location container!!");
+                    }
+                    // Attach event listener to the Add New Entry button
+                    const addEntryBtn = container.querySelector(`.add-shift-type-btn[data-location-id="${response.data.id}"]`);
+                    if (addEntryBtn) {
+                        addEntryBtn.addEventListener("click", function () {
+                            addDefaultShiftRow(response.data.id);
+                        });
+                    }
+                    // Attach event listener to the Save and Review button
+                    const saveButton = document.getElementById(`saveBtn_${response.data.id}`);
+                    if (saveButton) {
+                        saveButton.addEventListener("click", function () {
+                            renderTable(response.data.id);
+                            handleSaveButtonClick(response.data.id);
+                        });
+                    }
+                    // loadLocationsTable();
+                    addLocationToDropdown(response.data); // <-- here
+                    window.updateLocationDisplay();
+                    renderSelectedLocationContainers();
+                    console.log("Location added successfully:", response.data);
+                })
                 .finally(hideLoading);
         }
     }
@@ -458,7 +514,11 @@ function handleLocationCrudTableClick(e) {
             showLoading();
             axios
                 .delete(`/api/locations/${id}`)
-                .then(() => loadLocationsTable())
+                .then(() => {
+                    loadLocationsTable();
+                    removeLocationFromDropdown(id); // <-- here
+                    window.updateLocationDisplay();
+                })
                 .finally(() => hideLoading());
         }
     }
@@ -5396,6 +5456,187 @@ locations.forEach((location) => {
         });
     }
 });
+
+//Update the locations in real-time
+// Add a new location to the dropdown and select it
+function addLocationToDropdown(location) {
+    const optionsContainer = document.querySelector('.location-options');
+    if (!optionsContainer) return;
+
+    // Create the option element
+    const label = document.createElement('label');
+    label.className = 'location-option flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer';
+    label.setAttribute('data-location-id', location.id);
+    label.setAttribute('data-name', location.name);
+    label.setAttribute('data-address', location.address);
+
+    label.innerHTML = `
+        <div class="flex-1">
+            <div class="font-medium text-sm text-gray-900">
+                <input type="checkbox" value="${location.id}" class="mr-3 text-blue-600 focus:ring-blue-500" checked>
+                ${location.name}
+            </div>
+            <div class="text-xs text-gray-500">${location.address}</div>
+        </div>
+    `;
+    optionsContainer.appendChild(label);
+
+    // Select the new location in the dropdown
+    if (window.multiSelectDropdown) {
+        const checkbox = label.querySelector('input[type="checkbox"]');
+        checkbox.checked = true;
+        window.multiSelectDropdown.handleOptionSelect(checkbox);
+    }
+
+}
+
+// Update an existing location in the dropdown and pills
+function updateLocationInDropdown(location) {
+    const option = document.querySelector(`.location-option[data-location-id="${location.id}"]`);
+    if (option) {
+        option.querySelector('.font-medium').innerHTML = `
+            <input type="checkbox" value="${location.id}" class="mr-3 text-blue-600 focus:ring-blue-500" ${window.multiSelectDropdown.selectedValues.has(String(location.id)) ? 'checked' : ''}>
+            ${location.name}
+        `;
+        option.querySelector('.text-xs').textContent = location.address;
+    }
+    // Update pill if selected
+    const pill = document.querySelector(`.location-pill[data-value="${location.id}"] span`);
+    if (pill) pill.textContent = location.name;
+}
+
+// Remove a location from the dropdown and pills
+function removeLocationFromDropdown(locationId) {
+    const option = document.querySelector(`.location-option[data-location-id="${locationId}"]`);
+    if (option) option.remove();
+
+    // Remove pill if present
+    const pill = document.querySelector(`.location-pill[data-value="${locationId}"]`);
+    if (pill) pill.remove();
+
+    // Update dropdown state
+    if (window.multiSelectDropdown) {
+        window.multiSelectDropdown.selectedValues.delete(String(locationId));
+        window.multiSelectDropdown.updateSearchPlaceholder();
+    }
+}
+// function renderSelectedLocationContainers() {
+//     const selectedIds = window.multiSelectDropdown.getSelectedValues();
+//     const container = document.getElementById('selectedLocationsForms');
+//     container.innerHTML = '';
+
+//     if (selectedIds.length === 0) {
+//         container.innerHTML = '<div class="text-center text-gray-500 py-8">No locations selected. Please select locations above.</div>';
+//         return;
+//     }
+
+//     selectedIds.forEach(id => {
+//         const location = locations.find(loc => String(loc.id) === String(id));
+//         if (location) {
+//             const locationForm = createLocationForm(location.id, location.name, location.address);
+//             console.log("the location form, is ...:", locationForm);
+//             container.appendChild(locationForm);
+//         }
+//     });
+// }
+
+function renderSelectedLocationContainers() {
+    const selectedIds = window.multiSelectDropdown.getSelectedValues();
+    const forms = document.querySelectorAll('.location-form');
+    forms.forEach(form => {
+        const locationId = form.getAttribute('data-location-id');
+        if (selectedIds.includes(locationId)) {
+            form.style.display = 'block';
+        } else {
+            form.style.display = 'none';
+        }
+    });
+}
+function createLocationForm(location) {
+    const div = document.createElement('div');
+    div.className = 'location-form';
+    div.setAttribute('data-location-id', location.id);
+    div.style.display = 'block'; // Show it by default
+
+    div.innerHTML = `
+        <div class="border border-gray-300 rounded mt-2 mb-6 bg-gray-100">
+            <div class="cursor-pointer p-2" onclick="toggleForm('${location.id}')">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-lg text-[#2679b5]">${location.name}</h3>
+                    <span id="arrow_${location.id}" class="text-sm text-gray-500">
+                        <i class="fas fa-chevron-down"></i>
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-gray-600">${location.address}</p>
+                    <p id="totalsDisplay_${location.id}" class="text-sm text-gray-700 mt-2"></p>
+                </div>
+            </div>
+            <div id="form_${location.id}" class="overflow-hidden max-h-0 transition-all duration-700 ease-in-out bg-white">
+                <!-- Add your form fields and shift table here -->
+                <div class="mt-1 rounded mx-5" id="batchForm_${location.id}">
+                    <div class="flex justify-between items-center mt-2">
+                        <div class="flex items-center gap-4 p-2">
+                            <label>Filter by Day:</label>
+                            <select id="filterDay_${location.id}" class="border rounded px-2 py-1">
+                                <option value="">All</option>
+                                <option value="Mon">Monday</option>
+                                <option value="Tue">Tuesday</option>
+                                <option value="Wed">Wednesday</option>
+                                <option value="Thu">Thursday</option>
+                                <option value="Fri">Friday</option>
+                                <option value="Sat">Saturday</option>
+                                <option value="Sun">Sunday</option>
+                            </select>
+                            <label class="ml-4">Filter by Shift Type:</label>
+                            <select id="filterShiftType_${location.id}" class="border rounded px-2 py-1">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <button type="button"
+                            class="bg-[#428bca] text-white px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 add-shift-type-btn"
+                            data-location-id="${location.id}">
+                            Add New Entry
+                        </button>
+                    </div>
+                    <table class="min-w-full border mt-1" id="shiftTable_${location.id}">
+                        <thead>
+                            <tr>
+                                <th class="border px-2 py-1">Day</th>
+                                <th class="border px-2 py-1">Shift Type</th>
+                                <th class="border px-2 py-1">Date Range</th>
+                                <th class="border px-2 py-1">From</th>
+                                <th class="border px-2 py-1">To</th>
+                                <th class="border px-2 py-1"># Employees</th>
+                                <th class="border px-2 py-1">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows will be rendered by JS -->
+                        </tbody>
+                    </table>
+                    <div class="flex justify-end">
+                        <button type="button" id="saveBtn_${location.id}"
+                            class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3">
+                            <span class="save-btn-text">Save and Review</span>
+                            <span class="save-btn-spinner hidden">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                            <span class="save-btn-check hidden" id="checkIcon_${location.id}">
+                                <i class="fas fa-check"></i>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+
+
+
 
 // Add event listeners to all "Add Shift Type" buttons
 const addShiftTypeButtons = document.querySelectorAll(".add-shift-type-btn");
