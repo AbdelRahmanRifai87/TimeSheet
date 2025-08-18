@@ -1714,42 +1714,42 @@
                     //         return;
                     //     }
 
-                        fetch('/save-location-shift-data', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': csrfToken.getAttribute(
-                                        'content')
-                                },
-                                body: JSON.stringify({
-                                    location_id: locationId,
-                                    shift_data: shiftData
-                                })
-                            })
-                            .then(async response => {
-                                const contentType = response.headers.get('content-type');
-                                if (contentType && contentType.includes('application/json')) {
-                                    return response.json();
-                                } else {
-                                    const text = await response.text();
-                                    console.error('Non-JSON response:', text);
-                                    throw new Error('Server did not return JSON');
-                                }
-                            })
-                            .then(data => {
-                                if (data.success) {
-                                    console.log(
-                                        'Shift data saved successfully for location:',
-                                        locationId);
-                                } else {
-                                    console.error('Failed to save shift data:', data
-                                        .message);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error saving shift data:', error);
-                            });
-                    }
+                    //     fetch('/save-location-shift-data', {
+                    //             method: 'POST',
+                    //             headers: {
+                    //                 'Content-Type': 'application/json',
+                    //                 'X-CSRF-TOKEN': csrfToken.getAttribute(
+                    //                     'content')
+                    //             },
+                    //             body: JSON.stringify({
+                    //                 location_id: locationId,
+                    //                 shift_data: shiftData
+                    //             })
+                    //         })
+                    //         .then(async response => {
+                    //             const contentType = response.headers.get('content-type');
+                    //             if (contentType && contentType.includes('application/json')) {
+                    //                 return response.json();
+                    //             } else {
+                    //                 const text = await response.text();
+                    //                 console.error('Non-JSON response:', text);
+                    //                 throw new Error('Server did not return JSON');
+                    //             }
+                    //         })
+                    //         .then(data => {
+                    //             if (data.success) {
+                    //                 console.log(
+                    //                     'Shift data saved successfully for location:',
+                    //                     locationId);
+                    //             } else {
+                    //                 console.error('Failed to save shift data:', data
+                    //                     .message);
+                    //             }
+                    //         })
+                    //         .catch(error => {
+                    //             console.error('Error saving shift data:', error);
+                    //         });
+                    // }
 
                     // Update location display based on multiSelect selections
                     function updateLocationDisplay() {
