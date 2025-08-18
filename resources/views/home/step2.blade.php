@@ -79,12 +79,87 @@
 
 @section('content')
     <div class="w-[100%]  overflow-y-auto bg-white-100">
-        <!-- Quotation Header -->
-        <div class="bg-gray-50 p-4 mb-4 rounded">
-            <h1 class="text-xl font-bold text-[#2679b5]">Quotation Name: {{ $quotation->name }}</h1>
-            @if ($quotation->client_name)
-                <p class="text-gray-600">Client Name: {{ $quotation->client_name }}</p>
+
+<!-- Quotation Summary Block -->
+<div class="mt-4 bg-green-50 border border-green-200" id="quotation-summary">
+    <!-- Quotation Header -->
+    <div class="bg-green-50 p-4 mb-4 rounded">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-xl font-bold text-[#2679b5]">Quotation Name: {{ $quotation->name }}</h1>
+                @if ($quotation->client_name)
+                    <p class="text-gray-600">Client Name: {{ $quotation->client_name }}</p>
+                @endif
+            </div>
+            <button type="button" id="toggleQuotationSummaryBtn"
+                    class="text-[#2679b5] hover:underline flex items-center gap-1">
+                <span class="toggle-text">Show summary</span>
+                <i id="quotation-summary-chevron" class="fas fa-chevron-down transition-transform duration-200"></i>
+            </button>
+        </div>
+
+        <!-- Collapsible summary details (collapsed by default) -->
+        <div id="quotation-summary-details" class="mt-3 grid gap-2 sm:grid-cols-2 hidden">
+            <div class="flex items-center gap-2">
+                <span class="text-blue-600"><i class="fas fa-map-marker-alt"></i></span>
+                <span class="font-semibold">Locations:</span>
+                <span id="summary-locations">
+                    @php
+                        $names = [];
+                        if (isset($selectedLocations) && !empty($selectedLocations)) {
+                            $locMap = collect($locations ?? [])->pluck('name', 'id');
+                            foreach ((array) $selectedLocations as $item) {
+                                if (is_object($item) && isset($item->name)) {
+                                    $names[] = $item->name;
+                                } elseif (is_array($item) && isset($item['name'])) {
+                                    $names[] = $item['name'];
+                                } elseif (is_scalar($item)) {
+                                    $id = (string) $item;
+                                    $names[] = $locMap[$id] ?? $locMap[(int) $id] ?? (string) $item;
+                                }
+                            }
+                        }
+                    @endphp
+                    {{ !empty($names) ? implode(', ', $names) : 'None selected' }}
+                </span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="text-green-600"><i class="fas fa-calendar-alt"></i></span>
+                <span class="font-semibold">Date Range:</span>
+                <span id="summary-date-range">{{ $dateRange ?? 'N/A' }}</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="text-yellow-600"><i class="fas fa-list-ol"></i></span>
+                <span class="font-semibold">Total Shifts:</span>
+                <span id="summary-total-shifts">{{ $totalShifts ?? 0 }}</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="text-purple-600"><i class="fas fa-coins"></i></span>
+                <span class="font-semibold">Total Billable:</span>
+                <span id="summary-total-billable">
+                    {{ number_format($totalBillable ?? 0, 2) }} {{ $quotation->currency ?? 'USD' }}
+                </span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="text-pink-600"><i class="fas fa-calendar-day"></i></span>
+                <span class="font-semibold">Unique Days:</span>
+                <span id="summary-unique-days">{{ $uniqueDays ?? 0 }}</span>
+            </div>
+
+            @if($quotation->description)
+            <div class="w-full mt-2 text-gray-700 sm:col-span-2">
+                <span class="font-semibold">Description:</span>
+                <span>{{ $quotation->description }}</span>
+            </div>
             @endif
+        </div>
+    </div>
+</div>
+            <!-- End Quotation Summary Block -->
         </div>
 
         <!-- Location Selection Interface -->
@@ -805,6 +880,7 @@
                 // Set quotation ID globally
                 window.quotationId = @json($quotation->id);
                 window.locations = @json($locations);
+                window.quotationCurrency = @json($quotation->currency ?? 'USD');
 
 
                 function showLoading() {
@@ -1408,42 +1484,42 @@
                         });
                     }
 
-                    // Save shift data to database
-                    function saveShiftDataToDatabase(locationId, shiftData) {
-                        const csrfToken = document.querySelector(
-                            'meta[name="csrf-token"]');
-                        if (!csrfToken) {
-                            console.error('CSRF token not found');
-                            return;
-                        }
+                    // // Save shift data to database
+                    // function saveShiftDataToDatabase(locationId, shiftData) {
+                    //     const csrfToken = document.querySelector(
+                    //         'meta[name="csrf-token"]');
+                    //     if (!csrfToken) {
+                    //         console.error('CSRF token not found');
+                    //         return;
+                    //     }
 
-                        fetch('/save-location-shift-data', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': csrfToken.getAttribute(
-                                        'content')
-                                },
-                                body: JSON.stringify({
-                                    location_id: locationId,
-                                    shift_data: shiftData
-                                })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    console.log(
-                                        'Shift data saved successfully for location:',
-                                        locationId);
-                                } else {
-                                    console.error('Failed to save shift data:', data
-                                        .message);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error saving shift data:', error);
-                            });
-                    }
+                    //     fetch('/save-location-shift-data', {
+                    //             method: 'POST',
+                    //             headers: {
+                    //                 'Content-Type': 'application/json',
+                    //                 'X-CSRF-TOKEN': csrfToken.getAttribute(
+                    //                     'content')
+                    //             },
+                    //             body: JSON.stringify({
+                    //                 location_id: locationId,
+                    //                 shift_data: shiftData
+                    //             })
+                    //         })
+                    //         .then(response => response.json())
+                    //         .then(data => {
+                    //             if (data.success) {
+                    //                 console.log(
+                    //                     'Shift data saved successfully for location:',
+                    //                     locationId);
+                    //             } else {
+                    //                 console.error('Failed to save shift data:', data
+                    //                     .message);
+                    //             }
+                    //         })
+                    //         .catch(error => {
+                    //             console.error('Error saving shift data:', error);
+                    //         });
+                    // }
 
                     // Update location display based on multiSelect selections
                     function updateLocationDisplay() {
@@ -1537,11 +1613,16 @@
                             `quotation${quotationId}_selected_locations`, JSON
                             .stringify(
                                 selectedLocationIds));
+
+                        // Update header summary after selections change
+                        if (typeof window.updateQuotationHeaderSummary === 'function') {
+                            window.updateQuotationHeaderSummary();
+                        }
                     }
 
                     // Make functions globally available
                     window.updateLocationDisplay = updateLocationDisplay;
-                    window.saveShiftDataToDatabase = saveShiftDataToDatabase;
+                    // window.saveShiftDataToDatabase = saveShiftDataToDatabase;
 
                     // function loadSavedSelections() {
                     //     // First try to load from saved schedules (database)
@@ -1591,6 +1672,10 @@
                                     locationIds);
                                 window.multiSelectDropdown.setSelectedValues(
                                     locationIds);
+                                // Update header summary after loading selections
+                                if (typeof window.updateQuotationHeaderSummary === 'function') {
+                                    window.updateQuotationHeaderSummary();
+                                }
                             } catch (e) {
                                 console.error(
                                     'Error loading saved location selections:', e);

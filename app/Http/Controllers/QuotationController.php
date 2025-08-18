@@ -4,13 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Quotation;
-
+use App\Models\Location; // Ensure Location model is imported
 class QuotationController extends Controller
 {
     public function index()
     {
         $quotations = Quotation::latest()->paginate(10);
-        return view('quotation.index', compact('quotations'));
+        $locations = Location::all(); // Fetch all locations
+
+        $locationsCount = $locations->count(); // Count of locations
+        return view('quotation.index', compact('quotations', 'locations', 'locationsCount'));
     }
 
     public function store(Request $request)
@@ -19,7 +22,7 @@ class QuotationController extends Controller
             'quotation_name' => 'required|string|max:255',
             'client_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|in:draft,finalized'
+            'status' => 'nullable|in:sent to client,in_progress,finalized'
         ]);
 
         try {
@@ -28,7 +31,7 @@ class QuotationController extends Controller
                 'name' => $request->quotation_name,
                 'client_name' => $request->client_name,
                 'description' => $request->description,
-                'status' => $request->status ?? 'draft', // Default to draft if not provided
+                'status' => $request->status ?? 'sent to client', // Default to sent to client if not provided
                 'created_by' => auth()->id() ?? null, // Handle case where user is not authenticated
             ]);
             
@@ -58,14 +61,13 @@ class QuotationController extends Controller
             return back()->withErrors(['error' => 'Error creating quotation: ' . $e->getMessage()])->withInput();
         }
     }
-
     public function update(Request $request, Quotation $quotation)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'client_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|in:draft,finalized'
+            'status' => 'nullable|in:sent to client,in_progress,finalized'
         ]);
 
         $quotation->update($validated);

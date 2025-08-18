@@ -83,8 +83,43 @@ class HomeController extends Controller
             
             $showLocationSelection = false;
         }
+                // Get selected locations as a collection
+        $selectedLocations = $locations->whereIn('id', $selectedLocationIds);
 
-        return view('home.step2', compact('quotation', 'locations', 'showLocationSelection', 'savedLocationSchedules'));
+        // Initialize summary variables
+        $totalShifts = 0;
+        $totalBillable = 0;
+        $allDates = [];
+
+        // Loop through selected locations and their schedules
+        foreach ($selectedLocations as $location) {
+            $schedule = $savedLocationSchedules->where('location_id', $location->id)->first();
+            if ($schedule && !empty($schedule->shift_details)) {
+                foreach ($schedule->shift_details as $shift) {
+                    $totalShifts++;
+                    $totalBillable += isset($shift['billable']) ? $shift['billable'] : 0;
+                    if (isset($shift['date'])) {
+                        $allDates[] = $shift['date'];
+                    }
+                }
+            }
+        }
+
+        // Unique days and date range
+        $uniqueDays = collect($allDates)->unique()->values();
+        $dateRange = $uniqueDays->count() ? ($uniqueDays->min() . ' - ' . $uniqueDays->max()) : null;
+
+        return view('home.step2', compact(
+            'quotation',
+            'locations',
+            'showLocationSelection',
+            'savedLocationSchedules',
+            'selectedLocations',
+            'dateRange',
+            'totalShifts',
+            'totalBillable',
+            'uniqueDays'
+        ));    
     }
 
     public function step2Submit(Request $request)

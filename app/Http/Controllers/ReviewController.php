@@ -251,7 +251,7 @@ class ReviewController extends Controller
     }
 }
 
-    // Calculate totals and billable (AJAX)
+    // Calculate totals and billable (AJAX) for a location selected
     public function calculate(Request $request)
     {
         try {
@@ -312,7 +312,7 @@ $dayMap = [
     'Sun' => 0, 'Mon' => 1, 'Tue' => 2, 'Wed' => 3,
     'Thu' => 4, 'Fri' => 5, 'Sat' => 6
 ];
-
+//date range for each shift
 foreach ($shifts as $shift) {
     $dateRange = $shift['date_range'];
     $day = $shift['day'];
@@ -321,12 +321,12 @@ foreach ($shifts as $shift) {
     $start = \Carbon\Carbon::parse($startDate);
     $end = \Carbon\Carbon::parse($endDate);
 
+    //days of the week in the shift date range
     for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
         if ($date->dayOfWeek === $dayMap[$day]) {
             $newShift = $shift;
             $newShift['date'] = $date->format('Y-m-d');
-                        $newShift['date_range'] = $dateRange; // <-- Add this line
-
+            $newShift['date_range'] = $dateRange; // <-- Add this line
             $expandedShifts[] = $newShift;
         }
     }

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('client_name')->nullable();
             $table->text('description')->nullable();
-            $table->enum('status', ['draft', 'finalized'])->default('draft');
+            $table->enum('status', ['sent to client', 'in_progress', 'finalized'])->default('in_progress');
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
 
