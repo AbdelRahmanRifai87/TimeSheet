@@ -27,12 +27,92 @@ async function loadDayTypes() {
     }
 }
 
+window.showPreviewTableModal = function showPreviewTableModal({
+    headings,
+    data,
+    selectedColumnIds,
+    totals,
+    exportId,
+    allSelectedLocationIds,
+    selectedLocationIds,
+    allLocationData,
+}) {
+    console.log(exportId);
+    // 1. Show the modal
+    document.getElementById("previewModal").classList.remove("hidden");
+    document.body.classList.add("overflow-hidden");
+    const coreColumns = ["location"]; // match backend keys
+
+    // You need to keep track of selectedLocationIds and allLocationData globally or pass them in
+    renderLocationDropdown(
+        locations.filter((loc) =>
+            allSelectedLocationIds.includes(String(loc.id))
+        ),
+        selectedLocationIds,
+        allLocationData,
+        selectedColumnIds
+    );
+    // 2. Render the column dropdown and preview table
+    renderColumnDropdown(headings, selectedColumnIds, coreColumns, data);
+    populatePreviewTable(headings, data, selectedColumnIds);
+    console.log(latestCalculateResponses[exportId]);
+
+    // 3. (Optional) Render export button, radio options, etc.
+
+    renderExportButton(exportId);
+
+    // // Dropdown toggle logic (unchanged)
+    // document.getElementById("columnDropdownBtn").onclick = function (e) {
+    //     e.stopPropagation();
+    //     document
+    //         .getElementById("columnDropdownMenu")
+    //         .classList.toggle("hidden");
+    // };
+    // document.addEventListener("click", function (e) {
+    //     const menu = document.getElementById("columnDropdownMenu");
+    //     const btn = document.getElementById("columnDropdownBtn");
+    //     if (!menu.contains(e.target) && !btn.contains(e.target)) {
+    //         menu.classList.add("hidden");
+    //     }
+    // });
+    setTimeout(() => {
+        if ($.fn.DataTable.isDataTable("#previewTable")) {
+            adjustTableScrollY();
+            $("#previewTable").DataTable().columns.adjust();
+        }
+    }, 100);
+};
+
+function reattachShiftTypeCrudTableEvents() {
+    const shiftTypeTbody = document.querySelector("#shiftTypeCrudTable tbody");
+    shiftTypeTbody.removeEventListener("click", handleShiftTypeCrudTableClick); // Remove old
+    shiftTypeTbody.addEventListener("click", handleShiftTypeCrudTableClick); // Add new
+}
+function reattachLocationCrudTableEvents() {
+    const locationTbody = document.querySelector("#locationCrudTable tbody");
+    if (!locationTbody) return;
+    locationTbody.removeEventListener("click", handleLocationCrudTableClick); // Remove old
+    locationTbody.addEventListener("click", handleLocationCrudTableClick); // Add new
+}
+
+function showButtonSpinner(btn) {
+    btn.querySelector("i.fa-spinner").classList.remove("hidden");
+    btn.querySelector("i:not(.fa-spinner)").classList.add("hidden");
+    btn.disabled = true;
+}
+function hideButtonSpinner(btn) {
+    btn.querySelector("i.fa-spinner").classList.add("hidden");
+    btn.querySelector("i:not(.fa-spinner)").classList.remove("hidden");
+    btn.disabled = false;
+}
+
 function createShiftTypeRow(shiftType = {}, isEdit = false) {
     const tr = document.createElement("tr");
     tr.setAttribute("data-id", shiftType.id || "");
-    tr.className = "hover:bg-gray-50 border";
+    tr.className = "bg-white hover:bg-gray-50 border";
     if (isEdit) {
-        tr.classList.add("editing-row", "shadow-lg", "bg-blue-50", "rounded");
+        tr.classList.add("editing-row", "shadow-lg", "rounded");
+        tr.classList.replace("bg-white", "bg-blue-50");
         tr.innerHTML = `
             <td class='px-2 py-1 border-b border'><input type="text" class="form-input w-full" value="${
                 shiftType.name || ""
@@ -60,8 +140,14 @@ function createShiftTypeRow(shiftType = {}, isEdit = false) {
                 .join("")}
                  <td class="px-2 py-1 border-b border align-middle h-full">
     <div class="flex  justify-center items-center h-full min-h-[40px] gap-2">
-        <button type="button" class="saveShiftTypeBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save"><i class="fas fa-check"></i></button>
-                <button type="button" class="cancelShiftTypeBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel"><i class="fas fa-times"></i></button>
+       <button type="button" class="saveShiftTypeBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save">
+    <i class="fas fa-check"></i>
+    <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+</button>
+<button type="button" class="cancelShiftTypeBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel">
+    <i class="fas fa-times"></i>
+    <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+</button>
     </div>
 </td>
            
@@ -88,8 +174,14 @@ function createShiftTypeRow(shiftType = {}, isEdit = false) {
                 .join("")}
                 <td class="px-2 py-1 border-b border align-middle h-full">
     <div class="flex  justify-center items-center h-full min-h-[40px] gap-2">
-        <button type="button" class="editShiftTypeBtn text-blue-600" title="Edit"><i class="fas fa-edit"></i></button>
-                <button type="button" class="deleteShiftTypeBtn text-red-600" title="Delete"><i class="fas fa-trash"></i></button>
+        <button type="button" class="editShiftTypeBtn text-blue-600" title="Edit">
+    <i class="fas fa-edit"></i>
+    <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+</button>
+<button type="button" class="deleteShiftTypeBtn text-red-600" title="Delete">
+    <i class="fas fa-trash"></i>
+    <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+</button>
     </div>
 </td>
            
@@ -172,114 +264,155 @@ async function handleShiftTypeCrudTableClick(e) {
 
     // Save new or edited shift type
     if (e.target.closest(".saveShiftTypeBtn")) {
-        const id = tr.getAttribute("data-id");
-        const inputs = tr.querySelectorAll("input[type='text']");
-        const name = inputs[0].value.trim();
-        const description = tr.querySelector("textarea").value.trim();
-        const rateInputs = Array.from(
-            tr.querySelectorAll("input[type='number'][data-day-type-id]")
-        );
-        const rates = rateInputs.map((input) => ({
-            id: input.getAttribute("data-rate-id") || null,
-            day_type_id: parseInt(input.getAttribute("data-day-type-id")),
-            rate: parseFloat(input.value) || 0,
-        }));
-        console.log("the rates:", rates);
-
-        // --- VALIDATION START ---
-        // 1. Name cannot be empty
-        if (!name) {
-            showToast("Shift type name is required.", "error");
-            return;
-        }
-        // 2. Name must be unique (case-insensitive, except for current row in edit)
-        const nameExists = shiftTypes.some(
-            (st) =>
-                st.name.trim().toLowerCase() === name.toLowerCase() &&
-                String(st.id) !== String(id)
-        );
-        if (nameExists) {
-            showToast("Shift type name must be unique.", "error");
-            return;
-        }
-        // 3. All rates must be filled and valid numbers
-        const emptyRate = rates.some(
-            (r) => r.rate === "" || isNaN(Number(r.rate)) || r.rate === 0
-        );
-        if (emptyRate) {
-            console.log("All rate fields are required and must be numbers.");
-            showToast(
-                "All rate fields are required and must be numbers.",
-                "error"
+        const btn = e.target.closest(".saveShiftTypeBtn");
+        showButtonSpinner(btn);
+        try {
+            const id = tr.getAttribute("data-id");
+            const inputs = tr.querySelectorAll("input[type='text']");
+            const name = inputs[0].value.trim();
+            const description = tr.querySelector("textarea").value.trim();
+            const rateInputs = Array.from(
+                tr.querySelectorAll("input[type='number'][data-day-type-id]")
             );
-            return;
-        }
-        // --- VALIDATION END ---
-        showLoading();
-        let shiftTypeRes;
-        if (id) {
-            shiftTypeRes = await apiService.updateShiftType(id, {
-                name,
-                description,
-            });
-        } else {
-            shiftTypeRes = await apiService.createShiftType({
-                name,
-                description,
-            });
-        }
-        const shiftTypeId = id || shiftTypeRes.data.id;
+            const rates = rateInputs.map((input) => ({
+                id: input.getAttribute("data-rate-id") || null,
+                day_type_id: parseInt(input.getAttribute("data-day-type-id")),
+                rate: parseFloat(input.value) || 0,
+            }));
 
-        // Save rates (create or update)
-        for (const rate of rates) {
-            if (rate.id) {
-                await apiService.updateRate(rate.id, {
-                    shift_type_id: shiftTypeId,
-                    day_type_id: rate.day_type_id,
-                    rate: rate.rate,
+            // --- VALIDATION START ---
+            if (!name) {
+                showToast("Shift type name is required.", "error");
+                return;
+            }
+            const nameExists = shiftTypes.some(
+                (st) =>
+                    st.name.trim().toLowerCase() === name.toLowerCase() &&
+                    String(st.id) !== String(id)
+            );
+            if (nameExists) {
+                showToast("Shift type name must be unique.", "error");
+                return;
+            }
+            const emptyRate = rates.some(
+                (r) => r.rate === "" || isNaN(Number(r.rate)) || r.rate === 0
+            );
+            if (emptyRate) {
+                showToast(
+                    "All rate fields are required and must be numbers.",
+                    "error"
+                );
+                return;
+            }
+            // --- VALIDATION END ---
+            showShiftTypeTableLoading();
+
+            let shiftTypeRes;
+            if (id) {
+                shiftTypeRes = await apiService.updateShiftType(id, {
+                    name,
+                    description,
                 });
             } else {
-                await apiService.createRate({
-                    shift_type_id: shiftTypeId,
-                    day_type_id: rate.day_type_id,
-                    rate: rate.rate,
+                shiftTypeRes = await apiService.createShiftType({
+                    name,
+                    description,
                 });
             }
+            const shiftTypeId = id || shiftTypeRes.data.id;
+
+            // Save rates (create or update)
+            for (const rate of rates) {
+                if (rate.id) {
+                    await apiService.updateRate(rate.id, {
+                        shift_type_id: shiftTypeId,
+                        day_type_id: rate.day_type_id,
+                        rate: rate.rate,
+                    });
+                } else {
+                    await apiService.createRate({
+                        shift_type_id: shiftTypeId,
+                        day_type_id: rate.day_type_id,
+                        rate: rate.rate,
+                    });
+                }
+            }
+            await loadShiftTypesTable();
+            hideShiftTypeTableLoading();
+        } finally {
+            hideButtonSpinner(btn);
         }
-        await loadShiftTypesTable();
-        hideLoading();
     }
 
     // Cancel add/edit
     if (e.target.closest(".cancelShiftTypeBtn")) {
-        await loadShiftTypesTable();
+        const btn = e.target.closest(".cancelShiftTypeBtn");
+        showButtonSpinner(btn);
+        try {
+            await loadShiftTypesTable();
+        } finally {
+            hideButtonSpinner(btn);
+        }
     }
 
     // Edit existing shift type
     if (e.target.closest(".editShiftTypeBtn")) {
-        if (document.querySelector(".editing-row")) return;
-        const shiftTypeId = tr.getAttribute("data-id");
-        const shiftType = shiftTypes.find(
-            (st) => String(st.id) === String(shiftTypeId)
-        );
-        const editTr = createShiftTypeRow(shiftType, true);
-        tr.replaceWith(editTr);
+        const btn = e.target.closest(".editShiftTypeBtn");
+        showButtonSpinner(btn);
+        try {
+            if (document.querySelector(".editing-row")) return;
+            const shiftTypeId = tr.getAttribute("data-id");
+            const shiftType = shiftTypes.find(
+                (st) => String(st.id) === String(shiftTypeId)
+            );
+            const editTr = createShiftTypeRow(shiftType, true);
+            tr.replaceWith(editTr);
+        } finally {
+            hideButtonSpinner(btn);
+        }
     }
 
     // Delete shift type
     if (e.target.closest(".deleteShiftTypeBtn")) {
-        const id = tr.getAttribute("data-id");
-        if (confirm("Are you sure you want to delete this shift type?")) {
-            showLoading();
-            await apiService.deleteShiftType(id);
-            await loadShiftTypesTable();
-            hideLoading();
+        const btn = e.target.closest(".deleteShiftTypeBtn");
+        showButtonSpinner(btn);
+        try {
+            const id = tr.getAttribute("data-id");
+            const shiftTypeToDelete = shiftTypes.find(
+                (st) => String(st.id) === String(id)
+            );
+
+            if (confirm("Are you sure you want to delete this shift type?")) {
+                showShiftTypeTableLoading();
+                await apiService.deleteShiftType(id);
+                // Remove all shifts in records that belong to this shift type
+                Object.keys(records).forEach(async (locationId) => {
+                    const hasShiftType = records[locationId].some(
+                        (rec) =>
+                            rec.shiftType === (shiftTypeToDelete?.name || "")
+                    );
+                    if (hasShiftType) {
+                        records[locationId] = records[locationId].filter(
+                            (rec) =>
+                                rec.shiftType !==
+                                (shiftTypeToDelete?.name || "")
+                        );
+                        saveRecordsToStorage(locationId);
+                        await handleSaveButtonClick(locationId, true, true);
+                        renderTable(locationId);
+                    }
+                });
+                await loadShiftTypesTable();
+                hideShiftTypeTableLoading();
+            }
+        } finally {
+            hideButtonSpinner(btn);
         }
     }
 }
 
-async function loadShiftTypesTable() {
-    showLoading();
+window.loadShiftTypesTable = async function loadShiftTypesTable() {
+    showShiftTypeTableLoading();
     // Fetch day types and shift types (with rates)
     const [dayTypesRes, shiftTypesRes] = await Promise.all([
         apiService.getDayTypes(),
@@ -293,8 +426,9 @@ async function loadShiftTypesTable() {
     shiftTypes.forEach((st) => {
         tbody.appendChild(createShiftTypeRow(st));
     });
-    hideLoading();
-}
+    hideShiftTypeTableLoading();
+    reattachShiftTypeCrudTableEvents(); // <--- Add this line
+};
 
 // // Load all shift types from API
 // function loadShiftTypesTable() {
@@ -328,12 +462,12 @@ async function loadShiftTypesTable() {
 //         .finally(hideLoading);
 // }
 
-function showLoading() {
+window.showLoading = function showLoading() {
     document.getElementById("globalLoadingOverlay").classList.remove("hidden");
-}
-function hideLoading() {
+};
+window.hideLoading = function hideLoading() {
     document.getElementById("globalLoadingOverlay").classList.add("hidden");
-}
+};
 
 function openLocationCrudModal() {
     document.getElementById("locationCrudModal").classList.remove("hidden");
@@ -373,42 +507,52 @@ function addLocationRow() {
                 ).join("")}
             </select>
         </td>
-        <td class="border px-2 py-1 flex gap-2">
-            <button class="saveLocationBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save"><i class="fas fa-check"></i></button>
-            <button class="cancelLocationBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel"><i class="fas fa-times"></i></button>
-        </td>
+          <td class="border px-2 py-1 flex gap-2">
+        <button class="saveLocationBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save">
+            <i class="fas fa-check"></i>
+            <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+        </button>
+        <button class="cancelLocationBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel">
+            <i class="fas fa-times"></i>
+            <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+        </button>
+    </td>
     `;
     tr.classList.add("editing-row", "shadow-lg", "bg-blue-50", "rounded");
     tbody.prepend(tr);
 }
 
-function handleLocationCrudTableClick(e) {
+async function handleLocationCrudTableClick(e) {
     const tr = e.target.closest("tr");
     if (!tr) return;
 
     // Save new or edited location
     if (e.target.closest(".saveLocationBtn")) {
-        const inputs = tr.querySelectorAll("input");
-        const stateSelect = tr.querySelector("select");
+        const btn = e.target.closest(".saveLocationBtn");
+        showButtonSpinner(btn);
+        try {
+            const inputs = tr.querySelectorAll("input");
+            const stateSelect = tr.querySelector("select");
 
-        const data = {
-            name: inputs[0].value.trim(),
-            address: inputs[1].value.trim(),
-            city: inputs[2].value.trim(),
-            state: stateSelect.value.trim(),
-        };
-        const id = tr.dataset.id;
-        if (!data.name) {
-            showToast("Name is required.", "error");
-            return;
-        }
-        showLoading();
-        if (id) { 
-            // Edit location
-            axios.put(`/api/locations/${id}`, data)
-                .then(() => {
+            const data = {
+                name: inputs[0].value.trim(),
+                address: inputs[1].value.trim(),
+                city: inputs[2].value.trim(),
+                state: stateSelect.value.trim(),
+            };
+            const id = tr.dataset.id;
+            if (!data.name) {
+                showToast("Name is required.", "error");
+                return;
+            }
+
+            if (id) {
+                // Edit location
+                await axios.put(`/api/locations/${id}`, data).then(() => {
                     // 1. Update global locations array
-                    const idx = locations.findIndex(loc => String(loc.id) === String(id));
+                    const idx = locations.findIndex(
+                        (loc) => String(loc.id) === String(id)
+                    );
                     if (idx !== -1) {
                         locations[idx] = { ...locations[idx], ...data, id };
                     }
@@ -417,10 +561,14 @@ function handleLocationCrudTableClick(e) {
                     updateLocationInDropdown({ ...data, id });
 
                     // 3. Update the form in the locations container
-                    const form = document.querySelector(`.location-form[data-location-id="${id}"]`);
+                    const form = document.querySelector(
+                        `.location-form[data-location-id="${id}"]`
+                    );
                     if (form) {
-                        const nameElem = form.querySelector('h3');
-                        const addressElem = form.querySelector('p.text-sm.text-gray-600');
+                        const nameElem = form.querySelector("h3");
+                        const addressElem = form.querySelector(
+                            "p.text-sm.text-gray-600"
+                        );
                         if (nameElem) nameElem.textContent = data.name;
                         if (addressElem) addressElem.textContent = data.address;
                     }
@@ -428,70 +576,122 @@ function handleLocationCrudTableClick(e) {
                     // 4. Optionally, update display
                     window.updateLocationDisplay();
                     renderSelectedLocationContainers();
-                    console.log("Location updated successfully with this id : ", id);
+                    console.log(
+                        "Location updated successfully with this id : ",
+                        id
+                    );
                     loadLocationsTable();
+                });
+            } else {
+                //adding new location
+                await axios.post(`/api/locations`, data).then((response) => {
+                    console.log(
+                        "the response data is for adding new location is:",
+                        response.data
+                    );
 
-                })
-                .finally(() => hideLoading());
-        } else {
-            //adding new location
-            axios
-                .post(`/api/locations`, data)
-                .then(response => {
-                    console.log("the response data is for adding new location is:", response.data);
-
-                    console.log("trying to add the new location using the create form method");
+                    console.log(
+                        "trying to add the new location using the create form method"
+                    );
                     locations.push(response.data);
                     window.locations.push(response.data);
                     records[response.data.id] = []; // Initialize empty records array for the new location
-                    const container = document.getElementById('selectedLocationsForms');
-                    container.style.display = '';
-                    if (container && !container.querySelector(`[data-location-id="${response.data.id}"]`)) {
-                        container.appendChild(createLocationForm(response.data));
-                        console.log("New location form added successfully to the location container!!");
+                    const container = document.getElementById(
+                        "selectedLocationsForms"
+                    );
+                    container.style.display = "";
+                    if (
+                        container &&
+                        !container.querySelector(
+                            `[data-location-id="${response.data.id}"]`
+                        )
+                    ) {
+                        container.appendChild(
+                            createLocationForm(response.data)
+                        );
+                        console.log(
+                            "New location form added successfully to the location container!!"
+                        );
                     }
                     // Attach event listener to the Add New Entry button
-                    const addEntryBtn = container.querySelector(`.add-shift-type-btn[data-location-id="${response.data.id}"]`);
+                    const addEntryBtn = container.querySelector(
+                        `.add-shift-type-btn[data-location-id="${response.data.id}"]`
+                    );
                     if (addEntryBtn) {
                         addEntryBtn.addEventListener("click", function () {
                             addDefaultShiftRow(response.data.id);
                         });
                     }
                     // Attach event listener to the Save and Review button
-                    const saveButton = document.getElementById(`saveBtn_${response.data.id}`);
+                    const saveButton = document.getElementById(
+                        `saveBtn_${response.data.id}`
+                    );
                     if (saveButton) {
                         saveButton.addEventListener("click", function () {
                             renderTable(response.data.id);
                             // console.log("Fetching locations with shift data...");
                             // updateAvailableLocations();
                             locations.push(response.data);
-                            
+
                             handleSaveButtonClick(response.data.id);
                             updateAvailableLocations();
                             getLocationsWithShiftData();
-                            if (updateAvailableLocations() && getLocationsWithShiftData()) {
-                                console.log("Location added and update successfulllllly!!!!:", response.data);
+                            if (
+                                updateAvailableLocations() &&
+                                getLocationsWithShiftData()
+                            ) {
+                                console.log(
+                                    "Location added and update successfulllllly!!!!:",
+                                    response.data
+                                );
                             }
+                        });
+                    }
+
+                    const reviewButton = document.getElementById(
+                        `reviewTableBtn_${response.data.id}`
+                    );
+                    console.log("kakakkkakakakakkakakak", reviewButton);
+                    if (reviewButton) {
+                        reviewButton.addEventListener("click", function () {
+                            console.log("review button clicked");
+                            renderTable(response.data.id);
+                            // console.log("Fetching locations with shift data...");
+                            // updateAvailableLocations();
+                            locations.push(response.data);
+
+                            handleExportButtonClick(response.data.id);
+                            // updateAvailableLocations();
+                            // getLocationsWithShiftData();
                         });
                     }
                     // loadLocationsTable();
                     addLocationToDropdown(response.data); // <-- here
                     window.updateLocationDisplay();
                     renderSelectedLocationContainers();
-                    
+
                     loadLocationsTable();
-                })
-                .finally(hideLoading);
+                });
+            }
+        } catch (error) {
+            showToast("Failed to save location.", "error");
+        } finally {
+            hideButtonSpinner(btn);
         }
     }
 
     // Cancel add/edit
     if (e.target.closest(".cancelLocationBtn")) {
-        loadLocationsTable();
+        const btn = e.target.closest(".cancelLocationBtn");
+        showButtonSpinner(btn);
+        await loadLocationsTable();
+        hideButtonSpinner(btn);
     }
 
     // Edit existing location
     if (e.target.closest(".editLocationBtn")) {
+        const btn = e.target.closest(".editLocationBtn");
+        showButtonSpinner(btn);
         if (document.querySelector(".editing-row")) return;
         const tds = tr.querySelectorAll("td");
         const [name, address, city, state] = Array.from(tds)
@@ -512,40 +712,51 @@ function handleLocationCrudTableClick(e) {
                 ).join("")}
             </select>
         </td>            <td class="border px-2 py-1 flex gap-2">
-                <button class="saveLocationBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save"><i class="fas fa-check"></i></button>
-                <button class="cancelLocationBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel"><i class="fas fa-times"></i></button>
+                 <button class="saveLocationBtn text-green-600 bg-green-100 hover:bg-green-200 rounded shadow px-2 py-1" title="Save">
+        <i class="fas fa-check"></i>
+        <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+    </button>
+    <button class="cancelLocationBtn text-gray-600 bg-gray-100 hover:bg-gray-200 rounded shadow px-2 py-1" title="Cancel">
+        <i class="fas fa-times"></i>
+        <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+    </button>
             </td>
         `;
         tr.classList.add("editing-row", "shadow-lg", "bg-blue-50", "rounded");
         tr.dataset.id = tr.dataset.id;
+        hideButtonSpinner(btn);
     }
 
     // Delete location
     if (e.target.closest(".deleteLocationBtn")) {
-        const id = tr.dataset.id;
-        if (confirm("Are you sure you want to delete this location?")) {
-            showLoading();
-            axios
-                .delete(`/api/locations/${id}`)
-                .then(() => {
-                    loadLocationsTable();
-                    removeLocationFromDropdown(id); // <-- here
-                    window.updateLocationDisplay();
-                })
-                .finally(() => hideLoading());
+        const btn = e.target.closest(".deleteLocationBtn");
+        showButtonSpinner(btn);
+        try {
+            const id = tr.dataset.id;
+            if (confirm("Are you sure you want to delete this location?")) {
+                await axios.delete(`/api/locations/${id}`);
+                loadLocationsTable();
+                removeLocationFromDropdown(id);
+                window.updateLocationDisplay();
+            }
+        } catch (error) {
+            showToast("Failed to delete location.", "error");
+        } finally {
+            hideButtonSpinner(btn);
         }
     }
 }
 
-function loadLocationsTable() {
-    showLoading();
-    axios
+window.loadLocationsTable = async function loadLocationTable() {
+    showLocationTableLoading();
+    await axios
         .get("/api/locations")
         .then((res) => {
             const tbody = document.querySelector("#locationCrudTable tbody");
             tbody.innerHTML = "";
             res.data.forEach((loc) => {
                 const tr = document.createElement("tr");
+                tr.classList.add("bg-white");
                 tr.dataset.id = loc.id;
                 tr.innerHTML = `
                 <td class="border px-2 py-1">${loc.name}</td>
@@ -553,15 +764,24 @@ function loadLocationsTable() {
                 <td class="border px-2 py-1">${loc.city}</td>
                 <td class="border px-2 py-1">${loc.state}</td>
                 <td class="border px-2 py-1 flex gap-2">
-                    <button class="editLocationBtn text-blue-600" title="Edit"><i class="fas fa-edit"></i></button>
-                    <button class="deleteLocationBtn text-red-600" title="Delete"><i class="fas fa-trash"></i></button>
+                   <button class="editLocationBtn text-blue-600" title="Edit">
+            <i class="fas fa-edit"></i>
+            <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+        </button>
+        <button class="deleteLocationBtn text-red-600" title="Delete">
+            <i class="fas fa-trash"></i>
+            <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+        </button>
                 </td>
             `;
                 tbody.appendChild(tr);
             });
         })
-        .finally(hideLoading);
-}
+        .finally(() => {
+            // hideLocationTableLoading();
+            reattachLocationCrudTableEvents(); // <--- Add this line
+        });
+};
 
 async function calculateForMultipleLocations(locationsData) {
     // locationsData: Array of { location_id, shifts: [...] }
@@ -1214,6 +1434,103 @@ let filterDayValue = "";
 let filterShiftTypeValue = "";
 
 // const selectionManager = new SelectionManager();
+function renderLocationDropdown(
+    locations,
+    selectedLocationIds,
+    allLocationData,
+    selectedColumnIds
+) {
+    const container = document.getElementById("locationDropdownText");
+    container.innerHTML = "";
+
+    locations.forEach((loc) => {
+        const box = document.createElement("span");
+        box.className =
+            "location-label inline-block cursor-pointer px-3 py-1 rounded border text-xs font-semibold box-border transition duration-300 " +
+            (selectedLocationIds.has(String(loc.id))
+                ? "bg-[#337ab7] text-white border-[#337ab7]"
+                : "bg-gray-300 opacity-50 text-gray-700 border-gray-300") +
+            " hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white";
+        box.textContent = loc.name;
+        box.style.userSelect = "none";
+
+        box.addEventListener("click", async () => {
+            // Check if records exist for this location
+            if (!records[loc.id] || records[loc.id].length === 0) {
+                showToast(
+                    `No records found for location "${loc.name}". Please add shifts before selecting.`,
+                    "error"
+                );
+                return; // Prevent selection
+            }
+
+            if (selectedLocationIds.has(String(loc.id))) {
+                selectedLocationIds.delete(String(loc.id));
+            } else {
+                selectedLocationIds.add(String(loc.id));
+                box.classList.add("opacity-50", "pointer-events-none"); // Show loading state
+
+                // If data not loaded, fetch and store in allLocationData[loc.id]
+                if (!allLocationData[String(loc.id)]) {
+                    // Prepare mappedShifts for this location
+                    const mappedShifts = records[loc.id].map((rec) => {
+                        const shiftTypeObj = shiftTypes.find(
+                            (st) =>
+                                st.name === rec.shiftType ||
+                                st.id === rec.shiftType
+                        );
+                        return {
+                            shift_type_id: shiftTypeObj
+                                ? shiftTypeObj.id
+                                : rec.shiftType,
+                            day: rec.day,
+                            from: rec.from,
+                            to: rec.to,
+                            employees: parseInt(rec.employees, 10),
+                            date_range: rec.dateRange || rec.date_range,
+                        };
+                    });
+                    const response = await apiService.calculateReview({
+                        location_id: loc.id,
+                        shifts: mappedShifts,
+                    });
+                    allLocationData[String(loc.id)] = response.data;
+                }
+                box.classList.remove("opacity-50", "pointer-events-none");
+            }
+            //handle no data
+
+            // --- FIX: Handle empty selection ---
+            if (selectedLocationIds.size === 0) {
+                populatePreviewTable([], [], selectedColumnIds);
+            } else {
+                // Combine data for all selected locations
+                const combinedData = [];
+                selectedLocationIds.forEach((id) => {
+                    if (allLocationData[id]) {
+                        combinedData.push(
+                            ...allLocationData[id].timesheet_data
+                        );
+                    }
+                });
+                // Use the headings from the first selected location
+                const firstSelectedId = [...selectedLocationIds][0];
+                const headings =
+                    allLocationData[firstSelectedId]?.timesheet_headings || [];
+                populatePreviewTable(headings, combinedData, selectedColumnIds);
+            }
+            // Re-render pills to update their checked/unchecked state
+            renderLocationDropdown(
+                locations,
+                selectedLocationIds,
+                allLocationData,
+                selectedColumnIds
+            );
+        });
+
+        container.appendChild(box);
+    });
+}
 
 window.renderColumnDropdown = function renderColumnDropdown(
     headings,
@@ -1221,35 +1538,56 @@ window.renderColumnDropdown = function renderColumnDropdown(
     coreColumns,
     previewData
 ) {
-    const menu = document.getElementById("columnDropdownMenu");
-    menu.innerHTML = "";
+    // Uncheck "Date Range" and "Week Starting" by default
+    selectedColumnIds.delete("date_range");
+    selectedColumnIds.delete("week_starting");
+    // Use the text container as the main selector area
+    const container = document.getElementById("columnDropdownText");
+    container.innerHTML = "";
+
+    // Container for the pills/boxes
+    const boxContainer = document.createElement("div");
+    boxContainer.className = "flex flex-wrap gap-2 p-2";
+
     headings.forEach((heading, idx) => {
         const colId = heading.toLowerCase().replace(/[^a-z0-9]/g, "_");
         const isCore = coreColumns.includes(colId);
-        const label = document.createElement("label");
-        label.className =
-            "flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer";
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = colId;
-        checkbox.checked = selectedColumnIds.has(colId);
-        checkbox.disabled = isCore;
-        checkbox.className = "mr-2";
-        checkbox.addEventListener("change", () => {
+
+        // Create the pill/box
+        const box = document.createElement("span");
+        box.className =
+            "column-label inline-block cursor-pointer px-3 py-1 rounded border text-xs font-semibold box-border transition duration-300 " +
+            (selectedColumnIds.has(colId)
+                ? "bg-[#337ab7] text-white border-[#337ab7]"
+                : "bg-gray-300 opacity-50 text-gray-700 border-gray-300") +
+            " hover:border-blue-500 hover:shadow-md hover:shadow-blue-500 hover:bg-blue-400 hover:text-white";
+
+        box.textContent = heading;
+        box.style.userSelect = "none";
+        if (isCore) {
+            box.style.opacity = "0.7";
+            box.style.cursor = "not-allowed";
+        }
+
+        box.addEventListener("click", () => {
             if (isCore) return;
-            if (checkbox.checked) {
-                selectedColumnIds.add(colId);
-            } else {
+            if (selectedColumnIds.has(colId)) {
                 selectedColumnIds.delete(colId);
+                box.className =
+                    "column-label inline-block cursor-pointer px-3 py-1 rounded border text-xs font-semibold transition duration-200 bg-gray-300 opacity-50 text-gray-700 border-gray-300";
+            } else {
+                selectedColumnIds.add(colId);
+                box.className =
+                    "column-label inline-block cursor-pointer px-3 py-1 rounded border text-xs font-semibold transition duration-200 bg-[#337ab7] text-white border-[#337ab7]";
             }
-            updateColumnDropdownText(headings, selectedColumnIds);
+            // No need to update dropdown text, just re-render table
             populatePreviewTable(headings, previewData, selectedColumnIds);
         });
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(heading));
-        menu.appendChild(label);
+
+        boxContainer.appendChild(box);
     });
-    updateColumnDropdownText(headings, selectedColumnIds);
+
+    container.appendChild(boxContainer);
 };
 
 function updateColumnDropdownText(headings, selectedColumnIds) {
@@ -1332,6 +1670,24 @@ function initializeSaveButtons() {
                 handleSaveButtonClick(location.id);
             });
         }
+
+        const reviewButton = document.getElementById(
+            `reviewTableBtn_${location.id}`
+        );
+        console.log("kakakkkakakakakkakakak", reviewButton);
+        if (reviewButton) {
+            reviewButton.addEventListener("click", function () {
+                console.log("review button clicked");
+                renderTable(location.id);
+                // console.log("Fetching locations with shift data...");
+                // updateAvailableLocations();
+                locations.push(location.id);
+
+                handleExportButtonClick(location.id);
+                // updateAvailableLocations();
+                // getLocationsWithShiftData();
+            });
+        }
     });
 }
 
@@ -1364,6 +1720,11 @@ window.renderExportButton = function renderExportButton(locationId) {
         // Example inside your export logic:
         let exportData;
         let isMultiLocation = false;
+        console.log(
+            latestCalculateResponses[locationId],
+            locationId,
+            "dadasfafafd"
+        );
 
         // Check if latestMultiCalculateResponses has data
         if (
@@ -1378,6 +1739,7 @@ window.renderExportButton = function renderExportButton(locationId) {
             isMultiLocation = true;
         } else {
             // Fallback to single location
+            console.log(latestCalculateResponses[locationId]);
             exportData = latestCalculateResponses[locationId];
         }
 
@@ -1486,7 +1848,133 @@ window.renderExportButton = function renderExportButton(locationId) {
     console.log("Export button rendered for location:", locationId);
 };
 
-function handleSaveButtonClick(locationId, silent = false) {
+function handleExportButtonClick(locationId) {
+    const reviewBtn = document.getElementById(`reviewTableBtn_${locationId}`);
+    const btnSpinner = reviewBtn.querySelector(".review-btn-spinner");
+    console.log(btnSpinner);
+
+    console.log(`Export button clicked for location: ${locationId}`);
+    btnSpinner.classList.remove("hidden");
+
+    // Validate records for the location
+    const { duplicates, defaultShiftTypeRecords } = validateRecords(locationId);
+    if (duplicates.length > 0) {
+        btnSpinner.classList.add("hidden");
+        highlightDuplicateRows(locationId, duplicates);
+        showToast(
+            "Duplicate records found. Please resolve them before saving.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (defaultShiftTypeRecords.length > 0) {
+        btnSpinner.classList.add("hidden");
+        highlightDuplicateRows(locationId, defaultShiftTypeRecords);
+        showToast(
+            "Records with the default shift type are not allowed. Please update them.",
+            "error"
+        );
+
+        return;
+    } else {
+        showToast(
+            "No duplicates found. Proceeding to review table.",
+            "success"
+        );
+    }
+
+    // Get all selected locations from your main multi-select
+    const allSelectedLocationIds = window.multiSelectDropdown
+        ? window.multiSelectDropdown.getSelectedValues()
+        : [];
+
+    // Set up the selectedLocationIds set for the preview modal
+    // Only the locationId clicked is checked by default
+    const selectedLocationIds = new Set([String(locationId)]);
+    window.allLocationData = {};
+    const allLocationData = window.allLocationData;
+
+    const mappedShifts = records[locationId].map((rec) => {
+        // Find the shift type object by name
+        const shiftTypeObj = shiftTypes.find(
+            (st) => st.name === rec.shiftType || st.id === rec.shiftType
+        );
+        return {
+            shift_type_id: shiftTypeObj ? shiftTypeObj.id : rec.shiftType, // fallback if already id
+            day: rec.day,
+            from: rec.from,
+            to: rec.to,
+            employees: parseInt(rec.employees, 10), // ensure it's a number
+            date_range: rec.dateRange || rec.date_range,
+        };
+    });
+
+    console.log(
+        "data sent to calculate function",
+        mappedShifts,
+        " locationId",
+        locationId
+    );
+
+    // // Send API request to calculate totals
+    apiService
+        .calculateReview({
+            shifts: mappedShifts,
+            location_id: locationId,
+        })
+        .then((response) => {
+            allLocationData[locationId] = response.data;
+
+            latestCalculateResponses[locationId] = response.data;
+            console.log(latestCalculateResponses[locationId]);
+            console.log("API response from calculateReview:", response);
+            // Handle the API response as needed
+
+            const previewHeadings = response.data.timesheet_headings;
+            const previewData = response.data.timesheet_data;
+
+            // By default, select all columns
+            const selectedColumnIds = new Set(
+                previewHeadings.map((h) =>
+                    h.toLowerCase().replace(/[^a-z0-9]/g, "_")
+                )
+            );
+            console.log(locationId, "before going in showPreview");
+            btnSpinner.classList.add("hidden");
+            console.log(selectedLocationIds);
+            console.log(allSelectedLocationIds);
+
+            showPreviewTableModal({
+                headings: previewHeadings,
+                data: previewData,
+                selectedColumnIds,
+                totals: response.data.totals,
+                exportId: locationId,
+                allSelectedLocationIds, // pass all selected locations for pills
+                selectedLocationIds, // only the reviewed location checked
+                allLocationData,
+            });
+        })
+        .catch((error) => {
+            console.error("API error from calculateReview:", error);
+            showToast("Error when calculating.", "error");
+        });
+}
+
+// function roundMinutes(timeStr) {
+//     if (!timeStr) return timeStr;
+//     let [h, m] = timeStr.split(":").map(Number);
+//     if (m === 1) m = 0;
+//     if (m === 59) {
+//         m = 0;
+//         h = (h + 1) % 24; // increment hour, wrap to 0 if 24
+//     }
+//     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+// }
+
+function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
     return new Promise((resolve) => {
         console.log(`Save button clicked for location: ${locationId}`);
 
@@ -1494,13 +1982,22 @@ function handleSaveButtonClick(locationId, silent = false) {
         const btnText = saveBtn.querySelector(".save-btn-text");
         const btnSpinner = saveBtn.querySelector(".save-btn-spinner");
         const btnCheck = saveBtn.querySelector(".save-btn-check");
+        const totalsDisplay = document.getElementById(
+            `totalsDisplay_${locationId}`
+        );
 
         // Show spinner, hide text and check
         btnText.classList.add("hidden");
         btnSpinner.classList.remove("hidden");
         btnCheck.classList.add("hidden");
         if (records[locationId].length === 0) {
-            showToast("No records to save.", "error");
+            if (!silent2) {
+                showToast("No records to save.", "error");
+            }
+
+            totalsDisplay.innerHTML = `
+    `;
+
             btnSpinner.classList.add("hidden");
             btnText.classList.remove("hidden");
             resolve(true);
@@ -1530,10 +2027,16 @@ function handleSaveButtonClick(locationId, silent = false) {
             );
             btnSpinner.classList.add("hidden");
             btnText.classList.remove("hidden");
+
             resolve(true);
+            return;
+        } else {
+            if (!silent2)
+                showToast(
+                    "No duplicates found. Proceeding to save.",
+                    "success"
+                );
         }
-        if (!silent)
-            showToast("No duplicates found. Proceeding to save.", "success");
 
         const mappedShifts = records[locationId].map((rec) => {
             // Find the shift type object by name
@@ -1594,7 +2097,12 @@ function handleSaveButtonClick(locationId, silent = false) {
                         totalsDisplay.innerHTML = `
         <strong>Total Scheduled Hours:</strong>
         : ${Number(totals.scheduled_hours).toFixed(2)} 
-       <strong> Total Billable:</strong> $${Number(totals.billable).toFixed(2)}
+       <strong> Total Billable:</strong> $${Number(
+           totals.billable
+       ).toLocaleString(undefined, {
+           minimumFractionDigits: 2,
+           maximumFractionDigits: 2,
+       })}
     `;
                     }
                     btnSpinner.classList.add("hidden");
@@ -1602,80 +2110,82 @@ function handleSaveButtonClick(locationId, silent = false) {
                     setTimeout(() => {
                         btnCheck.classList.add("hidden");
                         btnText.classList.remove("hidden");
-                    }, 1500); // Show check for 1.5 seconds
-                    if (!silent) {
-                        // Show the preview modal ONLY if not silent
-                        document
-                            .getElementById("previewModal")
-                            .classList.remove("hidden");
-                        document.body.classList.add("overflow-hidden");
-                        console.log("Preview modal opened");
-                    }
-                    // Render the export button
-
-                    // Store data locally
-                    const previewHeadings = response.data.timesheet_headings;
-                    const previewData = response.data.timesheet_data;
-                    const coreColumns = [
-                        "week_starting",
-                        "shift_type",
-                        "location",
-                    ]; // match backend keys
-
-                    // By default, select all columns
-                    const selectedColumnIds = new Set(
-                        previewHeadings.map((h) =>
-                            h.toLowerCase().replace(/[^a-z0-9]/g, "_")
-                        )
-                    );
-
-                    // Render dropdown and table
-                    renderColumnDropdown(
-                        previewHeadings,
-                        selectedColumnIds,
-                        coreColumns,
-                        previewData
-                    );
-                    console.log(
-                        "Column dropdown rendered with headings:",
-                        previewHeadings,
-                        "and selected columns:",
-                        selectedColumnIds
-                    );
-                    populatePreviewTable(
-                        previewHeadings,
-                        previewData,
-                        selectedColumnIds
-                    );
-                    renderExportButton(locationId);
-                    console.log(
-                        "Preview table populated with headings:",
-                        previewHeadings,
-                        "and data:",
-                        previewData
-                    );
-
-                    // Dropdown toggle logic (unchanged)
-                    document.getElementById("columnDropdownBtn").onclick =
-                        function (e) {
-                            e.stopPropagation();
-                            document
-                                .getElementById("columnDropdownMenu")
-                                .classList.toggle("hidden");
-                        };
-                    document.addEventListener("click", function (e) {
-                        const menu =
-                            document.getElementById("columnDropdownMenu");
-                        const btn =
-                            document.getElementById("columnDropdownBtn");
-                        if (
-                            !menu.contains(e.target) &&
-                            !btn.contains(e.target)
-                        ) {
-                            menu.classList.add("hidden");
-                        }
-                    });
+                    }, 1500);
+                    if (!silent) toggleFormWithoutSaving(locationId);
                     resolve(true);
+                    // Show check for 1.5 seconds
+                    // if (!silent) {
+                    //     // Show the preview modal ONLY if not silent
+                    //     document
+                    //         .getElementById("previewModal")
+                    //         .classList.remove("hidden");
+                    //     document.body.classList.add("overflow-hidden");
+                    //     console.log("Preview modal opened");
+                    // }
+                    // // Render the export button
+
+                    // // Store data locally
+                    // const previewHeadings = response.data.timesheet_headings;
+                    // const previewData = response.data.timesheet_data;
+                    // const coreColumns = [
+                    //     "week_starting",
+                    //     "shift_type",
+                    //     "location",
+                    // ]; // match backend keys
+
+                    // // By default, select all columns
+                    // const selectedColumnIds = new Set(
+                    //     previewHeadings.map((h) =>
+                    //         h.toLowerCase().replace(/[^a-z0-9]/g, "_")
+                    //     )
+                    // );
+
+                    // // Render dropdown and table
+                    // renderColumnDropdown(
+                    //     previewHeadings,
+                    //     selectedColumnIds,
+                    //     coreColumns,
+                    //     previewData
+                    // );
+                    // console.log(
+                    //     "Column dropdown rendered with headings:",
+                    //     previewHeadings,
+                    //     "and selected columns:",
+                    //     selectedColumnIds
+                    // );
+                    // populatePreviewTable(
+                    //     previewHeadings,
+                    //     previewData,
+                    //     selectedColumnIds
+                    // );
+                    // renderExportButton(locationId);
+                    // console.log(
+                    //     "Preview table populated with headings:",
+                    //     previewHeadings,
+                    //     "and data:",
+                    //     previewData
+                    // );
+
+                    // // Dropdown toggle logic (unchanged)
+                    // document.getElementById("columnDropdownBtn").onclick =
+                    //     function (e) {
+                    //         e.stopPropagation();
+                    //         document
+                    //             .getElementById("columnDropdownMenu")
+                    //             .classList.toggle("hidden");
+                    //     };
+                    // document.addEventListener("click", function (e) {
+                    //     const menu =
+                    //         document.getElementById("columnDropdownMenu");
+                    //     const btn =
+                    //         document.getElementById("columnDropdownBtn");
+                    //     if (
+                    //         !menu.contains(e.target) &&
+                    //         !btn.contains(e.target)
+                    //     ) {
+                    //         menu.classList.add("hidden");
+                    //     }
+                    // });
                 } else {
                     if (!silent)
                         showToast("Failed to calculate totals.", "error");
@@ -1696,6 +2206,21 @@ function handleSaveButtonClick(locationId, silent = false) {
             });
     });
 }
+
+window.adjustTableScrollY = function adjustTableScrollY() {
+    const wrapper = document.getElementById("previewTableWrapper");
+    if (!wrapper) return;
+    // Calculate available height for the table body
+    // Subtract some px for modal header/footer if needed
+    const availableHeight = wrapper.clientHeight - 10; // adjust -10 as needed
+    if ($.fn.DataTable.isDataTable("#previewTable")) {
+        const dt = $("#previewTable").DataTable();
+        dt.settings()[0].oScroll.sY = availableHeight + "px";
+        dt.draw(false);
+        dt.columns.adjust();
+    }
+};
+
 window.populatePreviewTable = function populatePreviewTable(
     headings,
     data,
@@ -1820,6 +2345,23 @@ window.populatePreviewTable = function populatePreviewTable(
     //     return;
     // }
 
+    // Show "No data" if data is empty
+    if (!data || data.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = visibleColumns.length || 1;
+        td.className =
+            "border border-gray-300 px-1 py-1 text-xs break-all w-[90px] max-w-[90px] text-center align-middle";
+        td.textContent = "No data available";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        // Optionally, destroy DataTable if it exists
+        if ($.fn.DataTable.isDataTable("#previewTable")) {
+            $("#previewTable").DataTable().destroy();
+        }
+        return;
+    }
+
     data.forEach((row) => {
         const tr = document.createElement("tr");
 
@@ -1900,14 +2442,20 @@ window.populatePreviewTable = function populatePreviewTable(
     });
 
     // (Re)initialize DataTable
-    $("#previewTable").DataTable({
+    let dt = $("#previewTable").DataTable({
         paging: false,
         searching: true,
+        autoWidth: false,
         ordering: true,
-        responsive: true,
         scrollX: true,
-        scrollY: "35vh",
+        scrollY: "40vh",
+        scrollCollapse: false,
         columnDefs: [{ targets: "_all" }],
+    });
+
+    dt.columns.adjust().draw(false);
+    $(window).on("resize", function () {
+        $($.fn.dataTable.tables(true)).DataTable().columns.adjust().draw(false);
     });
     // Add margin-bottom to the DataTables search bar
     // Find the filter container
@@ -2333,6 +2881,7 @@ function addRow(locationId, clickedRow) {
 
     showToast("Row duplicated successfully!", "success");
 }
+
 function NewUpdateRow(locationId, clickedRow) {
     const rowId = clickedRow.dataset.id; // Get the unique ID of the row
 
@@ -2520,6 +3069,44 @@ function NewUpdateRow(locationId, clickedRow) {
             }
             // Restore background scrolling when Flatpickr is closed
             document.body.style.overflow = "";
+        },
+        onValueUpdate: function (selectedDates, dateStr, instance) {
+            let [hour, minute] = dateStr.split(":").map(Number);
+
+            if (hour === 0) {
+                if (minute === 0) {
+                    minute = 1;
+                } else if (![1, 15, 30, 45].includes(minute)) {
+                    if (minute < 8) minute = 1;
+                    else if (minute < 23) minute = 15;
+                    else if (minute < 38) minute = 30;
+                    else if (minute < 52) minute = 45;
+                    else minute = 1;
+                }
+            } else if (hour === 23) {
+                if (![0, 15, 30, 45, 59].includes(minute)) {
+                    if (minute < 8) minute = 0;
+                    else if (minute < 23) minute = 15;
+                    else if (minute < 38) minute = 30;
+                    else if (minute < 52) minute = 45;
+                    else minute = 0;
+                }
+            } else {
+                if (![0, 15, 30, 45].includes(minute)) {
+                    if (minute < 8) minute = 0;
+                    else if (minute < 23) minute = 15;
+                    else if (minute < 38) minute = 30;
+                    else if (minute < 52) minute = 45;
+                    else minute = 0;
+                }
+            }
+
+            const newTime = `${hour.toString().padStart(2, "0")}:${minute
+                .toString()
+                .padStart(2, "0")}`;
+            if (dateStr !== newTime) {
+                instance.setDate(newTime, true, "H:i");
+            }
         },
         defaultDate: previousFrom,
     });
@@ -3744,7 +4331,7 @@ function addDefaultShiftRow(locationId) {
     const defaultDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const defaultShiftType = "Default";
     const defaultDateRange = "25-1-1 to 25-1-30";
-    const defaultFrom = "00:00";
+    const defaultFrom = "00:01";
     const defaultTo = "23:59";
     const defaultEmployees = 1;
     const recordId = generateRecordId(); // Generate a unique ID
@@ -3783,6 +4370,13 @@ function addDefaultShiftRow(locationId) {
 
     // Re-render the table to reflect the new record
     renderTable(locationId);
+    // --- NEW: Switch the new row to edit mode ---
+    // Find the row in the DOM by its groupedId (use the first day as reference)
+    const tbody = document.querySelector(`#shiftTable_${locationId} tbody`);
+    const newRow = tbody.querySelector(`tr[data-id="${recordId}"]`);
+    if (newRow) {
+        NewUpdateRow(locationId, newRow);
+    }
 
     showToast("Default shift row added successfully!", "success");
 }
@@ -5363,6 +5957,35 @@ loadStep2Options().then(() => {
 
 console.log("hellooooooooooooooooooooooooo");
 // Other initialization logic (e.g., toggle form visibility)
+function toggleFormWithoutSaving(locationId) {
+    const form = document.getElementById(`form_${locationId}`);
+    const arrow = document.getElementById(`arrow_${locationId}`);
+    const totals = document.getElementById(`totalsDisplay_${locationId}`);
+    renderTable(locationId); // Ensure the table is rendered before toggling
+
+    // Update the arrow icon
+    if (form.classList.contains("max-h-0")) {
+        form.classList.remove("max-h-0");
+        // form.classList.add("mt-4");
+        totals.classList.add("hidden");
+
+        form.classList.add("max-h-[1000px]");
+
+        arrow.innerHTML = '<i class="fas fa-chevron-up"></i>'; // Down arrow
+        form.classList.add("p-2");
+    } else {
+        // form.classList.remove("mt-4");
+        totals.classList.remove("hidden");
+
+        form.classList.add("max-h-0");
+        form.classList.remove("max-h-[1000px]");
+        const exportBtn = document.querySelector("#exportBTN button");
+        if (exportBtn) exportBtn.remove();
+
+        arrow.innerHTML = '<i class="fas fa-chevron-down"></i>'; // Up arrow
+        form.classList.remove("p-2");
+    }
+}
 window.toggleForm = async function (locationId) {
     const form = document.getElementById(`form_${locationId}`);
     const arrow = document.getElementById(`arrow_${locationId}`);
@@ -5476,15 +6099,16 @@ locations.forEach((location) => {
 //Update the locations in real-time
 // Add a new location to the dropdown and select it
 function addLocationToDropdown(location) {
-    const optionsContainer = document.querySelector('.location-options');
+    const optionsContainer = document.querySelector(".location-options");
     if (!optionsContainer) return;
 
     // Create the option element
-    const label = document.createElement('label');
-    label.className = 'location-option flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer';
-    label.setAttribute('data-location-id', location.id);
-    label.setAttribute('data-name', location.name);
-    label.setAttribute('data-address', location.address);
+    const label = document.createElement("label");
+    label.className =
+        "location-option flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer";
+    label.setAttribute("data-location-id", location.id);
+    label.setAttribute("data-name", location.name);
+    label.setAttribute("data-address", location.address);
 
     label.innerHTML = `
         <div class="flex-1">
@@ -5503,31 +6127,44 @@ function addLocationToDropdown(location) {
         checkbox.checked = true;
         window.multiSelectDropdown.handleOptionSelect(checkbox);
     }
-
 }
 
 // Update an existing location in the dropdown and pills
 function updateLocationInDropdown(location) {
-    const option = document.querySelector(`.location-option[data-location-id="${location.id}"]`);
+    const option = document.querySelector(
+        `.location-option[data-location-id="${location.id}"]`
+    );
     if (option) {
-        option.querySelector('.font-medium').innerHTML = `
-            <input type="checkbox" value="${location.id}" class="mr-3 text-blue-600 focus:ring-blue-500" ${window.multiSelectDropdown.selectedValues.has(String(location.id)) ? 'checked' : ''}>
+        option.querySelector(".font-medium").innerHTML = `
+            <input type="checkbox" value="${
+                location.id
+            }" class="mr-3 text-blue-600 focus:ring-blue-500" ${
+            window.multiSelectDropdown.selectedValues.has(String(location.id))
+                ? "checked"
+                : ""
+        }>
             ${location.name}
         `;
-        option.querySelector('.text-xs').textContent = location.address;
+        option.querySelector(".text-xs").textContent = location.address;
     }
     // Update pill if selected
-    const pill = document.querySelector(`.location-pill[data-value="${location.id}"] span`);
+    const pill = document.querySelector(
+        `.location-pill[data-value="${location.id}"] span`
+    );
     if (pill) pill.textContent = location.name;
 }
 
 // Remove a location from the dropdown and pills
 function removeLocationFromDropdown(locationId) {
-    const option = document.querySelector(`.location-option[data-location-id="${locationId}"]`);
+    const option = document.querySelector(
+        `.location-option[data-location-id="${locationId}"]`
+    );
     if (option) option.remove();
 
     // Remove pill if present
-    const pill = document.querySelector(`.location-pill[data-value="${locationId}"]`);
+    const pill = document.querySelector(
+        `.location-pill[data-value="${locationId}"]`
+    );
     if (pill) pill.remove();
 
     // Update dropdown state
@@ -5558,21 +6195,21 @@ function removeLocationFromDropdown(locationId) {
 
 function renderSelectedLocationContainers() {
     const selectedIds = window.multiSelectDropdown.getSelectedValues();
-    const forms = document.querySelectorAll('.location-form');
-    forms.forEach(form => {
-        const locationId = form.getAttribute('data-location-id');
+    const forms = document.querySelectorAll(".location-form");
+    forms.forEach((form) => {
+        const locationId = form.getAttribute("data-location-id");
         if (selectedIds.includes(locationId)) {
-            form.style.display = 'block';
+            form.style.display = "block";
         } else {
-            form.style.display = 'none';
+            form.style.display = "none";
         }
     });
 }
 function createLocationForm(location) {
-    const div = document.createElement('div');
-    div.className = 'location-form';
-    div.setAttribute('data-location-id', location.id);
-    div.style.display = 'block'; // Show it by default
+    const div = document.createElement("div");
+    div.className = "location-form";
+    div.setAttribute("data-location-id", location.id);
+    div.style.display = "block"; // Show it by default
 
     div.innerHTML = `
         <div class="border border-gray-300 rounded mt-2 mb-6 bg-gray-100">
@@ -5650,10 +6287,6 @@ function createLocationForm(location) {
     return div;
 }
 
-
-
-
-
 // Add event listeners to all "Add Shift Type" buttons
 const addShiftTypeButtons = document.querySelectorAll(".add-shift-type-btn");
 console.log("initalizing add default button");
@@ -5664,31 +6297,32 @@ addShiftTypeButtons.forEach((button) => {
     });
 });
 
-document
-    .getElementById("backToSelectionBtn")
-    .addEventListener("click", openLocationCrudModal);
-document
-    .getElementById("closeLocationCrudModal")
-    .addEventListener("click", closeLocationCrudModal);
-document
-    .getElementById("addLocationBtn")
-    .addEventListener("click", addLocationRow);
-document
-    .querySelector("#locationCrudTable tbody")
-    .addEventListener("click", handleLocationCrudTableClick);
+const backBtnLocation = document.getElementById("backToSelectionBtn");
+if (backBtnLocation)
+    backBtnLocation.addEventListener("click", openLocationCrudModal);
+
+const closeLocBtn = document.getElementById("closeLocationCrudModal");
+if (closeLocBtn) closeLocBtn.addEventListener("click", closeLocationCrudModal);
+
+const addLocBtn = document.getElementById("addLocationBtn");
+if (addLocBtn) addLocBtn.addEventListener("click", addLocationRow);
+
+const locCrudTbody = document.querySelector("#locationCrudTable tbody");
+if (locCrudTbody)
+    locCrudTbody.addEventListener("click", handleLocationCrudTableClick);
 
 document
     .getElementById("addShiftTypeBtn")
     .addEventListener("click", addShiftTypeRow);
-document
-    .getElementById("closeShiftTypeCrudModal")
-    .addEventListener("click", closeShiftTypeCrudModal);
+// document
+//     .getElementById("closeShiftTypeCrudModal")
+//     .addEventListener("click", closeShiftTypeCrudModal);
 document
     .querySelector("#shiftTypeCrudTable tbody")
     .addEventListener("click", handleShiftTypeCrudTableClick);
-document
-    .getElementById("openShiftTypeCrudBtn")
-    .addEventListener("click", openShiftTypeCrudModal);
+// document
+//     .getElementById("openShiftTypeCrudBtn")
+//     .addEventListener("click", openShiftTypeCrudModal);
 
 locations.forEach((location) => {
     const addShiftBtn = document.getElementById(`addShiftBtn_${location.id}`);

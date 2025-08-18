@@ -213,7 +213,12 @@ class ReviewController extends Controller
             'billable' => 0,
         ];
 
+                $results = []; // <-- NEW: per-location results
+
+
         foreach ($request->input('locations') as $locationData) {
+                        $locationId = $locationData['location_id'];
+
             $fakeRequest = new Request([
                 'shifts' => $locationData['shifts'],
                 'location_id' => $locationData['location_id'],
@@ -234,6 +239,8 @@ class ReviewController extends Controller
                     $allTotals[$key] += $responseData['totals'][$key];
                 }
             }
+               // Store per-location result
+            $results[$locationId] = $responseData;
         }
 
         return response()->json([
@@ -241,6 +248,8 @@ class ReviewController extends Controller
             'timesheet_data' => $allData,
             'timesheet_headings' => $allHeadings,
             'totals' => $allTotals,
+                        'results' => $results, // <-- NEW: per-location results
+
         ]);
     } catch (Exception $e) {
         Log::error('calculateMultiMerged failed: ' . $e->getMessage());
@@ -249,6 +258,25 @@ class ReviewController extends Controller
             'error' => 'Multi-location calculation failed: ' . $e->getMessage()
         ], 500);
     }
+}
+
+private function roundMinutes($timeStr) {
+    if (!$timeStr) return $timeStr;
+
+    list($h, $m) = explode(":", $timeStr);
+    $h = (int)$h;
+    $m = (int)$m;
+
+    if ($m === 1) {
+        $m = 0;
+    }
+
+    if ($m === 59) {
+        $m = 0;
+        $h = ($h + 1) % 24; // increment hour, wrap to 0 if 24
+    }
+
+    return str_pad($h, 2, "0", STR_PAD_LEFT) . ":" . str_pad($m, 2, "0", STR_PAD_LEFT);
 }
 
     // Calculate totals and billable (AJAX)
@@ -349,15 +377,23 @@ foreach ($shifts as $shift) {
                     $carbonDate = \Carbon\Carbon::parse($date);
                     $dayOfWeek = $carbonDate->format('l');
                     $isHoliday = in_array($date, $holidays);
+                   $roundedFrom = $this->roundMinutes($from);
+                   $roundedTo = $this->roundMinutes($to);
 
-                    // Convert times to minutes since midnight
-                    $fromMinutes = (int)substr($from, 0, 2) * 60 + (int)substr($from, 3, 2);
-                    $toMinutes = (int)substr($to, 0, 2) * 60 + (int)substr($to, 3, 2);
+                    if ($roundedFrom === $roundedTo) {
+    $fromMinutes = 0;
+    $toMinutes = 24 * 60;
+}
 
-                    // If crosses midnight, add 24h to toMinutes
-                    if ($toMinutes <= $fromMinutes) {
-                        $toMinutes += 24 * 60;
-                    }
+                  else {
+    $fromMinutes = (int)substr($roundedFrom, 0, 2) * 60 + (int)substr($roundedFrom, 3, 2);
+    $toMinutes = (int)substr($roundedTo, 0, 2) * 60 + (int)substr($roundedTo, 3, 2);
+
+    // If crosses midnight, add 24h to toMinutes
+    if ($toMinutes <= $fromMinutes) {
+        $toMinutes += 24 * 60;
+    }
+}
                     $totalMinutes = $toMinutes - $fromMinutes;
                     $totalHours = $totalMinutes / 60;
                     if ($totalHours < 0) $totalHours = 0;

@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 use App\Models\Quotation;
 use App\Models\Location;
 use App\Models\QuotationLocationSchedule;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
+
 
 class HomeController extends Controller
 {
@@ -162,16 +166,28 @@ class HomeController extends Controller
 
     public function saveLocationShiftData(Request $request)
     {
+        Log::info('saveLocationShiftData called', $request->all());
         $quotationId = session('current_quotation_id');
         
         if (!$quotationId) {
             return response()->json(['success' => false, 'message' => 'No quotation found']);
         }
 
-        $validated = $request->validate([
-            'location_id' => 'required|exists:locations,id',
-            'shift_data' => 'required|array'
-        ]);
+         // Force JSON validation response
+        try {
+            $validated = $request->validate([
+                'location_id' => 'required|exists:locations,id',
+                'shift_data' => 'array'
+            ]);
+        } catch (ValidationException $e) {
+            throw new HttpResponseException(
+                response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors(),
+                ], 422)
+            );
+        }
 
         try {
             $schedule = QuotationLocationSchedule::updateOrCreate(
