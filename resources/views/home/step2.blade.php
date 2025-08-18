@@ -74,6 +74,57 @@
             transform: translateY(-10px);
             transition: all 0.2s ease-in-out;
         }
+
+        .open-section {
+            max-height: 500px !important;
+            /* adjust as needed */
+            opacity: 1 !important;
+        }
+
+        #previewModal .bg-white {
+            resize: both;
+            overflow: auto;
+            min-width: 300px;
+            min-height: 200px;
+            max-width: 98vw;
+            max-height: 98vh;
+            transition: width 0.2s, height 0.2s;
+            box-sizing: border-box;
+        }
+
+        /* Rounded scrollbar for preview modal */
+        #previewModalContent {
+            scrollbar-width: thin;
+            scrollbar-color: #2679b5 #f3f4f6;
+            /* thumb color, track color */
+        }
+
+        /* For Webkit browsers (Chrome, Edge, Safari) */
+        #previewModalContent::-webkit-scrollbar {
+            width: 10px;
+            border-radius: 8px;
+            background: #f3f4f6;
+        }
+
+        #previewModalContent::-webkit-scrollbar-thumb {
+            background: #2679b5;
+            border-radius: 8px;
+        }
+
+        #previewModalContent::-webkit-scrollbar-corner {
+            background: #f3f4f6;
+            border-radius: 8px;
+        }
+
+        #previewModalContent,
+        #previewModalContent>.flex-grow {
+            height: 100%;
+        }
+
+        #previewModalContent .dataTables_scrollBody {
+            height: 100% !important;
+            max-height: 100% !important;
+        }
     </style>
 @endsection
 
@@ -160,6 +211,88 @@
     </div>
 </div>
             <!-- End Quotation Summary Block -->
+        </div>
+
+        <!-- Shift Types Dropdown Setup -->
+        <div class="mb-6 bg-yellow-100 rounded shadow border border-gray-200">
+            <div id="shiftTypeDropdownToggle" class="flex items-center justify-between cursor-pointer  px-4 py-3 pb-0 ">
+                <span class="text-lg font-semibold text-[#2679b5] mb-2">Shift Type Setup</span>
+                <span id="shiftTypeDropdownArrow" class="transition-transform duration-200">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            <div id="shiftTypeDropdownContent" class="transition-all  duration-700  overflow-hidden max-h-0 mt-1">
+                <div class=" shadow-lg w-[100%]  p-6 pt-0 relative " style="max-height:80vh;overflow-y:auto">
+
+
+                    <div class="flex justify-end mb-1">
+                        <button id="addShiftTypeBtn" class="bg-blue-600 text-white px-2 py-1 rounded">Add Shift
+                            Type</button>
+                    </div>
+                    <table id="shiftTypeCrudTable" class="min-w-full border">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border px-2 py-1">Name</th>
+                                <th class="border px-2 py-1">Description</th>
+                                <th class="border px-2 py-1">Day Rate</th>
+                                <th class="border px-2 py-1">Night Rate</th>
+                                <th class="border px-2 py-1">Saturday Rate</th>
+                                <th class="border px-2 py-1">Sunday Rate</th>
+                                <th class="border px-2 py-1">PH Rate</th>
+                                <th class="border px-2 py-1">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr id="shiftTypeCrudTableLoadingRow">
+                                <td colspan="8" class="text-center py-6">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <svg class="animate-spin h-8 w-8 text-blue-600 mb-2"
+                                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10"
+                                                stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                        </svg>
+                                        <span class="text-blue-600 font-semibold">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Rows will be rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Dropdown Setup -->
+        <div class="mb-6 bg-blue-100 rounded shadow border border-gray-200">
+            <div id="locationDropdownToggle" class="flex items-center justify-between cursor-pointer  px-4 py-3 pb-0 ">
+                <span class="text-lg font-semibold text-[#2679b5] mb-2">Location Setup</span>
+                <span id="locationDropdownArrow" class="transition-transform duration-200">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            <div id="locationDropdownContent" class="transition-all duration-700 overflow-hidden max-h-0 mt-1">
+                <div class=" w-[100%] p-6 pt-0 relative" style="max-height:80vh;overflow-y:auto;">
+
+                    <div class="flex justify-end mb-2">
+                        <button id="addLocationBtn" class="bg-blue-600 text-white px-2 py-1 rounded">Add Location</button>
+                    </div>
+                    <table id="locationCrudTable" class="min-w-full border">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border px-2 py-1">Name</th>
+                                <th class="border px-2 py-1">Address</th>
+                                <th class="border px-2 py-1">City</th>
+                                <th class="border px-2 py-1">State</th>
+                                <th class="border px-2 py-1">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows will be rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- Location Selection Interface -->
@@ -301,14 +434,14 @@
                             class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded border">
                             <i class="fas fa-download mr-1"></i> Export Options
                         </button>
-                        <button type="button" id="backToSelectionBtn"
+                        {{-- <button type="button" id="backToSelectionBtn"
                             class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border">
                             Add/Edit Location
                         </button>
                         <button type="button" id="openShiftTypeCrudBtn"
                             class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border">
                             Add/Edit Shift Types
-                        </button>
+                        </button> --}}
                         <a href="{{ route('quotation.index') }}"
                             class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded">
                             Back to Quotations
@@ -484,10 +617,17 @@
                                             <!-- Rows will be rendered by JS -->
                                         </tbody>
                                     </table>
-                                    <div class="flex justify-end">
+                                    <div class="flex justify-end gap-2">
+                                        <button type="button" id="reviewTableBtn_{{ $location->id }}"
+                                            class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border mt-3 ">
+                                            Review Table
+                                            <span class="review-btn-spinner hidden ">
+                                                <i class="fas fa-spinner fa-spin"></i>
+                                            </span>
+                                        </button>
                                         <button type="button" id="saveBtn_{{ $location->id }}"
                                             class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3 ">
-                                            <span class="save-btn-text">Save and Review</span>
+                                            <span class="save-btn-text">Save</span>
                                             <span class="save-btn-spinner hidden">
                                                 <i class="fas fa-spinner fa-spin"></i>
                                             </span>
@@ -760,40 +900,63 @@
             <!-- Preview Modal -->
             <div id="previewModal"
                 class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden  ">
-                <div class="bg-white rounded-lg shadow-lg w-[70%] p-6 relative overflow-y-auto h-[95vh]">
+                <div id="previewModalContent"
+                    class="bg-white rounded-lg shadow-lg p-6 relative overflow-y-auto flex flex-col"
+                    style="
+        min-width:300px;
+        min-height:200px;
+        width:80vw;           /* Initial width: 80% of viewport */
+        height:70vh;          /* Initial height: 70% of viewport */
+        max-width:98vw;       /* Never exceed 98% of viewport width */
+        max-height:98vh;      /* Never exceed 98% of viewport height */
+        resize:both;
+        box-sizing:border-box;
+    ">
                     <button type="button" id="closePreviewModal"
                         class="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
                     <h2 class="text-2xl  text-[#2679b5] mb-4">Timesheet Preview</h2>
 
-                    <!-- Column Visibility Custom Dropdown -->
-                    <div class="mb-6 p-4 border rounded bg-gray-50 column-visibility-dropdown">
-                        <h3 class="text-lg font-semibold mb-4">Column Visibility</h3>
-                        <div class="relative w-full">
-                            <button id="columnDropdownBtn" type="button"
-                                class="w-full bg-white border-2 border-blue-400 rounded-lg px-4 py-2 text-left flex justify-between items-center shadow-sm focus:outline-none">
-                                <span id="columnDropdownText">Select Columns</span>
-                                <svg class="w-4 h-4 ml-2 text-blue-500" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-                            <div id="columnDropdownMenu"
-                                class="absolute left-0 mt-2 w-full bg-white border border-blue-200 rounded-lg shadow-lg z-50 hidden max-h-64 overflow-auto">
-                                <!-- JS will populate checkboxes here -->
-                            </div>
+                    <div class="mb-3 border rounded bg-gray-50 location-visibility-dropdown">
+                        <div id="locationVisibilityToggle"
+                            class="flex m-2 items-center cursor-pointer justify-between select-none">
+                            <h3 class="text-lg text-[#2679b5] mb-1 mr-2">Location Visibility</h3>
+                            <span id="locationVisibilityArrow" class="transition-transform duration-200">
+                                <i class="fas fa-chevron-down"></i>
+                            </span>
                         </div>
-                        <p class="mt-2 text-sm text-gray-500">Core columns are required and cannot be deselected.</p>
+                        <div id="locationVisibilityContent"
+                            class="w-full m-2 transition-all duration-500 ease-in-out max-h-0 overflow-hidden opacity-0">
+                            <div id="locationDropdownText" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Column Visibility Custom Dropdown -->
+                    <div class="mb-3 border  rounded bg-gray-50 column-visibility-dropdown">
+                        <div id="columnVisibilityToggle"
+                            class="flex m-2 items-center cursor-pointer justify-between  select-none">
+                            <h3 class="text-lg  text-[#2679b5] mb-1 mr-2">Column Visibility</h3>
+                            <span id="columnVisibilityArrow" class="transition-transform duration-200"><i
+                                    class="fas fa-chevron-down"></i></span>
+                            <!-- ▼ arrow, rotate when open -->
+                        </div>
+                        <div id="columnVisibilityContent"
+                            class="w-full mt-2 transition-all duration-500 ease-in-out max-h-0 overflow-hidden opacity-0">
+                            <div id="columnDropdownText" class="flex flex-wrap gap-2"></div>
+                            <p class="mt-1 ml-1 text-sm text-gray-500">Core columns are required and cannot be deselected.
+                            </p>
+                        </div>
                     </div>
                     <!-- Preview Table -->
 
 
-                    <div class="overflow-x-auto ">
-                        <table id="previewTable" class="display  w-full table-fixed">
+
+                    <div id="previewTableWrapper" class="overflow-x-auto flex-grow min-h-0 ">
+                        <table id="previewTable" class="display w-full">
                             <thead id="previewTableHead1"></thead>
                             <tbody id="previewTableBody1"></tbody>
                         </table>
                     </div>
+
                     <!-- Add this where you want the radio options to appear -->
                     <div id="previewLocationOptionPlaceholder"></div>
 
@@ -801,33 +964,7 @@
 
                 </div>
             </div>
-            <!-- Location CRUD Modal -->
-            <div id="locationCrudModal"
-                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-                <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl p-6 relative" style="max-height:80vh;overflow-y:auto;">
-                    <button type="button" id="closeLocationCrudModal"
-                        class="absolute top-2 right-4 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
-                    <h2 class="text-2xl  text-[#2679b5] mb-4">Manage Locations</h2>
-                    <div class="flex justify-end mb-2">
-                        <button id="addLocationBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Add Location</button>
-                    </div>
-                    <table id="locationCrudTable" class="min-w-full border">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="border px-2 py-1">Name</th>
-                                <th class="border px-2 py-1">Address</th>
-                                <th class="border px-2 py-1">City</th>
-                                <th class="border px-2 py-1">State</th>
-                                <th class="border px-2 py-1">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Rows will be rendered by JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- Loading Overlay -->
+            <!-- Global Loading Overlay -->
             <div id="globalLoadingOverlay"
                 class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[9999] hidden">
                 <div class="bg-white rounded-full p-6 shadow-lg flex flex-col items-center">
@@ -841,36 +978,12 @@
                 </div>
             </div>
 
+
+
             <!-- Shift Types CRUD Modal -->
             <div id="shiftTypeCrudModal"
                 class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-                <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl p-6 relative"
-                    style="max-height:80vh;overflow-y:auto">
-                    <button type="button" id="closeShiftTypeCrudModal"
-                        class="absolute top-2 right-4 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
-                    <h2 class="text-2xl text-[#2679b5] mb-4">Manage Shift Types</h2>
-                    <div class="flex justify-end mb-2">
-                        <button id="addShiftTypeBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Add Shift
-                            Type</button>
-                    </div>
-                    <table id="shiftTypeCrudTable" class="min-w-full border">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="border px-2 py-1">Name</th>
-                                <th class="border px-2 py-1">Description</th>
-                                <th class="border px-2 py-1">Day Rate</th>
-                                <th class="border px-2 py-1">Night Rate</th>
-                                <th class="border px-2 py-1">Saturday Rate</th>
-                                <th class="border px-2 py-1">Sunday Rate</th>
-                                <th class="border px-2 py-1">PH Rate</th>
-                                <th class="border px-2 py-1">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Rows will be rendered by JS -->
-                        </tbody>
-                    </table>
-                </div>
+
             </div>
 
 
@@ -883,12 +996,39 @@
                 window.quotationCurrency = @json($quotation->currency ?? 'USD');
 
 
-                function showLoading() {
-                    document.getElementById("globalLoadingOverlay").classList.remove("hidden");
+                function showLocationTableLoading() {
+                    const tbody = document.querySelector("#locationCrudTable tbody");
+                    if (!tbody) return;
+                    tbody.innerHTML = `
+        <tr id="locationCrudTableLoadingRow">
+            <td colspan="5" class="text-center py-6">
+                <div class="flex flex-col items-center justify-center">
+                    <svg class="animate-spin h-8 w-8 text-blue-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                    </svg>
+                    <span class="text-blue-600 font-semibold">Loading...</span>
+                </div>
+            </td>
+        </tr>
+    `;
                 }
 
-                function hideLoading() {
-                    document.getElementById("globalLoadingOverlay").classList.add("hidden");
+                function hideLocationTableLoading() {
+                    const loadingRow = document.getElementById('locationCrudTableLoadingRow');
+                    if (loadingRow) loadingRow.remove();
+                }
+
+                // Show the loading row in the shift types table
+                window.showShiftTypeTableLoading = function showShiftTypeTableLoading() {
+                    const row = document.getElementById('shiftTypeCrudTableLoadingRow');
+                    if (row) row.style.display = '';
+                }
+
+                // Hide the loading row in the shift types table
+                window.hideShiftTypeTableLoading = function hideShiftTypeTableLoading() {
+                    const row = document.getElementById('shiftTypeCrudTableLoadingRow');
+                    if (row) row.style.display = 'none';
                 }
                 async function calculateForMultipleLocations(locationsData) {
                     // locationsData: Array of { location_id, shifts: [...] }
@@ -920,7 +1060,80 @@
                     const quotationId = @json($quotation->id);
                     const savedLocationSchedules = @json($savedLocationSchedules ?? []);
 
+
+
+                    function toggleSection(toggleId, contentId, arrowId) {
+                        const toggle = document.getElementById(toggleId);
+                        const content = document.getElementById(contentId);
+                        const arrow = document.querySelector(`#${arrowId} i`);
+
+                        if (toggle && content && arrow) {
+                            toggle.addEventListener('click', function() {
+                                // Animation logic similar to toggleForm
+                                if (content.classList.contains('max-h-0') || !content.classList.contains(
+                                        'open-section')) {
+                                    content.classList.remove('max-h-0');
+                                    content.classList.add('open-section');
+                                    content.style.opacity = 1;
+                                    arrow.classList.remove('fa-chevron-down');
+                                    arrow.classList.add('fa-chevron-up');
+                                } else {
+                                    content.classList.add('max-h-0');
+                                    content.classList.remove('open-section');
+                                    content.style.opacity = 0;
+                                    arrow.classList.add('fa-chevron-down');
+                                    arrow.classList.remove('fa-chevron-up');
+                                }
+                            });
+                        }
+                    }
+                    toggleSection('locationVisibilityToggle', 'locationVisibilityContent', 'locationVisibilityArrow');
+                    toggleSection('columnVisibilityToggle', 'columnVisibilityContent', 'columnVisibilityArrow');
+
+
                     // let selectedLocationIds = [];
+
+
+                    const toggleshft = document.getElementById('shiftTypeDropdownToggle');
+                    const contentshft = document.getElementById('shiftTypeDropdownContent');
+                    const arrowshft = document.querySelector('#shiftTypeDropdownArrow i');
+
+                    if (toggleshft && contentshft && arrowshft) {
+                        toggleshft.addEventListener('click', function() {
+                            if (contentshft.classList.contains('max-h-0')) {
+                                contentshft.classList.remove('max-h-0');
+                                contentshft.classList.add('max-h-[2000px]');
+                                arrowshft.classList.remove('fa-chevron-down');
+                                arrowshft.classList.add('fa-chevron-up');
+                            } else {
+                                contentshft.classList.add('max-h-0');
+                                contentshft.classList.remove('max-h-[2000px]');
+                                arrowshft.classList.add('fa-chevron-down');
+                                arrowshft.classList.remove('fa-chevron-up');
+                            }
+                        });
+                    }
+
+                    const toggleloc = document.getElementById('locationDropdownToggle');
+                    const contentloc = document.getElementById('locationDropdownContent');
+                    const arrowloc = document.querySelector('#locationDropdownArrow i');
+
+                    if (toggleloc && contentloc && arrowloc) {
+                        toggleloc.addEventListener('click', function() {
+                            if (contentloc.classList.contains('max-h-0')) {
+                                contentloc.classList.remove('max-h-0');
+                                contentloc.classList.add('max-h-[2000px]');
+                                arrowloc.classList.remove('fa-chevron-down');
+                                arrowloc.classList.add('fa-chevron-up');
+                            } else {
+                                contentloc.classList.add('max-h-0');
+                                contentloc.classList.remove('max-h-[2000px]');
+                                arrowloc.classList.add('fa-chevron-down');
+                                arrowloc.classList.remove('fa-chevron-up');
+                            }
+                        });
+                    }
+
 
                     // Initialize multiSelect dropdown
                     const initializeDropdown = () => {
@@ -1118,11 +1331,10 @@
                                     showToast("Failed to prepare preview data.", "error");
                                     return;
                                 }
+                                console.log("calc relsult:", calcResult);
                                 latestMultiCalculateResponses = calcResult;
 
-                                // Show the preview modal
-                                document.getElementById("previewModal").classList.remove("hidden");
-                                document.body.classList.add("overflow-hidden");
+
 
                                 // Populate the preview table
                                 // If multiple locations, you may want to show tabs or a summary
@@ -1132,11 +1344,11 @@
                                 // Store data locally
                                 const previewHeadings = calcResult.timesheet_headings;
                                 const previewData = calcResult.timesheet_data;
-                                const coreColumns = [
-                                    "week_starting",
-                                    "shift_type",
-                                    "location",
-                                ]; // match backend keys
+                                // const coreColumns = [
+                                //     "week_starting",
+                                //     "shift_type",
+                                //     "location",
+                                // ]; // match backend keys
 
                                 // By default, select all columns
                                 const selectedColumnIds = new Set(
@@ -1147,158 +1359,166 @@
                                 window.originalPreviewHeadings =
                                     previewHeadings; // Do this in your code where you first get the headings
 
-                                // Render dropdown and table
-                                renderColumnDropdown(
-                                    previewHeadings,
-                                    selectedColumnIds,
-                                    coreColumns,
-                                    previewData
-                                );
-                                populatePreviewTable(
-                                    calcResult.timesheet_headings,
-                                    calcResult.timesheet_data,
-                                    selectedColumnIds
-                                );
-                                const id = generateRecordId();
-                                renderExportButton(id);
-                                // Dropdown toggle logic (unchanged)
-                                document.getElementById("columnDropdownBtn").onclick =
-                                    function(e) {
-                                        e.stopPropagation();
-                                        document
-                                            .getElementById("columnDropdownMenu")
-                                            .classList.toggle("hidden");
-                                    };
-                                document.addEventListener("click", function(e) {
-                                    const menu =
-                                        document.getElementById("columnDropdownMenu");
-                                    const btn =
-                                        document.getElementById("columnDropdownBtn");
-                                    if (
-                                        !menu.contains(e.target) &&
-                                        !btn.contains(e.target)
-                                    ) {
-                                        menu.classList.add("hidden");
-                                    }
-                                });
-                            });
-                        }
-
-                        // Process export (placeholder for now)
-                        if (processExportBtn) {
-                            processExportBtn.addEventListener('click', async function() {
-                                console.log('Process export clicked - functionality to be implemented');
-                                // 1. Determine export type and selected locations
-                                const exportType = document.querySelector(
-                                        'input[name="exportType"]:checked')
-                                    .value;
-                                let selectedLocations = [];
-
+                                const exportId = generateRecordId();
+                                // Pass all locations, not just selected ones
+                                const allLocationIds = window.multiSelectDropdown ?
+                                    window.multiSelectDropdown.getSelectedValues() : [];
+                                // Get only the locations checked in the export modal
+                                let checkedExportLocationIds = [];
                                 if (exportType === "specific") {
-                                    // Get checked checkboxes in the specific locations section
                                     const checkedBoxes = document.querySelectorAll(
                                         '#availableLocationsContainer input[name="specificLocations"]:checked'
                                     );
-                                    const allWithData = getLocationsWithShiftData();
-                                    selectedLocations = Array.from(checkedBoxes).map(cb => {
-                                        return allWithData.find(loc => String(loc.id) === String(cb
-                                            .value));
-                                    }).filter(Boolean);
+                                    checkedExportLocationIds = Array.from(checkedBoxes).map(cb => String(cb
+                                        .value));
                                 } else {
-                                    // All locations with data
-                                    selectedLocations = getLocationsWithShiftData();
+                                    checkedExportLocationIds = selectedLocations.map(loc => String(loc.id));
                                 }
+                                const selectedLocationIds = new Set(checkedExportLocationIds);
+                                console.log(selectedLocationIds);
+                                console.log(allLocationIds);
 
-                                if (selectedLocations.length === 0) {
-                                    showToast("Please select at least one location with shift data.",
-                                        "error");
-                                    return;
+
+
+                                const allLocationData = {};
+                                if (calcResult && calcResult.results) {
+                                    Object.entries(calcResult.results).forEach(([locationId, data]) => {
+                                        console.log(data);
+                                        console.log(locationId);
+                                        allLocationData[locationId] = data;
+                                    });
                                 }
-                                // 2. Prepare data for calculateForMultipleLocations
-                                let locationsData = selectedLocations.map(loc => ({
-                                    location_id: loc.id,
-                                    shifts: loc.shiftData
-                                }));
-                                const shiftTypes = window.shiftTypes || []; // or however you store them
+                                window.allLocationData = allLocationData;
+                                console.log(window.allLocationData);
 
-                                locationsData = selectedLocations.map(loc => ({
-                                    location_id: loc.id,
-                                    shifts: loc.shiftData.map(shift => {
-                                        // Find the shift type by name
-                                        const shiftTypeObj = shiftTypes.find(st => st
-                                            .name === shift.shiftType || st.id ===
-                                            shift.shiftTypeId || st.id === shift
-                                            .shift_type_id);
-                                        return {
-                                            shift_type_id: shiftTypeObj ? shiftTypeObj
-                                                .id : null, // must be integer
-                                            from: shift.from,
-                                            to: shift.to,
-                                            employees: parseInt(shift.employees, 10),
-                                            day: shift.day,
-                                            date_range: shift.dateRange || shift
-                                                .date_range,
-                                        };
-                                    })
-                                }));
-                                console.log('Locations data prepared for export:', locationsData);
-
-
-                                // 3. Call calculateForMultipleLocations to get export-ready data
-                                showLoading();
-                                const calcResult = await calculateForMultipleLocations(locationsData);
-
-                                hideLoading();
-                                console.log('Calculation result:', calcResult);
-
-                                if (!calcResult || !calcResult.success) {
-                                    showToast("Failed to prepare export data.", "error");
-                                    return;
-                                }
-
-                                // 4. Prepare export payload
-                                const exportMode = exportType === "all" ?
-                                    document.querySelector('input[name="allLocationsFormat"]:checked')
-                                    .value :
-                                    "single"; // default to single for specific
-
-                                const perLocationTabs = exportMode ===
-                                    "separate"; // "separate" means one tab per location
-                                console.log("hhhh");
-                                console.log("payload:", {
-                                    data: calcResult.timesheet_data,
-                                    headings: calcResult.timesheet_headings,
+                                showPreviewTableModal({
+                                    headings: previewHeadings,
+                                    data: previewData,
+                                    selectedColumnIds,
                                     totals: calcResult.totals,
-                                    per_location_tabs: perLocationTabs
+                                    exportId,
+                                    allSelectedLocationIds: allLocationIds,
+                                    selectedLocationIds,
+                                    allLocationData
                                 });
-
-                                const payload = {
-                                    data: calcResult.timesheet_data,
-                                    headings: calcResult.timesheet_headings,
-                                    totals: calcResult.totals,
-                                    per_location_tabs: perLocationTabs,
-                                };
-
-                                // 5. Export and download
-                                showLoading();
-                                try {
-                                    const res = await apiService.exportReview(payload);
-                                    if (res.data && res.data.success && res.data.download_url) {
-                                        window.open(res.data.download_url, "_blank");
-                                        showToast("Export successful!", "success");
-                                    } else {
-                                        showToast("Export failed.", "error");
-                                    }
-                                } catch (e) {
-                                    showToast("Export failed.", "error");
-                                }
-                                hideLoading();
-                                // closeModal(); // Uncomment this when actual export is implemented
                             });
                         }
+
+                        // // Process export (placeholder for now)
+                        // if (processExportBtn) {
+                        //     processExportBtn.addEventListener('click', async function() {
+                        //         console.log('Process export clicked - functionality to be implemented');
+                        //         // 1. Determine export type and selected locations
+                        //         const exportType = document.querySelector(
+                        //                 'input[name="exportType"]:checked')
+                        //             .value;
+                        //         let selectedLocations = [];
+
+                        //         if (exportType === "specific") {
+                        //             // Get checked checkboxes in the specific locations section
+                        //             const checkedBoxes = document.querySelectorAll(
+                        //                 '#availableLocationsContainer input[name="specificLocations"]:checked'
+                        //             );
+                        //             const allWithData = getLocationsWithShiftData();
+                        //             selectedLocations = Array.from(checkedBoxes).map(cb => {
+                        //                 return allWithData.find(loc => String(loc.id) === String(cb
+                        //                     .value));
+                        //             }).filter(Boolean);
+                        //         } else {
+                        //             // All locations with data
+                        //             selectedLocations = getLocationsWithShiftData();
+                        //         }
+
+                        //         if (selectedLocations.length === 0) {
+                        //             showToast("Please select at least one location with shift data.",
+                        //                 "error");
+                        //             return;
+                        //         }
+                        //         // 2. Prepare data for calculateForMultipleLocations
+                        //         let locationsData = selectedLocations.map(loc => ({
+                        //             location_id: loc.id,
+                        //             shifts: loc.shiftData
+                        //         }));
+                        //         const shiftTypes = window.shiftTypes || []; // or however you store them
+
+                        //         locationsData = selectedLocations.map(loc => ({
+                        //             location_id: loc.id,
+                        //             shifts: loc.shiftData.map(shift => {
+                        //                 // Find the shift type by name
+                        //                 const shiftTypeObj = shiftTypes.find(st => st
+                        //                     .name === shift.shiftType || st.id ===
+                        //                     shift.shiftTypeId || st.id === shift
+                        //                     .shift_type_id);
+                        //                 return {
+                        //                     shift_type_id: shiftTypeObj ? shiftTypeObj
+                        //                         .id : null, // must be integer
+                        //                     from: shift.from,
+                        //                     to: shift.to,
+                        //                     employees: parseInt(shift.employees, 10),
+                        //                     day: shift.day,
+                        //                     date_range: shift.dateRange || shift
+                        //                         .date_range,
+                        //                 };
+                        //             })
+                        //         }));
+                        //         console.log('Locations data prepared for export:', locationsData);
+
+
+                        //         // 3. Call calculateForMultipleLocations to get export-ready data
+                        //         showLoading();
+                        //         const calcResult = await calculateForMultipleLocations(locationsData);
+
+                        //         hideLoading();
+                        //         console.log('Calculation result:', calcResult);
+
+                        //         if (!calcResult || !calcResult.success) {
+                        //             showToast("Failed to prepare export data.", "error");
+                        //             return;
+                        //         }
+
+                        //         // 4. Prepare export payload
+                        //         const exportMode = exportType === "all" ?
+                        //             document.querySelector('input[name="allLocationsFormat"]:checked')
+                        //             .value :
+                        //             "single"; // default to single for specific
+
+                        //         const perLocationTabs = exportMode ===
+                        //             "separate"; // "separate" means one tab per location
+
+                        //         console.log("payload:", {
+                        //             data: calcResult.timesheet_data,
+                        //             headings: calcResult.timesheet_headings,
+                        //             totals: calcResult.totals,
+                        //             per_location_tabs: perLocationTabs
+                        //         });
+
+                        //         const payload = {
+                        //             data: calcResult.timesheet_data,
+                        //             headings: calcResult.timesheet_headings,
+                        //             totals: calcResult.totals,
+                        //             per_location_tabs: perLocationTabs,
+                        //         };
+
+                        //         // 5. Export and download
+                        //         showLoading();
+                        //         try {
+                        //             const res = await apiService.exportReview(payload);
+                        //             if (res.data && res.data.success && res.data.download_url) {
+                        //                 window.open(res.data.download_url, "_blank");
+                        //                 showToast("Export successful!", "success");
+                        //             } else {
+                        //                 showToast("Export failed.", "error");
+                        //             }
+                        //         } catch (e) {
+                        //             showToast("Export failed.", "error");
+                        //         }
+                        //         hideLoading();
+                        //         // closeModal(); // Uncomment this when actual export is implemented
+                        //     });
+                        // }
                     }
 
-               window.updateAvailableLocations=     function updateAvailableLocations() {
+                    window.updateAvailableLocations = function updateAvailableLocations() {
                         const container = document.getElementById('availableLocationsContainer');
                         if (!container) {
                             console.log('Available locations container not found');
@@ -1341,11 +1561,11 @@
                         });
                     }
 
-                window.getLocationsWithShiftData=    function getLocationsWithShiftData() {
+                    window.getLocationsWithShiftData = function getLocationsWithShiftData() {
                         const locationsWithData = [];
-                        console.log("locations........",locations);
+                        console.log("locations........", locations);
 
-                       
+
                         window.locations.forEach(location => {
                             let recordCount = 0;
                             let hasData = false;
@@ -1363,13 +1583,13 @@
                                 // `quotation${quotationId}_selectedlocations${location.id}Records`
                             ];
                             // Log all localStorage data
-                        console.log('--- All localStorage data ---');
-                        for (let i = 0; i < localStorage.length; i++) {
-                            const key = localStorage.key(i);
-                            const value = localStorage.getItem(key);
-                            console.log(`${key}:`, value);
-                        }
-                        console.log('--- End of localStorage data ---');
+                            console.log('--- All localStorage data ---');
+                            for (let i = 0; i < localStorage.length; i++) {
+                                const key = localStorage.key(i);
+                                const value = localStorage.getItem(key);
+                                console.log(`${key}:`, value);
+                            }
+                            console.log('--- End of localStorage data ---');
 
                             // Check only localStorage keys
                             for (const key of possibleKeys) {
@@ -1395,7 +1615,8 @@
                                                 `   Found ${recordCount} valid records for location ${location.name} in ${key} with these records ${shiftData}`
                                             );
                                             break; // Found valid data, stop checking other keys
-                                        } else if (Array.isArray(parsedRecords) && parsedRecords.length === 0) {
+                                        } else if (Array.isArray(parsedRecords) && parsedRecords.length ===
+                                            0) {
                                             console.log(
                                                 `  Found empty array for location ${location.name} in ${key} - excluding from export`
                                             );
@@ -1434,9 +1655,9 @@
                             recordCount: loc.recordCount
                         })));
 
-                       
 
-                                               
+
+
                         return locationsWithData;
                     }
 
@@ -1493,33 +1714,42 @@
                     //         return;
                     //     }
 
-                    //     fetch('/save-location-shift-data', {
-                    //             method: 'POST',
-                    //             headers: {
-                    //                 'Content-Type': 'application/json',
-                    //                 'X-CSRF-TOKEN': csrfToken.getAttribute(
-                    //                     'content')
-                    //             },
-                    //             body: JSON.stringify({
-                    //                 location_id: locationId,
-                    //                 shift_data: shiftData
-                    //             })
-                    //         })
-                    //         .then(response => response.json())
-                    //         .then(data => {
-                    //             if (data.success) {
-                    //                 console.log(
-                    //                     'Shift data saved successfully for location:',
-                    //                     locationId);
-                    //             } else {
-                    //                 console.error('Failed to save shift data:', data
-                    //                     .message);
-                    //             }
-                    //         })
-                    //         .catch(error => {
-                    //             console.error('Error saving shift data:', error);
-                    //         });
-                    // }
+                        fetch('/save-location-shift-data', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken.getAttribute(
+                                        'content')
+                                },
+                                body: JSON.stringify({
+                                    location_id: locationId,
+                                    shift_data: shiftData
+                                })
+                            })
+                            .then(async response => {
+                                const contentType = response.headers.get('content-type');
+                                if (contentType && contentType.includes('application/json')) {
+                                    return response.json();
+                                } else {
+                                    const text = await response.text();
+                                    console.error('Non-JSON response:', text);
+                                    throw new Error('Server did not return JSON');
+                                }
+                            })
+                            .then(data => {
+                                if (data.success) {
+                                    console.log(
+                                        'Shift data saved successfully for location:',
+                                        locationId);
+                                } else {
+                                    console.error('Failed to save shift data:', data
+                                        .message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error saving shift data:', error);
+                            });
+                    }
 
                     // Update location display based on multiSelect selections
                     function updateLocationDisplay() {
@@ -1537,15 +1767,15 @@
                         console.log('Selected location IDs:',
                             selectedLocationIds); // Debug log
 
-                    // // Update the count display and total locations in summary
-                    // const countDisplay = document.getElementById('selectedLocationCount');
-                    // const summary = document.querySelector('.text-sm.text-gray-600.bg-blue-50.p-2.rounded');
-                    // if (countDisplay && summary) {
-                    //     const total = (typeof locations !== 'undefined' && Array.isArray(locations)) ? locations.length : selectedLocationIds.length;
-                    //     countDisplay.textContent = selectedLocationIds.length;
-                    //     // Update the summary text to reflect the new total
-                    //     summary.innerHTML = `<span id="selectedLocationCount">${selectedLocationIds.length}</span> of ${total} locations selected`;
-                    // }
+                        // // Update the count display and total locations in summary
+                        // const countDisplay = document.getElementById('selectedLocationCount');
+                        // const summary = document.querySelector('.text-sm.text-gray-600.bg-blue-50.p-2.rounded');
+                        // if (countDisplay && summary) {
+                        //     const total = (typeof locations !== 'undefined' && Array.isArray(locations)) ? locations.length : selectedLocationIds.length;
+                        //     countDisplay.textContent = selectedLocationIds.length;
+                        //     // Update the summary text to reflect the new total
+                        //     summary.innerHTML = `<span id="selectedLocationCount">${selectedLocationIds.length}</span> of ${total} locations selected`;
+                        // }
 
                         // Update status message
                         const statusMessage = document.getElementById(
@@ -1782,4 +2012,42 @@
                 // };
             </script>
             @vite('resources/js/Step2/step2.js')
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (typeof window.loadShiftTypesTable === 'function') {
+                        window.loadShiftTypesTable();
+                    } else {
+                        // Wait until it's available
+                        const waitForLoad = setInterval(function() {
+                            if (typeof window.loadShiftTypesTable === 'function') {
+                                window.loadShiftTypesTable();
+                                clearInterval(waitForLoad);
+                            }
+                        }, 100);
+                    }
+
+                    if (typeof window.loadLocationsTable === 'function') {
+                        window.loadLocationsTable();
+                    } else {
+                        // Wait until it's available
+                        const waitForLoad = setInterval(function() {
+                            if (typeof window.loadLocationsTable === 'function') {
+                                window.loadLocationsTable();
+                                clearInterval(waitForLoad);
+                            }
+                        }, 100);
+                    }
+
+                    const previewModalContent = document.getElementById("previewModalContent");
+                    if (previewModalContent && window.ResizeObserver) {
+                        const resizeObserver = new ResizeObserver(() => {
+                            if ($.fn.DataTable.isDataTable("#previewTable")) {
+                                adjustTableScrollY();
+                                $("#previewTable").DataTable().columns.adjust();
+                            }
+                        });
+                        resizeObserver.observe(previewModalContent);
+                    }
+                });
+            </script>
         @endsection
