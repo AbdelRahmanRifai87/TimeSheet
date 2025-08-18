@@ -3,7 +3,7 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-[#2679b5]">Quotations</h1>
+        <h1 class="text-2xl font-bold text-[#2679b5]">Quotations  ({{ $locationsCount }})</h1>
         <button type="button" id="openCreateModal" class="bg-[#87b87f] hover:bg-lime-700 text-white px-6 py-2 rounded">
             Create New Quotation
         </button>
@@ -17,7 +17,7 @@
 
     @if($quotations->count() > 0)
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="w-full table-auto">
+            <table class="w-full table-auto"> 
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
@@ -29,7 +29,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($quotations as $quotation)
-                        <tr class="hover:bg-gray-50" data-id="{{ $quotation->id }}">
+                        <tr class="hover:bg-gray-50 quotation-row" data-id="{{ $quotation->id }}">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="group">
                                     <div class="editable-field" data-field="name">
@@ -43,7 +43,8 @@
                                         </span>
                                         <textarea class="edit-input hidden mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500" rows="2">{{ $quotation->description }}</textarea>
                                     </div>
-                                @endif
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 <div class="editable-field" data-field="client_name">
@@ -54,12 +55,13 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="editable-field" data-field="status">
                                     <span class="display-value inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                        {{ $quotation->status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800' }}">
+                                        {{ $quotation->status === 'sent to client' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800' }}">
                                         {{ ucfirst($quotation->status) }}
                                     </span>
                                     <select class="edit-input hidden mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500">
-                                        <option value="draft" {{ $quotation->status === 'draft' ? 'selected' : '' }}>Draft</option>
+                                        <option value="in_progress" {{ $quotation->status === 'in_progress' ? 'selected' : '' }}>In Progress</option>
                                         <option value="finalized" {{ $quotation->status === 'finalized' ? 'selected' : '' }}>Finalized</option>
+                                        <option value="sent to client" {{ $quotation->status === 'sent to client' ? 'selected' : '' }}>Sent to Client</option>
                                     </select>
                                 </div>
                             </td>
@@ -89,15 +91,20 @@
                                 </button>
                             </td>
                         </tr>
+                        <tr id="quotation-summary-{{ $quotation->id }}" class="quotation-summary-row hidden">
+                            <td colspan="5">
+                                <div id="summary-content-{{ $quotation->id }}"></div>
+                            </td>
+                        </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
 
-        <!-- Pagination -->
+        {{-- <!-- Pagination -->
         <div class="mt-6">
             {{ $quotations->links() }}
-        </div>
+        </div> --}}
     @else
         <div class="bg-white shadow-md rounded-lg p-6 text-center">
             <div class="text-gray-500 mb-4">
@@ -131,30 +138,30 @@
                 @csrf
                 <!-- Quotation Name -->
                 <div>
-                    <label for="modal_quotation_name" class="block text-sm font-medium text-gray-700">Quotation Name</label>
+                    <label for="modal_quotation_name" class="block text-sm font-medium text-gray-700">Quotation Name <span class="text-red-500 ml-1">*</span></label>
                     <input type="text" id="modal_quotation_name" name="quotation_name"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500"
                         required>
-                    <div class="text-red-500 text-sm mt-1 hidden" id="name_error"></div>
+                    <div class="text-red-500 text-sm mt-1 hidden field-error-message" id="name_error"></div>
                 </div>
 
                 <!-- Client Information -->
                 <div>
-                    <label for="modal_client_name" class="block text-sm font-medium text-gray-700">Client Name</label>
+                    <label for="modal_client_name" class="block text-sm font-medium text-gray-700">Client Name <span class="text-red-500 ml-1">*</span></label>
                     <input type="text" id="modal_client_name" name="client_name"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500">
-                    <div class="text-red-500 text-sm mt-1 hidden" id="client_name_error"></div>
+                    <div class="text-red-500 text-sm mt-1 hidden field-error-message" id="client_name_error"></div>
                 </div>
 
                 <!-- Status -->
                 <div>
                     <label for="modal_status" class="block text-sm font-medium text-gray-700">Status</label>
-                    <select id="modal_status" name="status"
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500">
-                        <option value="draft">Draft</option>
-                        <option value="finalized">Finalized</option>
+                        <select id="modal_status" name="status" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500">
+                            <option value="in_progress" selected>In Progress</option>
+                            <option value="finalized">Finalized</option>
+                            <option value="sent to client">Sent to Client</option>
                     </select>
-                    <div class="text-red-500 text-sm mt-1 hidden" id="status_error"></div>
+                    <div class="text-red-500 text-sm mt-1 hidden field-error-message" id="status_error"></div>
                 </div>
 
                 <!-- Description -->
@@ -162,7 +169,7 @@
                     <label for="modal_description" class="block text-sm font-medium text-gray-700">Description</label>
                     <textarea id="modal_description" name="description" rows="3"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500"></textarea>
-                    <div class="text-red-500 text-sm mt-1 hidden" id="description_error"></div>
+                    <div class="text-red-500 text-sm mt-1 hidden field-error-message" id="description_error"></div>
                 </div>
             </form>
         </div>
