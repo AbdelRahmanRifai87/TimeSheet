@@ -132,9 +132,9 @@
     <div class="w-[100%]  overflow-y-auto bg-white-100">
 
         <!-- Quotation Summary Block -->
-        <div class="mt-4 bg-green-50 border border-green-200" id="quotation-summary">
+        <div class="mt-2 mb-3 p-1 bg-green-50 border border-green-200 rounded" id="quotation-summary">
             <!-- Quotation Header -->
-            <div class="bg-green-50 p-4 mb-4 rounded">
+            <div class="bg-green-50 p-4 mb-4 rounded cursor-pointer select-none" id="quotationHeaderClickable">
                 <div class="flex items-start justify-between">
                     <div>
                         <h1 class="text-xl font-bold text-[#2679b5]">Quotation Name: {{ $quotation->name }}</h1>
@@ -144,7 +144,7 @@
                     </div>
                     <button type="button" id="toggleQuotationSummaryBtn"
                         class="text-[#2679b5] hover:underline flex items-center gap-1">
-                        <span class="toggle-text">Show summary</span>
+                        {{-- <span class="toggle-text">Show summary</span> --}}
                         <i id="quotation-summary-chevron" class="fas fa-chevron-down transition-transform duration-200"></i>
                     </button>
                 </div>

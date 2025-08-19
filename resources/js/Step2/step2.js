@@ -6946,10 +6946,19 @@ if (backBtn) {
 // });
 document.addEventListener("DOMContentLoaded", function () {
     // Collapsible header state
-    const btn = document.getElementById("toggleQuotationSummaryBtn");
-    const details = document.getElementById("quotation-summary-details");
-    const chevron = document.getElementById("quotation-summary-chevron");
-    const textSpan = btn ? btn.querySelector(".toggle-text") : null;
+    const btn = document.getElementById('toggleQuotationSummaryBtn');
+    const header = document.getElementById('quotationHeaderClickable');
+    const details = document.getElementById('quotation-summary-details');
+    const chevron = document.getElementById('quotation-summary-chevron');
+    const textSpan = btn ? btn.querySelector('.toggle-text') : null;
+
+    function toggleSummary() {
+        const stateKey = `quotation${window.quotationId}_summary_collapsed`;
+        const nowHidden = details.classList.toggle('hidden');
+        if (textSpan) textSpan.textContent = nowHidden ? 'Show summary' : 'Hide summary';
+        if (chevron) chevron.classList.toggle('rotate-180', !nowHidden);
+        localStorage.setItem(stateKey, nowHidden ? 'true' : 'false');
+    }
 
     if (btn && details) {
         const stateKey = `quotation${window.quotationId}_summary_collapsed`;
@@ -6966,15 +6975,18 @@ document.addEventListener("DOMContentLoaded", function () {
             if (chevron) chevron.classList.add("rotate-180");
         }
 
-        btn.addEventListener("click", () => {
-            const nowHidden = details.classList.toggle("hidden");
-            if (textSpan)
-                textSpan.textContent = nowHidden
-                    ? "Show summary"
-                    : "Hide summary";
-            if (chevron) chevron.classList.toggle("rotate-180", !nowHidden);
-            localStorage.setItem(stateKey, nowHidden ? "true" : "false");
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleSummary();
         });
+        if (header) {
+            header.addEventListener('click', function(e) {
+                // Only toggle if not clicking the button itself
+                if (!btn.contains(e.target)) {
+                    toggleSummary();
+                }
+            });
+        }
     }
 
     // Populate summary values
