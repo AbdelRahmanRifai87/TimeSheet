@@ -24,29 +24,35 @@ let dayTypes = [];
 window.updateQuotationHeaderSummary = function updateQuotationHeaderSummary() {
     try {
         const quotationId = window.quotationId;
-        const locations = Array.isArray(window.locations) ? window.locations : [];
-        const currency = window.quotationCurrency || 'USD';
+        const locations = Array.isArray(window.locations)
+            ? window.locations
+            : [];
+        const currency = window.quotationCurrency || "USD";
 
-        const el = id => document.getElementById(id);
-        const locEl = el('summary-locations');
-        const drEl = el('summary-date-range');
-        const shiftsEl = el('summary-total-shifts');
-        const billEl = el('summary-total-billable');
-        const daysEl = el('summary-unique-days');
+        const el = (id) => document.getElementById(id);
+        const locEl = el("summary-locations");
+        const drEl = el("summary-date-range");
+        const shiftsEl = el("summary-total-shifts");
+        const billEl = el("summary-total-billable");
+        const daysEl = el("summary-unique-days");
         if (!locEl || !drEl || !shiftsEl || !billEl || !daysEl) return;
 
         // Selected locations
         let selectedLocationIds = [];
         try {
-            const saved = localStorage.getItem(`quotation${quotationId}_selected_locations`);
+            const saved = localStorage.getItem(
+                `quotation${quotationId}_selected_locations`
+            );
             if (saved) selectedLocationIds = JSON.parse(saved);
         } catch {}
 
         // Map IDs to names
         const locNameById = {};
-        locations.forEach(l => { locNameById[String(l.id)] = l.name; });
+        locations.forEach((l) => {
+            locNameById[String(l.id)] = l.name;
+        });
         const selectedNames = selectedLocationIds
-            .map(id => locNameById[String(id)] || String(id))
+            .map((id) => locNameById[String(id)] || String(id))
             .filter(Boolean);
 
         // Aggregates
@@ -59,10 +65,14 @@ window.updateQuotationHeaderSummary = function updateQuotationHeaderSummary() {
         const parseRangeAddDays = (startStr, endStr) => {
             // supports YY-MM-DD and YYYY-MM-DD
             const toDate = (d) => {
-                const parts = d.split('-');
+                const parts = d.split("-");
                 if (parts[0].length === 2) {
                     const [yy, mm, dd] = parts;
-                    return new Date(2000 + parseInt(yy), parseInt(mm) - 1, parseInt(dd));
+                    return new Date(
+                        2000 + parseInt(yy),
+                        parseInt(mm) - 1,
+                        parseInt(dd)
+                    );
                 }
                 const [yyyy, mm, dd] = parts;
                 return new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
@@ -73,18 +83,18 @@ window.updateQuotationHeaderSummary = function updateQuotationHeaderSummary() {
             allEndDates.push(endDate.getTime());
             while (current <= endDate) {
                 const y = String(current.getFullYear()).slice(-2);
-                const m = String(current.getMonth() + 1).padStart(2, '0');
-                const d = String(current.getDate()).padStart(2, '0');
+                const m = String(current.getMonth() + 1).padStart(2, "0");
+                const d = String(current.getDate()).padStart(2, "0");
                 allDaysSet.add(`${y}-${m}-${d}`);
                 current.setDate(current.getDate() + 1);
             }
         };
 
-        selectedLocationIds.forEach(locationId => {
+        selectedLocationIds.forEach((locationId) => {
             let records = [];
             const keysToTry = [
                 `quotation_${quotationId}selectedlocations${locationId}Records`,
-                `records_${locationId}`
+                `records_${locationId}`,
             ];
             for (const key of keysToTry) {
                 try {
@@ -99,24 +109,45 @@ window.updateQuotationHeaderSummary = function updateQuotationHeaderSummary() {
                 } catch {}
             }
 
-            const filtered = Array.isArray(records) ? records.filter(r =>
-                (r.quotationId == quotationId || r.quotation_id == quotationId || (r.id && String(r.id).includes(`quotation${quotationId}`))) &&
-                (r.locationId == locationId || r.location_id == locationId || true) // tolerate missing location id
-            ) : [];
+            const filtered = Array.isArray(records)
+                ? records.filter(
+                      (r) =>
+                          (r.quotationId == quotationId ||
+                              r.quotation_id == quotationId ||
+                              (r.id &&
+                                  String(r.id).includes(
+                                      `quotation${quotationId}`
+                                  ))) &&
+                          (r.locationId == locationId ||
+                              r.location_id == locationId ||
+                              true) // tolerate missing location id
+                  )
+                : [];
 
-            const uniq = new Set(filtered.map(r =>
-                r.groupedId || r.grouped_id || r.id ||
-                `${r.day}|${r.shiftType || r.shift_type_id}|${r.dateRange || r.date_range}|${r.from}|${r.to}|${r.employees}`
-            ));
+            const uniq = new Set(
+                filtered.map(
+                    (r) =>
+                        r.groupedId ||
+                        r.grouped_id ||
+                        r.id ||
+                        `${r.day}|${r.shiftType || r.shift_type_id}|${
+                            r.dateRange || r.date_range
+                        }|${r.from}|${r.to}|${r.employees}`
+                )
+            );
             totalShifts += uniq.size;
 
-            filtered.forEach(r => {
-                const range = r.dateRange || r.date_range || '';
-                let m = range.match(/(\d{2}-\d{2}-\d{2})\s+to\s+(\d{2}-\d{2}-\d{2})/);
+            filtered.forEach((r) => {
+                const range = r.dateRange || r.date_range || "";
+                let m = range.match(
+                    /(\d{2}-\d{2}-\d{2})\s+to\s+(\d{2}-\d{2}-\d{2})/
+                );
                 if (m) {
                     parseRangeAddDays(m[1], m[2]);
                 } else {
-                    m = range.match(/(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})/);
+                    m = range.match(
+                        /(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})/
+                    );
                     if (m) parseRangeAddDays(m[1], m[2]);
                 }
             });
@@ -126,7 +157,7 @@ window.updateQuotationHeaderSummary = function updateQuotationHeaderSummary() {
                 const billData = localStorage.getItem(billKey);
                 if (billData) {
                     const parsed = JSON.parse(billData);
-                    if (parsed && typeof parsed.billable === 'number') {
+                    if (parsed && typeof parsed.billable === "number") {
                         totalBillable += parsed.billable;
                     }
                 }
@@ -134,27 +165,34 @@ window.updateQuotationHeaderSummary = function updateQuotationHeaderSummary() {
         });
 
         // Date range string
-        let dateRangeStr = 'N/A';
+        let dateRangeStr = "N/A";
         if (allStartDates.length && allEndDates.length) {
             const minStart = new Date(Math.min(...allStartDates));
             const maxEnd = new Date(Math.max(...allEndDates));
             // Display as DD/MM/YYYY per requirement
-            const fmt = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            const fmt = (d) =>
+                `${String(d.getDate()).padStart(2, "0")}/${String(
+                    d.getMonth() + 1
+                ).padStart(2, "0")}/${d.getFullYear()}`;
             dateRangeStr = `${fmt(minStart)} to ${fmt(maxEnd)}`;
         }
 
         // Update DOM
-        locEl.textContent = selectedNames.length ? selectedNames.join(', ') : 'None selected';
+        locEl.textContent = selectedNames.length
+            ? selectedNames.join(", ")
+            : "None selected";
         drEl.textContent = dateRangeStr;
         shiftsEl.textContent = String(totalShifts);
-        billEl.textContent = `${totalBillable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+        billEl.textContent = `${totalBillable.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })} ${currency}`;
         daysEl.textContent = String(allDaysSet.size);
     } catch (e) {
         // Fail silently
-        console.warn('updateQuotationHeaderSummary error', e);
+        console.warn("updateQuotationHeaderSummary error", e);
     }
 };
-
 
 async function loadDayTypes() {
     try {
@@ -195,8 +233,12 @@ window.showPreviewTableModal = function showPreviewTableModal({
     console.log(latestCalculateResponses[exportId]);
 
     // 3. (Optional) Render export button, radio options, etc.
+    console.log("the totals ::::::::", totals);
 
     renderExportButton(exportId);
+    showTotalBillableInPreview(totals?.billable);
+
+    // showTotalBillableInPreview(calcResult.totals?.total_billable);
 
     // // Dropdown toggle logic (unchanged)
     // document.getElementById("columnDropdownBtn").onclick = function (e) {
@@ -1858,7 +1900,7 @@ window.renderExportButton = function renderExportButton(locationId) {
     exportBtn.id = `exportTimesheetBtn_${locationId}`;
     exportBtn.type = "button";
     exportBtn.className =
-        "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow mt-4";
+        "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow ";
     exportBtn.innerHTML = `Export to Excel <i class="fa-solid fa-file-arrow-down ml-2"></i>`;
 
     document.getElementById("exportBTN").appendChild(exportBtn);
@@ -2219,7 +2261,7 @@ function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
 
                 if (response.data.success) {
                     latestCalculateResponses[locationId] = response.data; // Store for export
-            //         // --- Save total billable for each shift group to localStorage ---
+                    //         // --- Save total billable for each shift group to localStorage ---
                     const totalss = response.data.totals;
                     // Save total billable to localStorage with quotationId and locationId
                     const quotationId = window.quotationId;
@@ -2230,10 +2272,8 @@ function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
                             // scheduled_hours: Number(totals.scheduled_hours)
                         })
                     );
-                
 
-                //     // --- Save total billable for each shift group to localStorage ---
- 
+                    //     // --- Save total billable for each shift group to localStorage ---
 
                     console.log(
                         "Latest calculate response stored for location:",
@@ -2242,7 +2282,6 @@ function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
                         latestCalculateResponses
                     );
 
-                    
                     // // Save shift data to database after successful calculation
                     // if (typeof window.saveShiftDataToDatabase === "function") {
                     //     window.saveShiftDataToDatabase(
@@ -2273,7 +2312,10 @@ function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
                     }
 
                     // After successful calculate, refresh header summary (billable etc.)
-                    if (typeof window.updateQuotationHeaderSummary === "function") {
+                    if (
+                        typeof window.updateQuotationHeaderSummary ===
+                        "function"
+                    ) {
                         window.updateQuotationHeaderSummary();
                     }
 
@@ -2625,10 +2667,10 @@ window.populatePreviewTable = function populatePreviewTable(
         columnDefs: [{ targets: "_all" }],
     });
 
-    dt.columns.adjust().draw(false);
-    $(window).on("resize", function () {
-        $($.fn.dataTable.tables(true)).DataTable().columns.adjust().draw(false);
-    });
+    // // dt.columns.adjust().draw(false);
+    // $(window).on("resize", function () {
+    //     $("#previewTable").DataTable().columns.adjust();
+    // });
     // Add margin-bottom to the DataTables search bar
     // Find the filter container
     const $filter = $(".dataTables_filter");
@@ -2650,6 +2692,21 @@ window.populatePreviewTable = function populatePreviewTable(
         $filter.css({ float: "none", "text-align": "left", margin: 0 });
     }
 };
+
+function showTotalBillableInPreview(totalBillable, currency = "USD") {
+    const el = document.getElementById("previewTotalBillable");
+    if (!el) return;
+    const valueSpan = el.querySelector(".total-billable-value");
+    if (typeof totalBillable === "number") {
+        valueSpan.textContent = `$${totalBillable.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+        })}`;
+        el.classList.remove("hidden");
+    } else {
+        el.classList.add("hidden");
+    }
+}
+
 function validateRecords(locationId) {
     const locationRecords = records[locationId];
     const duplicates = [];
@@ -6045,92 +6102,101 @@ loadShiftTypes()
             ? loadStep2Options()
             : Promise.resolve()
         ).then(() => {
-    locations.forEach((location) => {
-        const shiftTypesSelect = document.getElementById(
-            `shiftTypes_${location.id}`
-        );
-        const dateRangeInput = document.getElementById(
-            `dateRange_${location.id}`
-        );
-        const addressElement = document
-            .querySelector(`#form_${location.id}`)
-            .parentElement.querySelector("p");
+            locations.forEach((location) => {
+                const shiftTypesSelect = document.getElementById(
+                    `shiftTypes_${location.id}`
+                );
+                const dateRangeInput = document.getElementById(
+                    `dateRange_${location.id}`
+                );
+                const addressElement = document
+                    .querySelector(`#form_${location.id}`)
+                    .parentElement.querySelector("p");
 
-        // Retrieve saved data for the location from local storage
-        const savedData = localStorage.getItem(`location_${location.id}`);
+                // Retrieve saved data for the location from local storage
+                const savedData = localStorage.getItem(
+                    `location_${location.id}`
+                );
 
-        if (savedData) {
-            const { shiftTypes, dateRange } = JSON.parse(savedData);
-            console.log("Saved Data for Location:", {
-                shiftTypes,
-                dateRange,
+                if (savedData) {
+                    const { shiftTypes, dateRange } = JSON.parse(savedData);
+                    console.log("Saved Data for Location:", {
+                        shiftTypes,
+                        dateRange,
+                    });
+
+                    // Populate shift types
+                    if (
+                        Array.isArray(shiftTypes) &&
+                        shiftTypes.length > 0 &&
+                        shiftTypesSelect
+                    ) {
+                        // Iterate over the options in the select element
+                        Array.from(shiftTypesSelect.options).forEach(
+                            (option) => {
+                                // Check if the option's text matches any of the saved shift types
+                                if (shiftTypes.includes(option.textContent)) {
+                                    option.selected = true; // Mark the option as selected
+                                }
+                            }
+                        );
+
+                        // Update the dropdown button text to reflect the selected options
+                        const selectedOptions = Array.from(
+                            shiftTypesSelect.selectedOptions
+                        ).map((option) => option.textContent);
+                        const dropdownButton =
+                            shiftTypesSelect.parentElement.querySelector(
+                                "button span"
+                            );
+                        if (dropdownButton) {
+                            dropdownButton.textContent =
+                                selectedOptions.length > 0
+                                    ? selectedOptions.join(", ")
+                                    : "Select Shift Types";
+                        }
+                    }
+                    console.log(
+                        "Shift Types Select Element:",
+                        shiftTypesSelect
+                    );
+
+                    // Populate date range
+                    if (dateRange) {
+                        dateRangeInput.value = dateRange;
+                    }
+
+                    // Update the address line with the saved data
+                    addressElement.textContent = `${
+                        location.address
+                    } | Shift Types: ${shiftTypes.join(
+                        ", "
+                    )} | Date Range: ${dateRange}`;
+
+                    // remove hidden class from the check icon
+                    const checkIcon = document.getElementById(
+                        `checkIcon_${location.id}`
+                    );
+                    checkIcon.classList.remove("hidden");
+
+                    // Add logs between function calls to identify the error
+                    console.log("Calling showBatchForm...");
+                    showBatchForm(location.id);
+
+                    console.log("Calling populateBatchShiftTypes...");
+                    populateBatchShiftTypes(location.id);
+
+                    console.log("Calling initializeTimePickers...");
+                    initializeTimePickers(location.id);
+
+                    console.log("Calling initializeShiftTable...");
+                    initializeShiftTable(location.id);
+                }
             });
 
-            // Populate shift types
-            if (
-                Array.isArray(shiftTypes) &&
-                shiftTypes.length > 0 &&
-                shiftTypesSelect
-            ) {
-                // Iterate over the options in the select element
-                Array.from(shiftTypesSelect.options).forEach((option) => {
-                    // Check if the option's text matches any of the saved shift types
-                    if (shiftTypes.includes(option.textContent)) {
-                        option.selected = true; // Mark the option as selected
-                    }
-                });
-
-                // Update the dropdown button text to reflect the selected options
-                const selectedOptions = Array.from(
-                    shiftTypesSelect.selectedOptions
-                ).map((option) => option.textContent);
-                const dropdownButton =
-                    shiftTypesSelect.parentElement.querySelector("button span");
-                if (dropdownButton) {
-                    dropdownButton.textContent =
-                        selectedOptions.length > 0
-                            ? selectedOptions.join(", ")
-                            : "Select Shift Types";
-                }
-            }
-            console.log("Shift Types Select Element:", shiftTypesSelect);
-
-            // Populate date range
-            if (dateRange) {
-                dateRangeInput.value = dateRange;
-            }
-
-            // Update the address line with the saved data
-            addressElement.textContent = `${
-                location.address
-            } | Shift Types: ${shiftTypes.join(
-                ", "
-            )} | Date Range: ${dateRange}`;
-
-            // remove hidden class from the check icon
-            const checkIcon = document.getElementById(
-                `checkIcon_${location.id}`
-            );
-            checkIcon.classList.remove("hidden");
-
-            // Add logs between function calls to identify the error
-            console.log("Calling showBatchForm...");
-            showBatchForm(location.id);
-
-            console.log("Calling populateBatchShiftTypes...");
-            populateBatchShiftTypes(location.id);
-
-            console.log("Calling initializeTimePickers...");
-            initializeTimePickers(location.id);
-
-            console.log("Calling initializeShiftTable...");
-            initializeShiftTable(location.id);
-        }
-    });
-
-    // Call the function to initialize Save buttons
-    initializeSaveButtons();
-});
+            // Call the function to initialize Save buttons
+            initializeSaveButtons();
+        });
     });
 
 console.log("hellooooooooooooooooooooooooo");
@@ -6878,38 +6944,41 @@ if (backBtn) {
 //         }
 //     });
 // });
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", function () {
     // Collapsible header state
-    const btn = document.getElementById('toggleQuotationSummaryBtn');
-    const details = document.getElementById('quotation-summary-details');
-    const chevron = document.getElementById('quotation-summary-chevron');
-    const textSpan = btn ? btn.querySelector('.toggle-text') : null;
+    const btn = document.getElementById("toggleQuotationSummaryBtn");
+    const details = document.getElementById("quotation-summary-details");
+    const chevron = document.getElementById("quotation-summary-chevron");
+    const textSpan = btn ? btn.querySelector(".toggle-text") : null;
 
     if (btn && details) {
         const stateKey = `quotation${window.quotationId}_summary_collapsed`;
         const collapsed = localStorage.getItem(stateKey);
-        const shouldCollapse = collapsed === null ? true : collapsed === 'true';
+        const shouldCollapse = collapsed === null ? true : collapsed === "true";
 
         if (shouldCollapse) {
-            details.classList.add('hidden');
-            if (textSpan) textSpan.textContent = 'Show summary';
-            if (chevron) chevron.classList.remove('rotate-180');
+            details.classList.add("hidden");
+            if (textSpan) textSpan.textContent = "Show summary";
+            if (chevron) chevron.classList.remove("rotate-180");
         } else {
-            details.classList.remove('hidden');
-            if (textSpan) textSpan.textContent = 'Hide summary';
-            if (chevron) chevron.classList.add('rotate-180');
+            details.classList.remove("hidden");
+            if (textSpan) textSpan.textContent = "Hide summary";
+            if (chevron) chevron.classList.add("rotate-180");
         }
 
-        btn.addEventListener('click', () => {
-            const nowHidden = details.classList.toggle('hidden');
-            if (textSpan) textSpan.textContent = nowHidden ? 'Show summary' : 'Hide summary';
-            if (chevron) chevron.classList.toggle('rotate-180', !nowHidden);
-            localStorage.setItem(stateKey, nowHidden ? 'true' : 'false');
+        btn.addEventListener("click", () => {
+            const nowHidden = details.classList.toggle("hidden");
+            if (textSpan)
+                textSpan.textContent = nowHidden
+                    ? "Show summary"
+                    : "Hide summary";
+            if (chevron) chevron.classList.toggle("rotate-180", !nowHidden);
+            localStorage.setItem(stateKey, nowHidden ? "true" : "false");
         });
     }
 
     // Populate summary values
-    if (typeof window.updateQuotationHeaderSummary === 'function') {
+    if (typeof window.updateQuotationHeaderSummary === "function") {
         window.updateQuotationHeaderSummary();
     }
 });

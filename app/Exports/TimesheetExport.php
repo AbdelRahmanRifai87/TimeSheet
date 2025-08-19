@@ -936,6 +936,32 @@ public function map($row): array
         for ($row = 1; $row <= $highestRow; $row++) {
             $event->sheet->getDelegate()->getRowDimension($row)->setRowHeight(20);
         }
+
+        // Apply currency format to rate and billable columns
+    $filteredHeadings = $this->headings();
+    foreach ($filteredHeadings as $index => $heading) {
+        if (
+            strpos(strtolower($heading), 'rate') !== false ||
+            strpos(strtolower($heading), 'billable') !== false
+        ) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($index + 1);
+            // Apply to all rows (including totals/formulas)
+            $event->sheet->getDelegate()->getStyle("{$colLetter}2:{$colLetter}{$highestRow}")
+                ->getNumberFormat()
+                ->setFormatCode('"$"#,##0.00');
+        }
+    }
+// Apply currency format to the last cell in the totals row (Total Billable)
+if (!empty($this->totals)) {
+    $filteredHeadings = $this->headings();
+    $highestRow = $event->sheet->getDelegate()->getHighestRow();
+    $lastColIndex = count($filteredHeadings); // 1-based index
+    $lastColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($lastColIndex);
+    $event->sheet->getDelegate()->getStyle("{$lastColLetter}{$highestRow}")
+        ->getNumberFormat()
+        ->setFormatCode('"$"#,##0.00');
+}
+
     }
 
     public function registerEvents(): array
