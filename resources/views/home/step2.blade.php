@@ -379,7 +379,7 @@
             <!-- End Quotation Summary Block -->
         </div>
 
-        <!-- Shift Types Dropdown Setup -->
+        {{-- <!-- Shift Types Dropdown Setup -->
         <div class="mb-6 bg-yellow-100 rounded shadow border border-gray-200">
             <div id="shiftTypeDropdownToggle" class="flex items-center justify-between cursor-pointer  px-4 py-3 pb-0 ">
                 <span class="text-lg font-semibold text-[#2679b5] mb-2">Shift Type Setup</span>
@@ -427,19 +427,73 @@
                     </table>
                 </div>
             </div>
-        </div>
-
-        <!-- Location Dropdown Setup -->
-        <div class="mb-6 bg-blue-100 rounded shadow border border-gray-200">
-            <div id="locationDropdownToggle" class="flex items-center justify-between cursor-pointer  px-4 py-3 pb-0 ">
-                <span class="text-lg font-semibold text-[#2679b5] mb-2">Location Setup</span>
-                <span id="locationDropdownArrow" class="transition-transform duration-200">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
             </div>
-            <div id="locationDropdownContent" class="transition-all duration-700 overflow-hidden max-h-0 mt-1">
-                <div class=" w-[100%] p-6 pt-0 relative" style="max-height:80vh;overflow-y:auto;">
+        </div> --}}
+        <!-- End Quotation Summary Block -->
+    {{-- </div> --}}
 
+    <!-- Shift Types Dropdown Setup -->
+    <div class="mb-6 bg-yellow-100 rounded shadow border border-gray-200">
+        <div id="shiftTypeDropdownToggle" class="flex items-center justify-between cursor-pointer  px-4 py-3 pb-0 ">
+            <span class="text-lg font-semibold text-[#2679b5] mb-2">Shift Type Setup</span>
+            <span id="shiftTypeDropdownArrow" class="transition-transform duration-200">
+                <i class="fas fa-chevron-down"></i>
+            </span>
+        </div>
+        <div id="shiftTypeDropdownContent" class="transition-all  duration-700  overflow-hidden max-h-0 mt-1">
+            <div class=" shadow-lg w-[100%]  p-6 pt-0 relative " style="max-height:80vh;overflow-y:auto">
+
+
+                <div class="flex justify-end mb-1">
+                    <button id="addShiftTypeBtn" class="bg-blue-600 text-white px-2 py-1 rounded">Add Shift
+                        Type</button>
+                </div>
+                <table id="shiftTypeCrudTable" class="min-w-full border">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border px-2 py-1">Name</th>
+                            <th class="border px-2 py-1">Description</th>
+                            <th class="border px-2 py-1">Day Rate</th>
+                            <th class="border px-2 py-1">Night Rate</th>
+                            <th class="border px-2 py-1">Saturday Rate</th>
+                            <th class="border px-2 py-1">Sunday Rate</th>
+                            <th class="border px-2 py-1">PH Rate</th>
+                            <th class="border px-2 py-1">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr id="shiftTypeCrudTableLoadingRow">
+                            <td colspan="8" class="text-center py-6">
+                                <div class="flex flex-col items-center justify-center">
+                                    <svg class="animate-spin h-8 w-8 text-blue-600 mb-2"
+                                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10"
+                                            stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                    </svg>
+                                    <span class="text-blue-600 font-semibold">Loading...</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Rows will be rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+                    {{-- <table id="locationCrudTable" class="min-w-full border"> --}}
+    <!-- Location Dropdown Setup -->
+    <div class="mb-6 bg-blue-100 rounded shadow border border-gray-200">
+        <div id="locationDropdownToggle" class="flex items-center justify-between cursor-pointer  px-4 py-3 pb-0 ">
+            <span class="text-lg font-semibold text-[#2679b5] mb-2">Location Setup</span>
+            <span id="locationDropdownArrow" class="transition-transform duration-200">
+                <i class="fas fa-chevron-down"></i>
+            </span>
+        </div>
+        <div id="locationDropdownContent" class="transition-all duration-700 overflow-hidden max-h-0 mt-1">  
+            <div class=" w-[100%] p-6 pt-0 relative" style="max-height:80vh;overflow-y:auto;">
                     <div class="flex justify-between items-center mb-2 gap-3">
                         <!-- Search Input -->
                         <div class="flex-1">
@@ -463,7 +517,10 @@
                             Add Location
                         </button>
                     </div>
-                    <table id="locationCrudTable" class="min-w-full border">
+                {{-- <div class="flex justify-end mb-2">
+                    <button id="addLocationBtn" class="bg-blue-600 text-white px-2 py-1 rounded">Add Location</button>
+                </div> --}}
+                <table id="locationCrudTable" class="min-w-full border">
                     <thead>
                         <tr class="bg-gray-100">
                             <th class="border px-2 py-1 text-center" style="width: 50px;">Select</th>
@@ -476,13 +533,375 @@
                         </tr>
                     </thead>
                     <tbody>
- 
+
                     </tbody>
-                    </table>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Modal for Adding Shift Type -->
+    <div id="addShiftTypeModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+            <h2 class="text-lg font-bold mb-4">Add Shift Type</h2>
+            <form id="addShiftTypeForm">
+                <table class="w-full border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border border-gray-300 px-4 py-2 text-left">Name</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Day Rate</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Night Rate</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Saturday Rate</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Sunday Rate</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Public Holiday Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="text" id="shiftTypeName" name="name"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <textarea id="shiftTypeDescription" name="description"
+                                    class="form-textarea w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="dayRate" name="day_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="nightRate" name="night_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="saturdayRate" name="saturday_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="sundayRate" name="sunday_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <input type="number" id="publicHolidayRate" name="public_holiday_rate"
+                                    class="form-input w-full border border-gray-300 rounded px-3 py-2">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Modal Actions -->
+                <div class="flex justify-end mt-4">
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <form id="mainLocationsForm" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
+        @csrf
+        <!-- Hidden form for step2.js compatibility -->
+        <form id="step2Form" style="display: none;"></form>
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h2 class="text-2xl text-[#2679b5]">Selected Locations:</h2>
+                <p class="text-sm text-gray-600" id="locationStatusMessage">Select locations above to configure
+                    shifts
+                </p>
+            </div>
+            <div class="flex gap-4">
+
+                <button type="button" id="exportBtn"
+                    class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded border">
+                    <i class="fas fa-download mr-1"></i> Export Options
+                </button>
+            </div>
+        </div>
+
+        <!-- Locations Container -->
+        <div id="locationsContainer">
+            @foreach ($locations as $location)
+                <div class="border border-gray-300 rounded mt-2 mb-6 bg-gray-100 location-form"
+                    data-location-id="{{ $location->id }}" style="display: none;">
+                    <!-- Location Header -->
+                    <div class="cursor-pointer p-2" onclick="toggleForm('{{ $location->id }}')">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-lg text-[#2679b5] ">{{ $location->name }}</h3>
+                            <span id="arrow_{{ $location->id }}" class="text-sm text-gray-500">
+                                <!-- Down arrow by default -->
+                                <i class="fas fa-chevron-down"></i>
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <p class="text-sm text-gray-600">{{ $location->address }}</p>
+                            <p id="totalsDisplay_{{ $location->id }}" class="text-sm text-gray-700 mt-2"></p>
+
+                        </div>
+                    </div>
+
+                    <!-- Hidden Form -->
+                    <div id="form_{{ $location->id }}"
+                        class="overflow-hidden max-h-0 transition-all duration-700 ease-in-out bg-white ">
+                        <!-- Shift Types Dropdown -->
+
+                        <div class="flex justify-end items-center mr-5">
+
+                        </div>
+                        <!-- New Shift Details Section -->
+                        <div class="mt-1   rounded mx-5  " id="batchForm_{{ $location->id }}">
+                            <div class="flex justify-between items-center mt-2 ">
+
+
+                                <div class="  flex items-center gap-4 p-2">
+                                    <label>Filter by Day:</label>
+                                    <select id="filterDay_{{ $location->id }}" class="border rounded px-2 py-1">
+                                        <option value="">All</option>
+                                        <option value="Mon">Monday</option>
+                                        <option value="Tue">Tuesday</option>
+                                        <option value="Wed">Wednesday</option>
+                                        <option value="Thu">Thursday</option>
+                                        <option value="Fri">Friday</option>
+                                        <option value="Sat">Saturday</option>
+                                        <option value="Sun">Sunday</option>
+                                    </select>
+                                    <label class="ml-4">Filter by Shift Type:</label>
+                                    <select id="filterShiftType_{{ $location->id }}" class="border rounded px-2 py-1">
+                                        <option value="">All</option>
+                                        <!-- Shift types will be dynamically populated -->
+                                    </select>
+                                </div>
+                                <button type="button"
+                                    class="bg-[#428bca] text-white  px-3 py-1 rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-400  add-shift-type-btn"
+                                    data-location-id="{{ $location->id }}">
+                                    Add New Entry
+                                </button>
+                            </div>
+
+
+                            <!-- Shift Details Table -->
+                            <table class="min-w-full border mt-1" id="shiftTable_{{ $location->id }}">
+                                <thead>
+                                    <tr>
+                                        <th class="border px-2 py-1">Day</th>
+                                        <th class="border px-2 py-1">Shift Type</th>
+                                        <th class="border px-2 py-1">Date Range</th>
+
+                                        <th class="border px-2 py-1">From</th>
+                                        <th class="border px-2 py-1">To</th>
+                                        <th class="border px-2 py-1"># Employees</th>
+                                        <th class="border px-2 py-1">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Rows will be rendered by JS -->
+                                </tbody>
+                            </table>
+                            <div class="flex justify-end gap-2">
+                                <button type="button" id="reviewTableBtn_{{ $location->id }}"
+                                    class="bg-[#428bca] hover:bg-blue-600 text-white px-3 py-2 rounded border mt-3 ">
+                                    Review Table
+                                    <span class="review-btn-spinner hidden ">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                    </span>
+                                </button>
+                                <button type="button" id="saveBtn_{{ $location->id }}"
+                                    class="bg-[#87b87f] hover:bg-lime-700 text-white px-3 py-2 rounded border mt-3 ">
+                                    <span class="save-btn-text">Save</span>
+                                    <span class="save-btn-spinner hidden">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                    </span>
+                                    <span class="save-btn-check hidden" id="checkIcon_{{ $location->id }}">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+                <!-- Modal for Batch Form -->
+                <div id="batchFormModal_{{ $location->id }}"
+                    class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+                    <div class="relative bg-white rounded-lg shadow-lg w-3/4 max-w-4xl p-6">
+
+                        <div class=" ">
+                            <!-- Close Button -->
+                            <button type="button" id="closeBatchFormModal_{{ $location->id }}"
+                                class="absolute text-3xl top-2 right-2 text-gray-500 hover:text-gray-700">
+                                &times;
+                            </button>
+
+                            <!-- Batch Form Content -->
+                            <h3 class=" text-lg mb-4 text-[#2679b5]">Batch Form</h3>
+                        </div>
+
+                        <div class="flex flex-wrap gap-4 items-end">
+                            <div class="flex flex-wrap gap-4 w-full">
+                                <!-- Shift Type Dropdown -->
+                                <div class="flex-1">
+                                    <label class="block mb-1  text-[#2679b5]">Shift Type</label>
+                                    <select id="batchShiftType_{{ $location->id }}"
+                                        class="border rounded px-2 py-1 w-full">
+                                        <option value="">Select</option>
+                                        <!-- Options will be loaded by JS -->
+                                    </select>
+                                </div>
+
+                                <!-- From Time -->
+                                <div class="flex-1">
+                                    <label class="block mb-1  text-[#2679b5]">From</label>
+                                    <input type="time" id="batchFrom_{{ $location->id }}"
+                                        class="border rounded px-2 py-1 w-full" />
+                                </div>
+
+                                <!-- To Time -->
+                                <div class="flex-1">
+                                    <label class="block mb-1  text-[#2679b5]">To</label>
+                                    <input type="time" id="batchTo_{{ $location->id }}"
+                                        class="border rounded px-2 py-1 w-full" />
+                                </div>
+
+                                <!-- Number of Employees -->
+                                <div class="flex-1">
+                                    <label class="block mb-1  text-[#2679b5]"># Employees</label>
+                                    <input type="number" id="batchEmployees_{{ $location->id }}"
+                                        class="border rounded px-2 py-1 w-full" min="1" value="1" />
+                                </div>
+                            </div>
+
+                            <!-- Days Multi-select -->
+                            <div class="w-full flex flex-col">
+                                <label class="block text-[#2679b5]">Days</label>
+                                <div id="daysButtonsContainer" class="flex gap-1 mb-1 mt-2">
+                                    <button type="button" id="weekdaysBtn_{{ $location->id }}"
+                                        class="btn bg-[#428bca] hover:bg-[#337ab7] text-white   py-1 px-2 rounded">Weekdays</button>
+                                    <button type="button" id="weekendsBtn_{{ $location->id }}"
+                                        class="btn bg-[#428bca] hover:bg-[#337ab7] text-white py-1 px-2 rounded">Weekends</button>
+                                    <button type="button" id="allDaysBtn_{{ $location->id }}"
+                                        class="btn bg-[#428bca] hover:bg-[#337ab7] text-white   py-1 px-2 rounded">All
+                                        Days</button>
+                                </div>
+                                <select id="batchDays_{{ $location->id }}" class="border rounded px-2 py-1 w-full"
+                                    multiple size="7"></select>
+                            </div>
+                        </div>
+
+                        <!-- Modal Actions -->
+                        <div class="flex justify-end mt-4">
+                            <button type="button" id="cancelBatchFormBtn_{{ $location->id }}"
+                                class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                            <button type="button" id="saveBatchFormBtn_{{ $location->id }}"
+                                class="bg-[#87b87f] hover:bg-lime-700 text-white px-4 py-2 rounded">Save and review
+                                <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                        </div>
+
+
+
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <!-- Hidden inputs -->
+        <input type="hidden" id="selectedLocationsInput" name="selected_locations" value="[]">
+        <input type="hidden" name="quotation_id" value="{{ $quotation->id }}">
+
+        <!-- Hidden elements for step2.js compatibility -->
+        <div id="locationDropdown" style="display: none;"></div>
+        <div id="locationOptions" style="display: none;"></div>
+        <div id="selectedLocations" style="display: none;"></div>
+        <div id="placeholderText" style="display: none;"></div>
+        <div id="selectedLocationsForms" style="display: none;"></div>
+        <span id="selectedCount" style="display: none;">0</span>
+
+    </form>
+
+    <!-- Export Options Modal -->
+    <div id="exportModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-[#2679b5]">Export Timesheet Options</h3>
+                <button type="button" id="closeExportModal" class="text-gray-500 hover:text-gray-700 text-xl">
+                    &times;
+                </button>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Export Type Selection -->
+                {{-- <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Export Type:</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="exportType" value="all" class="mr-2" checked>
+                                <span>Export All Locations</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="exportType" value="specific" class="mr-2">
+                                <span>Export Specific Locations</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Format Options for All Locations -->
+                    <div id="allLocationsOptions" class="border-l-4 border-blue-500 pl-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Format for All Locations:</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="allLocationsFormat" value="single" class="mr-2" checked>
+                                <span>All in One Page</span>
+                                <span class="text-xs text-gray-500 ml-2">(Single document with all locations)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="allLocationsFormat" value="separate" class="mr-2">
+                                <span>Separate Pages</span>
+                                <span class="text-xs text-gray-500 ml-2">(Different pagination for each
+                                    location)</span>
+                            </label>
+                        </div>
+                    </div> --}}
+
+                <!-- Specific Locations Selection -->
+                <div id="specificLocationsOptions" class="border-l-4 border-green-500 pl-4 ">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Select Locations with Saved
+                        Shifts:</label>
+                    <div class="flex justify-end mb-2">
+                        <button type="button" id="selectAllSavedShiftLocationsBtn"
+                            class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition duration-200">
+                            Select All
+                        </button>
+                        <button type="button" id="deselectAllSavedShiftLocationsBtn"
+                            class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded transition duration-200 ml-2">
+                            Deselect All
+                        </button>
+                    </div>
+                    <div id="availableLocationsContainer" class="space-y-2 max-h-[30vh] overflow-y-auto">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Only locations with saved shift data are available for
+                        export.</p>
+                </div>
+                <!-- Modal Actions -->
+                <div class="flex justify-end mt-6 space-x-2">
+                    <button type="button" id="cancelExportBtn"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                        Cancel
+                    </button>
+                    {{-- <button type="button" id="processExportBtn"
+                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                                <i class="fas fa-download mr-1"></i>
+                                Export
+                            </button> --}}
+                    <button type="button" id="reviewExportBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                        <i class="fas fa-eye mr-1"></i>
+                        Review
+                    </button>
                 </div>
             </div>
         </div>
-            <!-- Modal for Adding Shift Type -->
+
+        {{-- <!-- Modal for Adding Shift Type -->
             <div id="addShiftTypeModal"
                 class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
                 <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
@@ -539,8 +958,18 @@
                             <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
                             <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
                         </div>
+
+
                     </form>
                 </div>
+            </div> --}}
+    </div>
+    <!-- Modal for Selecting Shifts -->
+    <div id="selectShiftModal"
+        class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-3/4 max-w-4xl">
+            <div class="p-4 border-b">
+                <h3 class="text-lg font-semibold">Select Shifts to Update</h3>
             </div>
 
             <form id="mainLocationsForm" class="space-y-6" method="POST" action="{{ route('home.step2.submit') }}">
@@ -902,32 +1331,16 @@
                     </div>
                 </div>
             </div>
-            <!-- Modal for Selecting Shifts -->
-            <div id="selectShiftModal"
-                class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
-                <div class="bg-white rounded-lg shadow-lg w-3/4 max-w-4xl">
-                    <div class="p-4 border-b">
-                        <h3 class="text-lg font-semibold">Select Shifts to Update</h3>
-                    </div>
-                    <div class="p-4">
-                        <!-- Table for displaying existing shifts -->
-                        <div id="selectShiftTableContainer" class="overflow-auto max-h-64">
-                            <!-- Table will be dynamically populated by JavaScript -->
-                        </div>
-                    </div>
-                    <div class="p-4 border-t flex justify-end gap-2">
-                        <button id="cancelSelectShiftBtn" class="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
-                        <button id="confirmSelectShiftBtn"
-                            class="bg-blue-600 text-white px-4 py-2 rounded">Confirm</button>
-                    </div>
-                </div>
+            <div class="p-4 border-t flex justify-end gap-2">
+                <button id="cancelSelectShiftBtn" class="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+                <button id="confirmSelectShiftBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Confirm</button>
             </div>
-            <!-- Preview Modal -->
-            <div id="previewModal"
-                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden  ">
-                <div id="previewModalContent"
-                    class="bg-white rounded-lg shadow-lg p-6 relative overflow-y-auto flex flex-col"
-                    style="
+        </div>
+    </div>
+    <!-- Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden  ">
+        <div id="previewModalContent" class="bg-white rounded-lg shadow-lg p-6 relative overflow-y-auto flex flex-col"
+            style="
                             min-width:300px;
                             min-height:200px;
                             width:80vw;           /* Initial width: 80% of viewport */
@@ -937,71 +1350,83 @@
                             resize:both;
                             box-sizing:border-box;
                         ">
-                    <button type="button" id="closePreviewModal"
-                        class="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
-                    <h2 class="text-2xl  text-[#2679b5] mb-4">Timesheet Preview</h2>
+            <button type="button" id="closePreviewModal"
+                class="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+            <h2 class="text-2xl  text-[#2679b5] mb-4">Timesheet Preview</h2>
 
-                    <div class="mb-3 border rounded bg-gray-50 location-visibility-dropdown">
-                        <div id="locationVisibilityToggle"
-                            class="flex m-2 items-center cursor-pointer justify-between select-none">
-                            <h3 class="text-lg text-[#2679b5] mb-1 mr-2">Location Visibility</h3>
-                            <span id="locationVisibilityArrow" class="transition-transform duration-200">
-                                <i class="fas fa-chevron-down"></i>
-                            </span>
-                        </div>
-                        <div id="locationVisibilityContent"
-                            class="w-full m-2 transition-all duration-500 ease-in-out max-h-0 overflow-hidden opacity-0">
-                            <div id="locationDropdownText" class="flex flex-wrap gap-2"></div>
-                        </div>
-                    </div>
-
-                    <!-- Column Visibility Custom Dropdown -->
-                    <div class="mb-3 border  rounded bg-gray-50 column-visibility-dropdown">
-                        <div id="columnVisibilityToggle"
-                            class="flex m-2 items-center cursor-pointer justify-between  select-none">
-                            <h3 class="text-lg  text-[#2679b5] mb-1 mr-2">Column Visibility</h3>
-                            <span id="columnVisibilityArrow" class="transition-transform duration-200"><i
-                                    class="fas fa-chevron-down"></i></span>
-                            <!-- ▼ arrow, rotate when open -->
-                        </div>
-                        <div id="columnVisibilityContent"
-                            class="w-full mt-2 transition-all duration-500 ease-in-out max-h-0 overflow-hidden opacity-0">
-                            <div id="columnDropdownText" class="flex flex-wrap gap-2"></div>
-                            <p class="mt-1 ml-1 text-sm text-gray-500">Core columns are required and cannot be deselected.
-                            </p>
-                        </div>
-                    </div>
-                    <!-- Preview Table -->
-
-
-
-                    <div id="previewTableWrapper" class="overflow-x-auto flex-grow min-h-0 ">
-                        <table id="previewTable" class="display w-full">
-                            <thead id="previewTableHead1"></thead>
-                            <tbody id="previewTableBody1"></tbody>
-                        </table>
-                    </div>
-
-                    <!-- Add this where you want the radio options to appear -->
-                    <div id="previewLocationOptionPlaceholder"></div>
-
-                    <div id="exportBTN"></div>
-
+            <div class="mb-3 border rounded bg-gray-50 location-visibility-dropdown">
+                <div id="locationVisibilityToggle"
+                    class="flex m-2 items-center cursor-pointer justify-between select-none">
+                    <h3 class="text-lg text-[#2679b5] mb-1 mr-2">Location Visibility</h3>
+                    <span id="locationVisibilityArrow" class="transition-transform duration-200">
+                        <i class="fas fa-chevron-down"></i>
+                    </span>
+                </div>
+                <div id="locationVisibilityContent"
+                    class="w-full m-2 transition-all duration-500 ease-in-out max-h-0 overflow-hidden opacity-0">
+                    <div id="locationDropdownText" class="flex flex-wrap gap-2"></div>
                 </div>
             </div>
-            <!-- Global Loading Overlay -->
-            <div id="globalLoadingOverlay"
-                class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[9999] hidden">
-                <div class="bg-white rounded-full p-6 shadow-lg flex flex-col items-center">
-                    <svg class="animate-spin h-8 w-8 text-blue-600 mb-2" xmlns="http://www.w3.org/2000/svg"
-                        fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                            stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                    </svg>
-                    <span class="text-blue-600 font-semibold">Loading...</span>
+
+            <!-- Column Visibility Custom Dropdown -->
+            <div class="mb-3 border  rounded bg-gray-50 column-visibility-dropdown">
+                <div id="columnVisibilityToggle"
+                    class="flex m-2 items-center cursor-pointer justify-between  select-none">
+                    <h3 class="text-lg  text-[#2679b5] mb-1 mr-2">Column Visibility</h3>
+                    <span id="columnVisibilityArrow" class="transition-transform duration-200"><i
+                            class="fas fa-chevron-down"></i></span>
+                    <!-- ▼ arrow, rotate when open -->
+                </div>
+                <div id="columnVisibilityContent"
+                    class="w-full mt-2 transition-all duration-500 ease-in-out max-h-0 overflow-hidden opacity-0">
+                    <div id="columnDropdownText" class="flex flex-wrap gap-2"></div>
+                    <p class="mt-1 ml-1 text-sm text-gray-500">Core columns are required and cannot be deselected.
+                    </p>
                 </div>
             </div>
+            <!-- Preview Table -->
+
+
+
+            <div id="previewTableWrapper" class="overflow-x-auto flex-grow min-h-0 ">
+                <table id="previewTable" class="display w-full">
+                    <thead id="previewTableHead1"></thead>
+                    <tbody id="previewTableBody1"></tbody>
+                </table>
+            </div>
+
+            <!-- Add this where you want the radio options to appear -->
+            <div id="previewLocationOptionPlaceholder"></div>
+
+            <div class="flex justify-between items-center mt-4">
+                <div id="exportBTN"></div>
+                <!-- Total Billable Summary -->
+                <div id="previewTotalBillable"
+                    class=" flex items-center justify-end gap-3 text-xl font-bold text-green-700 hidden mr-3">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 shadow">
+                        <i class="fa-solid fa-dollar-sign text-green-600 text-md"></i>
+                    </span>
+                    <span class="total-billable-label">Total Billable:</span>
+                    <span class="total-billable-value"></span>
+                </div> <!-- Will be filled by JS -->
+            </div>
+        </div>
+
+    </div>
+    </div>
+    <!-- Global Loading Overlay -->
+    <div id="globalLoadingOverlay"
+        class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[9999] hidden">
+        <div class="bg-white rounded-full p-6 shadow-lg flex flex-col items-center">
+            <svg class="animate-spin h-8 w-8 text-blue-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                </circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+            <span class="text-blue-600 font-semibold">Loading...</span>
+        </div>
+    </div>
 
         <!-- User Guide Modal -->
         <div id="userGuideModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9998] hidden">
@@ -1225,18 +1650,17 @@
             </div>
         </div>
 
+    <!-- Shift Types CRUD Modal -->
+    <div id="shiftTypeCrudModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
 
-
-            <!-- Shift Types CRUD Modal -->
-            <div id="shiftTypeCrudModal"
-                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-
-            </div>
+    </div>
 
 
 
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
         // Set quotation ID globally
         window.quotationId = @json($quotation->id);
         window.locations = @json($locations);
@@ -1244,9 +1668,9 @@
 
 
         function showLocationTableLoading() {
-        const tbody = document.querySelector("#locationCrudTable tbody");
-        if (!tbody) return;
-        tbody.innerHTML = `
+            const tbody = document.querySelector("#locationCrudTable tbody");
+            if (!tbody) return;
+            tbody.innerHTML = `
             <tr id="locationCrudTableLoadingRow">
             <td colspan="5" class="text-center py-6">
             <div class="flex flex-col items-center justify-center">
@@ -1259,7 +1683,7 @@
             </td>
             </tr>
             `;
-    }
+        }
 
         function hideLocationTableLoading() {
             const loadingRow = document.getElementById('locationCrudTableLoadingRow');
@@ -1387,6 +1811,7 @@
                 const closeExportModal = document.getElementById('closeExportModal');
                 const cancelExportBtn = document.getElementById('cancelExportBtn');
                 const processExportBtn = document.getElementById('processExportBtn');
+    const reviewExportBtn = document.getElementById('reviewExportBtn'); // Declare it here first
 
                 // Export type radio buttons
                 const exportTypeRadios = document.querySelectorAll('input[name="exportType"]');
@@ -1459,8 +1884,7 @@
                 });
                 if (reviewExportBtn) {
                     reviewExportBtn.addEventListener('click', async function() {
-
-
+                        console.log('Review Export button clicked');
                         // Gather selected locations from checked checkboxes
                         const checkedBoxes = document.querySelectorAll(
                             '#availableLocationsContainer input[name="specificLocations"]:checked'
@@ -1521,8 +1945,12 @@
                         window.originalPreviewHeadings = previewHeadings;
 
                         const exportId = generateRecordId();
-                        const allLocationIds = window.multiSelectDropdown ?
-                            window.multiSelectDropdown.getSelectedValues() : [];
+                        const checkedLocationCheckboxes = document.querySelectorAll(
+                            '.location-table-checkbox:checked'
+                        );
+                        const allLocationIds = Array.from(checkedLocationCheckboxes).map(cb =>
+                            String(cb.getAttribute('data-location-id'))
+                        );
                         const checkedExportLocationIds = Array.from(checkedBoxes).map(cb => String(
                             cb.value));
                         const selectedLocationIds = new Set(checkedExportLocationIds);
@@ -1548,6 +1976,7 @@
                         });
                     });
                 }
+
             }
 
             window.updateAvailableLocations = function updateAvailableLocations() {
@@ -1584,9 +2013,7 @@
                     <div class="text-xs text-gray-500">${location.address}</div>
                 </div>
             </label>
-            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                ${recordCount} shift${recordCount !== 1 ? 's' : ''}
-            </span>
+                   
         `;
 
                     container.appendChild(div);
@@ -1762,7 +2189,7 @@
             // Update location display based on multiSelect selections
             function updateLocationDisplay() {
                 const quotationId = window.quotationId;
-                
+
                 // Get selected locations from localStorage (set by location table checkboxes)
                 let selectedLocationIds = [];
                 try {
@@ -1776,9 +2203,11 @@
                 const statusMessage = document.getElementById('locationStatusMessage');
                 if (statusMessage) {
                     if (selectedLocationIds.length === 0) {
-                        statusMessage.textContent = 'Select locations from Location Setup table to configure shifts';
+                        statusMessage.textContent =
+                            'Select locations from Location Setup table to configure shifts';
                     } else {
-                        statusMessage.textContent = `${selectedLocationIds.length} location(s) selected - Configure shifts below`;
+                        statusMessage.textContent =
+                            `${selectedLocationIds.length} location(s) selected - Configure shifts below`;
                     }
                 }
 
@@ -1789,18 +2218,20 @@
                     // Convert both to strings for comparison
                     if (selectedLocationIds.includes(String(locationId))) {
                         form.style.display = 'block';
-                        
+
                         // Load records for this location when form is shown
                         if (typeof window.loadRecordsForLocation === 'function') {
                             window.loadRecordsForLocation(locationId);
                         }
-                        
+
                         // Also load saved data for this location if it exists in savedLocationSchedules
-                        if (window.records && (!window.records[locationId] || window.records[locationId].length === 0)) {
-                            const schedule = savedLocationSchedules.find(s => String(s.location_id) === String(locationId));
+                        if (window.records && (!window.records[locationId] || window.records[locationId]
+                                .length === 0)) {
+                            const schedule = savedLocationSchedules.find(s => String(s.location_id) ===
+                                String(locationId));
                             if (schedule && schedule.shift_details) {
                                 window.records[locationId] = schedule.shift_details;
-                                
+
                                 if (typeof window.renderTable === 'function') {
                                     window.renderTable(locationId);
                                 }
@@ -1816,7 +2247,7 @@
                 if (selectedLocationsInput) {
                     selectedLocationsInput.value = JSON.stringify(selectedLocationIds.map(id => String(id)));
                 }
-                
+
                 // Also update the quotation header summary
                 if (typeof window.updateQuotationHeaderSummary === 'function') {
                     window.updateQuotationHeaderSummary();
@@ -1824,6 +2255,7 @@
             }
             // Make functions globally available
             window.updateLocationDisplay = updateLocationDisplay;
+
             function loadSavedSelections() {
                 const quotationId = window.quotationId;
                 const savedLocations = localStorage.getItem(
@@ -1850,34 +2282,81 @@
 
         });
 
-            // Global variables for step2.js compatibility
-            const locations = @json($locations);
-            window.staticJwt = @json(env('STATIC_JWT'));
-            window.selectedShiftTypes = @json(session('step2.shift_types', []));
-            window.selectedLocationId = @json(session('step2.location_id', ''));
-            window.selectedDateRange = @json(session('step2.date_range', ''));
-            window.quotationId = @json($quotation->id);
+        // Global variables for step2.js compatibility
+        const locations = @json($locations);
+        window.staticJwt = @json(env('STATIC_JWT'));
+        window.selectedShiftTypes = @json(session('step2.shift_types', []));
+        window.selectedLocationId = @json(session('step2.location_id', ''));
+        window.selectedDateRange = @json(session('step2.date_range', ''));
+        window.quotationId = @json($quotation->id);
 
-            // Initialize global records object
-            window.records = {};
-            locations.forEach(location => {
-                window.records[location.id] = [];
+        // Initialize global records object
+        window.records = {};
+        locations.forEach(location => {
+            window.records[location.id] = [];
+        });
+
+        // Compatibility function for step2.js
+        window.getSelectedLocations = function() {
+            const quotationId = window.quotationId;
+            let selectedLocationIds = [];
+            try {
+                const saved = localStorage.getItem(`quotation${quotationId}_selected_locations`);
+                if (saved) selectedLocationIds = JSON.parse(saved).map(id => String(id));
+            } catch {}
+
+            return selectedLocationIds.map(id => {
+                const location = locations.find(loc => String(loc.id) === String(id));
+                return location || {
+                    id: id
+                };
             });
+        };
+        // Compatibility function for step2.js validation
+        window.validateStep2Form = function() {
+            const selectedLocationIds = window.multiSelectDropdown ? window
+                .multiSelectDropdown.getSelectedValues() : [];
+            if (selectedLocationIds.length === 0) {
+                alert('Please select at least one location.');
+                return false;
+            }
+            return true;
+        };
+        console.log("tttttttttttttttttttttttttttttttttt");
 
-            // Compatibility function for step2.js
-            window.getSelectedLocations = function() {
-                const quotationId = window.quotationId;
-                let selectedLocationIds = [];
-                try {
-                    const saved = localStorage.getItem(`quotation${quotationId}_selected_locations`);
-                    if (saved) selectedLocationIds = JSON.parse(saved).map(id => String(id));
-                } catch {}
-                
-                return selectedLocationIds.map(id => {
-                    const location = locations.find(loc => String(loc.id) === String(id));
-                    return location || { id: id };
-                });
-            };
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.loadShiftTypesTable === 'function') {
+                window.loadShiftTypesTable();
+            } else {
+                // Wait until it's available
+                const waitForLoad = setInterval(function() {
+                    if (typeof window.loadShiftTypesTable === 'function') {
+                        window.loadShiftTypesTable();
+                        clearInterval(waitForLoad);
+                    }
+                }, 100);
+            }
+
+            if (typeof window.loadLocationsTable === 'function') {
+                window.loadLocationsTable();
+            } else {
+                // Wait until it's available
+                const waitForLoad = setInterval(function() {
+                    if (typeof window.loadLocationsTable === 'function') {
+                        window.loadLocationsTable();
+                        clearInterval(waitForLoad);
+                    }
+                }, 100);
+            }
+
+            // const previewModalContent = document.getElementById("previewModalContent");
+            // if (previewModalContent && window.ResizeObserver) {
+            //     const resizeObserver = new ResizeObserver(() => {
+            //         if ($.fn.DataTable.isDataTable("#previewTable")) {
+            //             $("#previewTable").DataTable().columns.adjust();
+            //         }
+            //     });
+            // };
             // Compatibility function for step2.js validation
             window.validateStep2Form = function() {
                 const selectedLocationIds = window.multiSelectDropdown ? window
@@ -1890,7 +2369,6 @@
             };
             console.log("tttttttttttttttttttttttttttttttttt");
 
-            document.addEventListener('DOMContentLoaded', function() {
                 // Initialize guide modal functionality
                 const toggleGuideBtn = document.getElementById('toggleGuideBtn');
                 const userGuideModal = document.getElementById('userGuideModal');
@@ -1984,9 +2462,9 @@
                     });
                     resizeObserver.observe(previewModalContent);
                 }
-            });
-
+        });
 </script>
-@vite('resources/js/Step2/step2.js')
+    @vite('resources/js/Step2/step2.js')
+
 
 @endsection
