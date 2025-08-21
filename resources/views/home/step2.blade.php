@@ -1114,28 +1114,15 @@
                     reviewExportBtn.addEventListener('click', async function() {
 
 
-                        // Gather selected locations as in export logic
-                        // ... (same as export logic up to calculation)
-                        // 1. Determine export type and selected locations
-                        const exportType = document.querySelector(
-                                'input[name="exportType"]:checked')
-                            .value;
-                        let selectedLocations = [];
+                        // Gather selected locations from checked checkboxes
+                        const checkedBoxes = document.querySelectorAll(
+                            '#availableLocationsContainer input[name="specificLocations"]:checked'
+                        );
 
-                        if (exportType === "specific") {
-                            // Get checked checkboxes in the specific locations section
-                            const checkedBoxes = document.querySelectorAll(
-                                '#availableLocationsContainer input[name="specificLocations"]:checked'
-                            );
-                            const allWithData = getLocationsWithShiftData();
-                            selectedLocations = Array.from(checkedBoxes).map(cb => {
-                                return allWithData.find(loc => String(loc.id) === String(cb
-                                    .value));
-                            }).filter(Boolean);
-                        } else {
-                            // All locations with data
-                            selectedLocations = getLocationsWithShiftData();
-                        }
+                        const allWithData = getLocationsWithShiftData();
+                        const selectedLocations = Array.from(checkedBoxes)
+                            .map(cb => allWithData.find(loc => String(loc.id) === String(cb.value)))
+                            .filter(Boolean);
 
                         if (selectedLocations.length === 0) {
                             showToast("Please select at least one location with shift data.",
@@ -1143,17 +1130,18 @@
                             return;
                         }
 
+                        // Prepare locations data for calculation
                         const locationsData = selectedLocations.map(loc => ({
                             location_id: loc.id,
                             shifts: loc.shiftData.map(shift => {
-                                // Find the shift type by name
-                                const shiftTypeObj = shiftTypes.find(st => st
-                                    .name === shift.shiftType || st.id ===
-                                    shift.shiftTypeId || st.id === shift
-                                    .shift_type_id);
+                                const shiftTypeObj = shiftTypes.find(st =>
+                                    st.name === shift.shiftType ||
+                                    st.id === shift.shiftTypeId ||
+                                    st.id === shift.shift_type_id
+                                );
                                 return {
                                     shift_type_id: shiftTypeObj ? shiftTypeObj
-                                        .id : null, // must be integer
+                                        .id : null,
                                     from: shift.from,
                                     to: shift.to,
                                     employees: parseInt(shift.employees, 10),
@@ -1164,7 +1152,6 @@
                             })
                         }));
 
-
                         showLoading();
                         const calcResult = await calculateForMultipleLocations(locationsData);
                         hideLoading();
@@ -1173,66 +1160,35 @@
                             showToast("Failed to prepare preview data.", "error");
                             return;
                         }
-                        console.log("calc relsult:", calcResult);
-                        latestMultiCalculateResponses = calcResult;
+
+                        // Store the latest calculation result globally
+                        window.latestMultiCalculateResponses = calcResult;
 
 
-
-                        // Populate the preview table
-                        // If multiple locations, you may want to show tabs or a summary
-                        // If one location, just show the table as usual
-                        // Example for one location:
-                        // By default, select all columns
-                        // Store data locally
+                        // Prepare data for preview modal
                         const previewHeadings = calcResult.timesheet_headings;
                         const previewData = calcResult.timesheet_data;
-                        // const coreColumns = [
-                        //     "week_starting",
-                        //     "shift_type",
-                        //     "location",
-                        // ]; // match backend keys
-
-                        // By default, select all columns
                         const selectedColumnIds = new Set(
-                            previewHeadings.map((h) =>
-                                h.toLowerCase().replace(/[^a-z0-9]/g, "_")
-                            )
+                            previewHeadings.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, "_"))
                         );
-                        window.originalPreviewHeadings =
-                            previewHeadings; // Do this in your code where you first get the headings
+                        window.originalPreviewHeadings = previewHeadings;
 
                         const exportId = generateRecordId();
-                        // Pass all locations, not just selected ones
                         const allLocationIds = window.multiSelectDropdown ?
                             window.multiSelectDropdown.getSelectedValues() : [];
-                        // Get only the locations checked in the export modal
-                        let checkedExportLocationIds = [];
-                        if (exportType === "specific") {
-                            const checkedBoxes = document.querySelectorAll(
-                                '#availableLocationsContainer input[name="specificLocations"]:checked'
-                            );
-                            checkedExportLocationIds = Array.from(checkedBoxes).map(cb => String(cb
-                                .value));
-                        } else {
-                            checkedExportLocationIds = selectedLocations.map(loc => String(loc.id));
-                        }
+                        const checkedExportLocationIds = Array.from(checkedBoxes).map(cb => String(
+                            cb.value));
                         const selectedLocationIds = new Set(checkedExportLocationIds);
-                        console.log(selectedLocationIds);
-                        console.log(allLocationIds);
-
-
 
                         const allLocationData = {};
                         if (calcResult && calcResult.results) {
                             Object.entries(calcResult.results).forEach(([locationId, data]) => {
-                                console.log(data);
-                                console.log(locationId);
                                 allLocationData[locationId] = data;
                             });
                         }
                         window.allLocationData = allLocationData;
-                        console.log(window.allLocationData);
 
+                        // Show the preview modal
                         showPreviewTableModal({
                             headings: previewHeadings,
                             data: previewData,
@@ -1287,6 +1243,28 @@
         `;
 
                     container.appendChild(div);
+                });
+            }
+            // Select All / Deselect All for Saved Shift Locations
+            const selectAllBtnEx = document.getElementById('selectAllSavedShiftLocationsBtn');
+            const deselectAllBtnEx = document.getElementById('deselectAllSavedShiftLocationsBtn');
+
+            if (selectAllBtnEx) {
+                selectAllBtnEx.addEventListener('click', function() {
+                    document.querySelectorAll(
+                        '#availableLocationsContainer input[name="specificLocations"]').forEach(
+                        cb => {
+                            cb.checked = true;
+                        });
+                });
+            }
+            if (deselectAllBtnEx) {
+                deselectAllBtnEx.addEventListener('click', function() {
+                    document.querySelectorAll(
+                        '#availableLocationsContainer input[name="specificLocations"]').forEach(
+                        cb => {
+                            cb.checked = false;
+                        });
                 });
             }
 

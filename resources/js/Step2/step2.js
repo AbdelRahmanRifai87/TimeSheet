@@ -212,6 +212,9 @@ window.showPreviewTableModal = function showPreviewTableModal({
     selectedLocationIds,
     allLocationData,
 }) {
+    window.selectedLocationIds = selectedLocationIds; // <-- Add this
+    window.allLocationData = allLocationData;
+    console.log("preview table data", data);
     console.log(exportId);
     // 1. Show the modal
     document.getElementById("previewModal").classList.remove("hidden");
@@ -2096,6 +2099,21 @@ function renderLocationDropdown(
                 const headings =
                     allLocationData[firstSelectedId]?.timesheet_headings || [];
                 populatePreviewTable(headings, combinedData, selectedColumnIds);
+                // --- Update total billable ---
+                let totalBillable = 0;
+                selectedLocationIds.forEach((id) => {
+                    if (
+                        allLocationData[id] &&
+                        allLocationData[id].totals &&
+                        typeof allLocationData[id].totals.billable === "number"
+                    ) {
+                        totalBillable += allLocationData[id].totals.billable;
+                    }
+                });
+                showTotalBillableInPreview(
+                    totalBillable,
+                    window.quotationCurrency
+                );
             }
             // Re-render pills to update their checked/unchecked state
             renderLocationDropdown(
@@ -2158,8 +2176,24 @@ window.renderColumnDropdown = function renderColumnDropdown(
                 box.className =
                     "column-label inline-block cursor-pointer px-3 py-1 rounded border text-xs font-semibold transition duration-200 bg-[#337ab7] text-white border-[#337ab7]";
             }
+
+            // --- FIX: Rebuild previewData based on selected locations ---
+            const selectedIds = Array.from(window.selectedLocationIds || []);
+            let combinedData = [];
+            if (selectedIds.length > 0 && window.allLocationData) {
+                selectedIds.forEach((id) => {
+                    if (window.allLocationData[id]) {
+                        combinedData.push(
+                            ...window.allLocationData[id].timesheet_data
+                        );
+                    }
+                });
+            } else {
+                combinedData = previewData; // fallback
+            }
+
             // No need to update dropdown text, just re-render table
-            populatePreviewTable(headings, previewData, selectedColumnIds);
+            populatePreviewTable(headings, combinedData, selectedColumnIds);
         });
 
         boxContainer.appendChild(box);
@@ -2538,6 +2572,7 @@ function handleExportButtonClick(locationId) {
         .catch((error) => {
             console.error("API error from calculateReview:", error);
             showToast("Error when calculating.", "error");
+            return;
         });
 }
 
@@ -7488,10 +7523,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function toggleSummary() {
         const stateKey = `quotation${window.quotationId}_summary_collapsed`;
-        const nowHidden = details.classList.toggle('hidden');
-        if (textSpan) textSpan.textContent = nowHidden ? 'Show summary' : 'Hide summary';
-        if (chevron) chevron.classList.toggle('rotate-180', !nowHidden);
-        localStorage.setItem(stateKey, nowHidden ? 'true' : 'false');
+        const nowHidden = details.classList.toggle("hidden");
+        if (textSpan)
+            textSpan.textContent = nowHidden ? "Show summary" : "Hide summary";
+        if (chevron) chevron.classList.toggle("rotate-180", !nowHidden);
+        localStorage.setItem(stateKey, nowHidden ? "true" : "false");
     }
 
     if (btn && details) {
