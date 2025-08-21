@@ -97,7 +97,10 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 //quotation routes
 Route::get('/quotation', [QuotationController::class, 'index'])->name('quotation.index');
 Route::post('/quotation', [QuotationController::class, 'store'])->name('quotation.store');
-Route::put('/quotation/{quotation}', [QuotationController::class, 'update'])->name('quotation.update');
+// Route::put('/quotation/{quotation}', [QuotationController::class, 'update'])->name('quotation.update');
+Route::put('/quotations/{quotation}', [QuotationController::class, 'update'])->name('quotations.update');
+
+
 Route::delete('/quotation/{quotation}', [QuotationController::class, 'destroy'])->name('quotation.destroy');
 Route::get('/quotation/{quotation}/schedule', [HomeController::class, 'step1'])->name('quotation.schedule');
 Route::get('/home/step1', [HomeController::class, 'step1'])->name('home.step1');
@@ -114,3 +117,6 @@ Route::post('/home/step2', [HomeController::class, 'step2Submit'])->name('home.s
 
 Route::post('/save-location-shift-data', [HomeController::class, 'saveLocationShiftData'])->name('save.location.shift.data');
 Route::post('/load-location-shift-data', [HomeController::class, 'loadLocationShiftData'])->name('load.location.shift.data');
+
+//editing the quotation header in the step2.blade.php
+// Route::put('/quotations/{quotation}', [App\Http\Controllers\QuotationController::class, 'update'])->name('quotations.update');

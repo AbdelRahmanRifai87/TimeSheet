@@ -394,6 +394,252 @@ function addShiftTypeRow() {
     tbody.prepend(tr);
 }
 
+// Function to update shift type names in localStorage and location blocks
+function updateShiftTypeNameInLocations(shiftTypeId, newName) {
+    const quotationId = window.quotationId;
+    
+    // Find the old shift type name from the shiftTypes array
+    const oldShiftType = shiftTypes.find(st => String(st.id) === String(shiftTypeId));
+    if (!oldShiftType) {
+        console.warn(`Shift type with ID ${shiftTypeId} not found`);
+        return;
+    }
+    const oldName = oldShiftType.name;
+    
+    console.log(`Updating shift type name from "${oldName}" to "${newName}" for ID ${shiftTypeId}`);
+    
+    // Update the shiftTypes array
+    oldShiftType.name = newName;
+    
+    // Update localStorage records for each location
+    const locationsToRefresh = [];
+    
+    locations.forEach(location => {
+        const locationId = location.id;
+        const storageKey = `quotation_${quotationId}selectedlocations${locationId}Records`;
+        
+        try {
+            const savedRecords = localStorage.getItem(storageKey);
+            if (savedRecords) {
+                const records = JSON.parse(savedRecords);
+                let hasChanges = false;
+                
+                // Update shift type names in records
+                records.forEach(record => {
+                    if (record.shiftType === oldName || record.shift_type_name === oldName) {
+                        record.shiftType = newName;
+                        record.shift_type_name = newName;
+                        // Preserve the shift type ID for save operations
+                        record.shiftTypeId = shiftTypeId;
+                        record.shift_type_id = shiftTypeId;
+                        hasChanges = true;
+                    }
+                });
+                
+                // Save back to localStorage if there were changes
+                if (hasChanges) {
+                    localStorage.setItem(storageKey, JSON.stringify(records));
+                    console.log(`Updated ${records.filter(r => r.shiftType === newName || r.shift_type_name === newName).length} records for location ${locationId}`);
+                    
+                    // Always update in-memory records to match localStorage
+                    console.log(`Updating in-memory records for location ${locationId}`);
+                    
+                    // Ensure window.records exists and has the location initialized
+                    if (!window.records) {
+                        window.records = {};
+                    }
+                    
+                    // Force reload from localStorage to get the updated records
+                    try {
+                        const updatedRecords = localStorage.getItem(storageKey);
+                        console.log(`Raw localStorage data for ${storageKey}:`, updatedRecords);
+                        if (updatedRecords) {
+                            const parsedRecords = JSON.parse(updatedRecords);
+                            
+                            // Force update the in-memory records with fresh data from localStorage
+                            window.records[locationId] = parsedRecords;
+                            
+                            // Also update the global records variable to ensure consistency
+                            if (typeof records !== 'undefined') {
+                                records[locationId] = parsedRecords;
+                            }
+                            
+                            // Mark this location as having updated records to prevent overwrites
+                            const timestamp = Date.now();
+                            window.records[locationId]._lastShiftTypeUpdate = timestamp;
+                            window.records[locationId]._updatedShiftType = { id: shiftTypeId, name: newName };
+                            
+                            // Also mark the global records if it exists
+                            if (typeof records !== 'undefined' && records[locationId]) {
+                                records[locationId]._lastShiftTypeUpdate = timestamp;
+                                records[locationId]._updatedShiftType = { id: shiftTypeId, name: newName };
+                            }
+                            
+                            console.log(`Force-updated ${parsedRecords.length} records for location ${locationId}`);
+                            console.log(`First updated record:`, parsedRecords[0]);
+                            console.log(`Updated records array:`, window.records[locationId]);
+                            
+                            locationsToRefresh.push(locationId);
+                        }
+                    } catch (e) {
+                        console.error(`Error force-updating records for location ${locationId}:`, e);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`Error updating shift type name in localStorage for location ${locationId}:`, error);
+        }
+    });
+    
+    // Re-render tables for all affected locations
+    locationsToRefresh.forEach(locationId => {
+        if (typeof renderTable === 'function') {
+            console.log(`Re-rendering table for location ${locationId} after shift type update`);
+            console.log(`Records before renderTable:`, window.records[locationId]);
+            renderTable(locationId);
+            console.log(`Table re-rendered for location ${locationId}`);
+        }
+    });
+    
+    // Update shift type dropdown options in location forms
+    locations.forEach(location => {
+        const locationId = location.id;
+        
+        // Update filter dropdown
+        const filterShiftTypeDropdown = document.getElementById(`filterShiftType_${locationId}`);
+        if (filterShiftTypeDropdown) {
+            const option = filterShiftTypeDropdown.querySelector(`option[value="${shiftTypeId}"]`);
+            if (option) {
+                option.textContent = newName;
+            }
+        }
+        
+        // Update any shift type selects or dropdowns in the location forms
+        const shiftTypeSelects = document.querySelectorAll(`#form_${locationId} select[id*="shiftType"]`);
+        shiftTypeSelects.forEach(select => {
+            const option = select.querySelector(`option[value="${shiftTypeId}"]`);
+            if (option) {
+                option.textContent = newName;
+            }
+        });
+    });
+    
+    // Also directly update visible table cells for immediate visual feedback
+    updateShiftTypeInVisibleTables(oldName, newName);
+    
+    // Mark that we've updated records to prevent them from being overwritten
+    locationsToRefresh.forEach(locationId => {
+        if (window.records[locationId]) {
+            window.records[locationId]._shiftTypeJustUpdated = true;
+        }
+    });
+    
+    // Update any cached summary displays or location displays
+    if (typeof window.updateLocationDisplay === 'function') {
+        window.updateLocationDisplay();
+    }
+    if (typeof window.updateQuotationHeaderSummary === 'function') {
+        window.updateQuotationHeaderSummary();
+    }
+    
+    // Remove the update flag after a short delay
+    setTimeout(() => {
+        locationsToRefresh.forEach(locationId => {
+            if (window.records[locationId]) {
+                delete window.records[locationId]._shiftTypeJustUpdated;
+            }
+        });
+    }, 1000);
+    
+    console.log(`Successfully updated shift type name to "${newName}" across all locations and localStorage`);
+}
+
+// Function to directly update shift type names in visible table cells
+function updateShiftTypeInVisibleTables(oldName, newName) {
+    console.log(`Starting updateShiftTypeInVisibleTables: "${oldName}" -> "${newName}"`);
+    
+    locations.forEach(location => {
+        const locationId = location.id;
+        const table = document.getElementById(`shiftTable_${locationId}`);
+        
+        if (table) {
+            console.log(`Found table for location ${locationId}, checking cells...`);
+            // Find all table cells that contain the old shift type name
+            const shiftTypeCells = table.querySelectorAll('tbody tr td:nth-child(2)'); // 2nd column is shift type
+            
+            console.log(`Found ${shiftTypeCells.length} shift type cells in location ${locationId}`);
+            shiftTypeCells.forEach((cell, index) => {
+                console.log(`  Cell ${index}: "${cell.textContent.trim()}"`);
+                if (cell.textContent.trim() === oldName) {
+                    cell.textContent = newName;
+                    console.log(`Updated visible table cell from "${oldName}" to "${newName}" in location ${locationId}`);
+                } else {
+                    console.log(`  No match for cell ${index} (looking for "${oldName}")`);
+                }
+            });
+        } else {
+            console.log(`No table found for location ${locationId}`);
+        }
+    });
+}
+
+// Function to update all shift type dropdowns in location forms
+function updateShiftTypeDropdowns() {
+    locations.forEach(location => {
+        const locationId = location.id;
+        
+        // Update filter dropdown
+        const filterShiftTypeDropdown = document.getElementById(`filterShiftType_${locationId}`);
+        if (filterShiftTypeDropdown) {
+            const currentValue = filterShiftTypeDropdown.value;
+            
+            // Clear existing options except "All"
+            filterShiftTypeDropdown.innerHTML = '<option value="">All</option>';
+            
+            // Add updated shift types
+            shiftTypes.forEach(st => {
+                const option = document.createElement('option');
+                option.value = st.id;
+                option.textContent = st.name;
+                if (currentValue && String(currentValue) === String(st.id)) {
+                    option.selected = true;
+                }
+                filterShiftTypeDropdown.appendChild(option);
+            });
+        }
+        
+        // Update any other shift type selects in the location forms
+        const shiftTypeSelects = document.querySelectorAll(`#form_${locationId} select[id*="shiftType"]`);
+        shiftTypeSelects.forEach(select => {
+            const currentValue = select.value;
+            
+            // Store existing options that aren't shift types (like "Select shift type")
+            const nonShiftTypeOptions = Array.from(select.options).filter(option => 
+                !shiftTypes.some(st => String(st.id) === String(option.value))
+            );
+            
+            // Clear all options
+            select.innerHTML = '';
+            
+            // Re-add non-shift-type options
+            nonShiftTypeOptions.forEach(option => {
+                select.appendChild(option.cloneNode(true));
+            });
+            
+            // Add updated shift types
+            shiftTypes.forEach(st => {
+                const option = document.createElement('option');
+                option.value = st.id;
+                option.textContent = st.name;
+                if (currentValue && String(currentValue) === String(st.id)) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        });
+    });
+}
+
 // Handle table actions (edit, save, cancel, delete)
 async function handleShiftTypeCrudTableClick(e) {
     const tr = e.target.closest("tr");
@@ -474,6 +720,12 @@ async function handleShiftTypeCrudTableClick(e) {
                     });
                 }
             }
+
+            // Update shift type names in localStorage and location blocks if this was an update
+            if (id) {
+                updateShiftTypeNameInLocations(id, name);
+            }
+
             await loadShiftTypesTable();
             hideShiftTypeTableLoading();
         } finally {
@@ -526,13 +778,14 @@ async function handleShiftTypeCrudTableClick(e) {
                 Object.keys(records).forEach(async (locationId) => {
                     const hasShiftType = records[locationId].some(
                         (rec) =>
-                            rec.shiftType === (shiftTypeToDelete?.name || "")
+                            rec.shiftType === (shiftTypeToDelete?.name || "") ||
+                            rec.shift_type_name === (shiftTypeToDelete?.name || "")
                     );
                     if (hasShiftType) {
                         records[locationId] = records[locationId].filter(
                             (rec) =>
-                                rec.shiftType !==
-                                (shiftTypeToDelete?.name || "")
+                                rec.shiftType !== (shiftTypeToDelete?.name || "") &&
+                                rec.shift_type_name !== (shiftTypeToDelete?.name || "")
                         );
                         saveRecordsToStorage(locationId);
                         await handleSaveButtonClick(locationId, true, true);
@@ -563,6 +816,10 @@ window.loadShiftTypesTable = async function loadShiftTypesTable() {
     shiftTypes.forEach((st) => {
         tbody.appendChild(createShiftTypeRow(st));
     });
+    
+    // Update shift type dropdowns in location forms
+    updateShiftTypeDropdowns();
+    
     hideShiftTypeTableLoading();
     reattachShiftTypeCrudTableEvents(); // <--- Add this line
 };
@@ -633,6 +890,10 @@ function addLocationRow() {
     const tr = document.createElement("tr");
     tr.classList.add("editing-row");
     tr.innerHTML = `
+        <td class="border px-2 py-1 text-center" style="width: 50px;">
+            <!-- Empty checkbox column for new location row -->
+            <span class="text-gray-400">—</span>
+        </td>
         <td class="border px-2 py-1"><input type="text" class="form-input w-full" placeholder="Name"></td>
         <td class="border px-2 py-1"><input type="text" class="form-input w-full" placeholder="Address"></td>
         <td class="border px-2 py-1"><input type="text" class="form-input w-full" placeholder="City"></td>
@@ -668,15 +929,28 @@ async function handleLocationCrudTableClick(e) {
         const btn = e.target.closest(".saveLocationBtn");
         showButtonSpinner(btn);
         try {
-            const inputs = tr.querySelectorAll("input");
+            // Get all input and select elements from the row
+            const inputs = tr.querySelectorAll("input[type='text']"); // Only get text inputs, not checkbox
             const stateSelect = tr.querySelector("select");
+
+            console.log("Save location - inputs found:", inputs.length);
+            console.log("Save location - state select found:", !!stateSelect);
+            
+            // Validate we have the expected number of inputs
+            if (inputs.length < 3) {
+                console.error("Expected 3 text inputs (name, address, city), found:", inputs.length);
+                showToast("Form validation error. Please try again.", "error");
+                return;
+            }
 
             const data = {
                 name: inputs[0].value.trim(),
                 address: inputs[1].value.trim(),
                 city: inputs[2].value.trim(),
-                state: stateSelect.value.trim(),
+                state: stateSelect ? stateSelect.value.trim() : "",
             };
+            
+            console.log("Save location - extracted data:", data);
             const id = tr.dataset.id;
             if (!data.name) {
                 showToast("Name is required.", "error");
@@ -712,7 +986,6 @@ async function handleLocationCrudTableClick(e) {
 
                     // 4. Optionally, update display
                     window.updateLocationDisplay();
-                    renderSelectedLocationContainers();
                     console.log(
                         "Location updated successfully with this id : ",
                         id
@@ -765,7 +1038,7 @@ async function handleLocationCrudTableClick(e) {
                     );
                     if (saveButton) {
                         saveButton.addEventListener("click", function () {
-                            renderTable(response.data.id);
+                            // renderTable will be called after save is complete to show updated data
                             // console.log("Fetching locations with shift data...");
                             // updateAvailableLocations();
                             locations.push(response.data);
@@ -805,13 +1078,23 @@ async function handleLocationCrudTableClick(e) {
                     // loadLocationsTable();
                     addLocationToDropdown(response.data); // <-- here
                     window.updateLocationDisplay();
-                    renderSelectedLocationContainers();
 
                     loadLocationsTable();
                 });
             }
         } catch (error) {
-            showToast("Failed to save location.", "error");
+            console.error("Location save error:", error);
+            if (error.response) {
+                console.error("Error response:", error.response.data);
+                console.error("Error status:", error.response.status);
+                showToast(`Failed to save location: ${error.response.data.message || 'Server error'}`, "error");
+            } else if (error.request) {
+                console.error("Network error:", error.request);
+                showToast("Failed to save location: Network error", "error");
+            } else {
+                console.error("Error message:", error.message);
+                showToast(`Failed to save location: ${error.message}`, "error");
+            }
         } finally {
             hideButtonSpinner(btn);
         }
@@ -831,10 +1114,15 @@ async function handleLocationCrudTableClick(e) {
         showButtonSpinner(btn);
         if (document.querySelector(".editing-row")) return;
         const tds = tr.querySelectorAll("td");
+        // Skip the checkbox column (index 0) and get columns 1-4 (name, address, city, state)
         const [name, address, city, state] = Array.from(tds)
-            .slice(0, 4)
+            .slice(1, 5)
             .map((td) => td.textContent.trim());
         tr.innerHTML = `
+            <td class="border px-2 py-1 text-center" style="width: 50px;">
+                <!-- Preserve checkbox column during edit -->
+                <span class="text-gray-400">—</span>
+            </td>
             <td class="border px-2 py-1"><input type="text" class="form-input w-full px-2 py-1 border" value="${name}"></td>
             <td class="border px-2 py-1"><input type="text" class="form-input w-full px-2 py-1 border" value="${address}"></td>
             <td class="border px-2 py-1"><input type="text" class="form-input w-full px-2 py-1 border" value="${city}"></td>
@@ -872,12 +1160,23 @@ async function handleLocationCrudTableClick(e) {
             const id = tr.dataset.id;
             if (confirm("Are you sure you want to delete this location?")) {
                 await axios.delete(`/api/locations/${id}`);
+                
+                // Clean up localStorage data for this location
+                cleanupLocationFromStorage(id);
+                
                 loadLocationsTable();
                 removeLocationFromDropdown(id);
                 window.updateLocationDisplay();
+                
+                showToast("Location deleted successfully", "success");
             }
         } catch (error) {
-            showToast("Failed to delete location.", "error");
+            console.error("Delete location error:", error);
+            if (error.response) {
+                showToast(`Failed to delete location: ${error.response.data.message || 'Server error'}`, "error");
+            } else {
+                showToast("Failed to delete location.", "error");
+            }
         } finally {
             hideButtonSpinner(btn);
         }
@@ -896,30 +1195,95 @@ window.loadLocationsTable = async function loadLocationTable() {
                 tr.classList.add("bg-white");
                 tr.dataset.id = loc.id;
                 tr.innerHTML = `
+                <td class="border px-2 py-1 text-center" style="width: 50px;">
+                    <input type="checkbox"
+                        class="location-table-checkbox"
+                        data-location-id="${loc.id}"
+                    >
+                </td>
                 <td class="border px-2 py-1">${loc.name}</td>
                 <td class="border px-2 py-1">${loc.address}</td>
                 <td class="border px-2 py-1">${loc.city}</td>
                 <td class="border px-2 py-1">${loc.state}</td>
-                <td class="border px-2 py-1 flex gap-2">
-                   <button class="editLocationBtn text-blue-600" title="Edit">
-            <i class="fas fa-edit"></i>
-            <i class="fas fa-spinner fa-spin hidden ml-1"></i>
-        </button>
-        <button class="deleteLocationBtn text-red-600" title="Delete">
-            <i class="fas fa-trash"></i>
-            <i class="fas fa-spinner fa-spin hidden ml-1"></i>
-        </button>
+                <td class="border px-2 py-1 text-center" style="width: 100px;">
+                    <div class="flex gap-2 justify-center">
+                        <button class="editLocationBtn text-blue-600" title="Edit">
+                            <i class="fas fa-edit"></i>
+                            <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+                        </button>
+                        <button class="deleteLocationBtn text-red-600" title="Delete">
+                            <i class="fas fa-trash"></i>
+                            <i class="fas fa-spinner fa-spin hidden ml-1"></i>
+                        </button>
+                    </div>
                 </td>
             `;
                 tbody.appendChild(tr);
             });
+
+            // Add event listeners for checkboxes
+            document.querySelectorAll('.location-table-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const locationId = String(this.getAttribute('data-location-id'));
+                    const quotationId = window.quotationId;
+                    
+                    // Get current selected locations
+                    let selectedLocations = [];
+                    try {
+                        const saved = localStorage.getItem(`quotation${quotationId}_selected_locations`);
+                        if (saved) selectedLocations = JSON.parse(saved);
+                    } catch {}
+
+                    // Ensure all IDs are strings for consistency
+                    selectedLocations = selectedLocations.map(id => String(id));
+
+                    if (this.checked) {
+                        // Add location to selection
+                        if (!selectedLocations.includes(locationId)) {
+                            selectedLocations.push(locationId);
+                        }
+                    } else {
+                        // Remove location from selection
+                        selectedLocations = selectedLocations.filter(id => String(id) !== locationId);
+                    }
+
+                    // Save updated selection
+                    localStorage.setItem(`quotation${quotationId}_selected_locations`, JSON.stringify(selectedLocations));
+
+                    // Update location display (show/hide forms)
+                    updateLocationDisplay();
+                    
+                    // Update quotation summary
+                    if (typeof window.updateQuotationHeaderSummary === 'function') {
+                        window.updateQuotationHeaderSummary();
+                    }
+                });
+            });
+
+            // Load saved selections and set checkbox states
+            const quotationId = window.quotationId;
+            let savedSelections = [];
+            try {
+                const saved = localStorage.getItem(`quotation${quotationId}_selected_locations`);
+                if (saved) savedSelections = JSON.parse(saved).map(id => String(id));
+            } catch {}
+
+            // Set checkbox states based on saved selections
+            document.querySelectorAll('.location-table-checkbox').forEach(checkbox => {
+                const locationId = String(checkbox.getAttribute('data-location-id'));
+                checkbox.checked = savedSelections.includes(locationId);
+            });
+
+            // Trigger updateLocationDisplay after loading checkboxes AND after setting states
+            if (typeof updateLocationDisplay === 'function') {
+                updateLocationDisplay();
+            }
         })
         .finally(() => {
-            // hideLocationTableLoading();
-            reattachLocationCrudTableEvents(); // <--- Add this line
+            hideLocationTableLoading();
+            reattachLocationCrudTableEvents();
         });
 };
-
 // async function calculateForMultipleLocations(locationsData) {
 //     // locationsData: Array of { location_id, shifts: [...] }
 //     try {
@@ -970,10 +1334,34 @@ function saveRecordsToStorage(locationId) {
 // Function to load records from database/localStorage when location form is shown
 function loadRecordsForLocation(locationId) {
     const quotationId = window.quotationId;
-    console.log(`Loading records for location ${quotationId}`);
+    console.log(`Loading records for location ${locationId} in quotation ${quotationId}`);
+    console.log(`Current records before loading:`, records[locationId]);
 
     // Check if we already have records loaded
     if (records[locationId] && records[locationId].length > 0) {
+        // If records were just updated during shift type update, don't reload them
+        // Check both global records and window.records for protection metadata
+        let timeSinceUpdate = records[locationId]._lastShiftTypeUpdate;
+        if (!timeSinceUpdate && window.records && window.records[locationId]) {
+            timeSinceUpdate = window.records[locationId]._lastShiftTypeUpdate;
+        }
+        
+        if (timeSinceUpdate && (Date.now() - timeSinceUpdate) < 5000) { // 5 second protection window
+            console.log(
+                `Records for location ${locationId} were recently updated (${Date.now() - timeSinceUpdate}ms ago), skipping reload to preserve shift type changes`
+            );
+            
+            // Make sure both records arrays have the protection data
+            const protectedShiftType = records[locationId]._updatedShiftType || 
+                (window.records && window.records[locationId] && window.records[locationId]._updatedShiftType);
+            
+            if (protectedShiftType) {
+                console.log(`Protected shift type: ${protectedShiftType.name} (ID: ${protectedShiftType.id})`);
+            }
+            renderTable(locationId);
+            return;
+        }
+        
         console.log(
             `Records already loaded for quotation ${quotationId}, location ${locationId}`
         );
@@ -981,23 +1369,23 @@ function loadRecordsForLocation(locationId) {
         return;
     }
 
-    // Try localStorage first (for immediate response) with quotation-specific key
-    const localData = localStorage.getItem(
-        `quotation_${quotationId}selectedlocations${locationId}Records`
-    );
+    // Try localStorage first with the correct key pattern
+    const localDataKey = `quotation_${quotationId}selectedlocations${locationId}Records`;
+    const localData = localStorage.getItem(localDataKey);
+    
     if (localData) {
         try {
             const parsedRecords = JSON.parse(localData);
             if (Array.isArray(parsedRecords) && parsedRecords.length > 0) {
-                console.log(
-                    `Loading ${parsedRecords.length} records from localStorage for quotation ${quotationId}, for location ${locationId}`
-                );
                 records[locationId] = parsedRecords;
+                console.log(
+                    `Loaded ${parsedRecords.length} records for quotation ${quotationId}, location ${locationId} from localStorage`
+                );
                 renderTable(locationId);
                 return;
             }
         } catch (e) {
-            console.error("Error parsing localStorage data:", e);
+            console.error(`Error parsing localStorage records for location ${locationId}:`, e);
         }
     }
 
@@ -2125,6 +2513,13 @@ function handleExportButtonClick(locationId) {
 function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
     return new Promise((resolve) => {
         console.log(`Save button clicked for location: ${locationId}`);
+        console.log(`Current records for location ${locationId}:`, records[locationId]);
+        console.log(`Sample record shift types:`, records[locationId]?.slice(0, 3).map(r => ({ shiftType: r.shiftType, shift_type_name: r.shift_type_name, shiftTypeId: r.shiftTypeId })));
+        
+        // Log each record's shift type in detail
+        records[locationId]?.forEach((record, index) => {
+            console.log(`Record ${index}: shiftType="${record.shiftType}", shift_type_name="${record.shift_type_name}", shiftTypeId="${record.shiftTypeId}"`);
+        });
 
         const saveBtn = document.getElementById(`saveBtn_${locationId}`);
         const btnText = saveBtn.querySelector(".save-btn-text");
@@ -2187,12 +2582,37 @@ function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
         }
 
         const mappedShifts = records[locationId].map((rec) => {
-            // Find the shift type object by name
-            const shiftTypeObj = shiftTypes.find(
+            // Find the shift type object by name or id with better error handling
+            let shiftTypeObj = shiftTypes.find(
                 (st) => st.name === rec.shiftType || st.id === rec.shiftType
             );
+            
+            // If not found by name/id, try to find by shift_type_name field as fallback
+            if (!shiftTypeObj && rec.shift_type_name) {
+                shiftTypeObj = shiftTypes.find(
+                    (st) => st.name === rec.shift_type_name || st.id === rec.shift_type_name
+                );
+            }
+            
+            // Final fallback: if still not found and rec.shiftType looks like a number, use it as ID
+            let shift_type_id;
+            if (shiftTypeObj) {
+                shift_type_id = shiftTypeObj.id;
+            } else if (rec.shiftTypeId) {
+                shift_type_id = rec.shiftTypeId;
+            } else if (rec.shift_type_id) {
+                shift_type_id = rec.shift_type_id;
+            } else if (!isNaN(Number(rec.shiftType))) {
+                shift_type_id = Number(rec.shiftType);
+            } else {
+                console.warn(`Could not find shift type for record:`, rec);
+                console.warn(`Available shift types:`, shiftTypes.map(st => ({ id: st.id, name: st.name })));
+                // Use the first available shift type as fallback to prevent errors
+                shift_type_id = shiftTypes.length > 0 ? shiftTypes[0].id : null;
+            }
+            
             return {
-                shift_type_id: shiftTypeObj ? shiftTypeObj.id : rec.shiftType, // fallback if already id
+                shift_type_id: shift_type_id,
                 day: rec.day,
                 from: rec.from,
                 to: rec.to,
@@ -2207,6 +2627,11 @@ function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
             " locationId",
             locationId
         );
+        
+        // Log each mapped shift in detail
+        mappedShifts.forEach((shift, index) => {
+            console.log(`Mapped shift ${index}: shift_type_id=${shift.shift_type_id}, day="${shift.day}", from="${shift.from}", to="${shift.to}"`);
+        });
 
         // // Send API request to calculate totals
         apiService
@@ -2284,6 +2709,10 @@ function handleSaveButtonClick(locationId, silent = false, silent2 = false) {
                         btnText.classList.remove("hidden");
                     }, 1500);
                     if (!silent) toggleFormWithoutSaving(locationId);
+                    
+                    // Re-render the table to show updated shift type names
+                    renderTable(locationId);
+                    
                     resolve(true);
                     // Show check for 1.5 seconds
                     // if (!silent) {
@@ -2840,10 +3269,31 @@ function renderRow(rec, locationId) {
 }
 
 function renderTable(locationId) {
+    // Check if records were recently updated and restore from window.records if needed
+    const currentTime = Date.now();
+    if (window.records && window.records[locationId] && window.records[locationId]._lastShiftTypeUpdate) {
+        const timeSinceUpdate = currentTime - window.records[locationId]._lastShiftTypeUpdate;
+        if (timeSinceUpdate < 5000) { // Within 5 second protection window
+            console.log(`RenderTable: Detected recent shift type update (${timeSinceUpdate}ms ago), using protected records`);
+            
+            // If the global records array doesn't have the protection metadata, restore it
+            if (!records[locationId] || !records[locationId]._lastShiftTypeUpdate || 
+                records[locationId]._lastShiftTypeUpdate !== window.records[locationId]._lastShiftTypeUpdate) {
+                console.log(`RenderTable: Restoring records from window.records to prevent corruption`);
+                records[locationId] = window.records[locationId];
+            }
+        }
+    }
+    
     console.log(
         `Rendering table for location ${locationId} with records:`,
         records[locationId]
     );
+    
+    // Log first record details if it exists
+    if (records[locationId] && records[locationId].length > 0) {
+        console.log(`First record in renderTable: shiftType="${records[locationId][0].shiftType}", shift_type_name="${records[locationId][0].shift_type_name}"`);
+    }
 
     // Remove duplicates from the records array
     const uniqueRecords = [];
@@ -6351,6 +6801,85 @@ function removeLocationFromDropdown(locationId) {
         window.multiSelectDropdown.updateSearchPlaceholder();
     }
 }
+
+// Clean up all localStorage data for a deleted location
+function cleanupLocationFromStorage(locationId) {
+    const quotationId = window.quotationId;
+    console.log(`Cleaning up localStorage data for location ${locationId} in quotation ${quotationId}`);
+    
+    try {
+        // 1. Remove location from selected locations list
+        const selectedLocationsKey = `quotation${quotationId}_selected_locations`;
+        let selectedLocations = [];
+        try {
+            const saved = localStorage.getItem(selectedLocationsKey);
+            if (saved) {
+                selectedLocations = JSON.parse(saved);
+                // Remove the deleted location ID
+                selectedLocations = selectedLocations.filter(id => String(id) !== String(locationId));
+                localStorage.setItem(selectedLocationsKey, JSON.stringify(selectedLocations));
+                console.log(`Updated selected locations:`, selectedLocations);
+            }
+        } catch (e) {
+            console.error('Error updating selected locations:', e);
+        }
+        
+        // 2. Remove location records data
+        const recordsKey = `quotation_${quotationId}selectedlocations${locationId}Records`;
+        if (localStorage.getItem(recordsKey)) {
+            localStorage.removeItem(recordsKey);
+            console.log(`Removed records data for location ${locationId}`);
+        }
+        
+        // 3. Remove any other location-specific data (if exists)
+        const locationDataKey = `location_${locationId}`;
+        if (localStorage.getItem(locationDataKey)) {
+            localStorage.removeItem(locationDataKey);
+            console.log(`Removed location data for location ${locationId}`);
+        }
+        
+        // 4. Clean up in-memory records
+        if (window.records && window.records[locationId]) {
+            delete window.records[locationId];
+            console.log(`Cleaned up in-memory records for location ${locationId}`);
+        }
+        
+        // 5. Remove from global locations array
+        if (window.locations) {
+            const index = window.locations.findIndex(loc => String(loc.id) === String(locationId));
+            if (index !== -1) {
+                window.locations.splice(index, 1);
+                console.log(`Removed location ${locationId} from global locations array`);
+            }
+        }
+        
+        // 6. Remove billable totals for this location
+        const billableKey = `quotation${quotationId}_location${locationId}_total_billable`;
+        if (localStorage.getItem(billableKey)) {
+            localStorage.removeItem(billableKey);
+            console.log(`Removed billable totals for location ${locationId}: ${billableKey}`);
+        }
+        
+        // 7. Remove any calculation responses stored for this location
+        if (window.latestCalculateResponses && window.latestCalculateResponses[locationId]) {
+            delete window.latestCalculateResponses[locationId];
+            console.log(`Removed calculate responses for location ${locationId}`);
+        }
+        
+        // 8. Remove location form if it exists
+        const locationForm = document.querySelector(`.location-form[data-location-id="${locationId}"]`);
+        if (locationForm) {
+            locationForm.remove();
+            console.log(`Removed location form for location ${locationId}`);
+        }
+        
+        console.log(`Successfully cleaned up all data for location ${locationId}`);
+        
+    } catch (error) {
+        console.error(`Error cleaning up location ${locationId} data:`, error);
+    }
+}
+
 // function renderSelectedLocationContainers() {
 //     const selectedIds = window.multiSelectDropdown.getSelectedValues();
 //     const container = document.getElementById('selectedLocationsForms');
@@ -6372,6 +6901,12 @@ function removeLocationFromDropdown(locationId) {
 // }
 
 function renderSelectedLocationContainers() {
+    // Check if multiSelectDropdown exists before using it
+    if (!window.multiSelectDropdown || typeof window.multiSelectDropdown.getSelectedValues !== 'function') {
+        console.warn('multiSelectDropdown not available, skipping container rendering');
+        return;
+    }
+    
     const selectedIds = window.multiSelectDropdown.getSelectedValues();
     const forms = document.querySelectorAll(".location-form");
     forms.forEach((form) => {
@@ -6881,7 +7416,6 @@ if (backBtn) {
 document.addEventListener('DOMContentLoaded', function () {
     // Collapsible header state
     const btn = document.getElementById('toggleQuotationSummaryBtn');
-    const header = document.getElementById('quotationHeaderClickable');
     const details = document.getElementById('quotation-summary-details');
     const chevron = document.getElementById('quotation-summary-chevron');
     const textSpan = btn ? btn.querySelector('.toggle-text') : null;
@@ -6909,22 +7443,244 @@ document.addEventListener('DOMContentLoaded', function () {
             if (chevron) chevron.classList.add('rotate-180');
         }
 
+        // Only add click event to the toggle button, not the entire header
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             toggleSummary();
         });
-        if (header) {
-            header.addEventListener('click', function(e) {
-                // Only toggle if not clicking the button itself
-                if (!btn.contains(e.target)) {
-                    toggleSummary();
-                }
-            });
-        }
     }
 
     // Populate summary values
     if (typeof window.updateQuotationHeaderSummary === 'function') {
         window.updateQuotationHeaderSummary();
     }
+
+    //editing the quotation header 
+    const quotationId = window.quotationId;
+    const editBtn = document.getElementById('editQuotationBtn');
+    const saveBtn = document.getElementById('saveQuotationBtn');
+    const cancelBtn = document.getElementById('cancelQuotationBtn');
+    const editableFields = document.querySelectorAll('.editable-field');
+    
+    let originalValues = {};
+    let isEditing = false;
+
+    // Check if edit=1 is in URL and auto-enable edit mode
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('edit') === '1') {
+        setTimeout(() => enableEditMode(), 100); // Small delay to ensure DOM is ready
+    }
+
+    function enableEditMode() {
+        if (isEditing) return;
+        
+        isEditing = true;
+        originalValues = {};
+        
+        // Show edit inputs and hide display values
+        editableFields.forEach(field => {
+            const displayValue = field.querySelector('.display-value');
+            const editInputContainer = field.querySelector('.edit-input');
+            
+            if (displayValue && editInputContainer) {
+                // Find the actual input/select/textarea inside the container
+                const actualInput = editInputContainer.querySelector('input, select, textarea');
+                
+                // Store original value
+                const fieldName = field.getAttribute('data-field');
+                if (actualInput) {
+                    originalValues[fieldName] = actualInput.value;
+                }
+                
+                displayValue.classList.add('hidden');
+                editInputContainer.classList.remove('hidden');
+            }
+        });
+        
+        // Toggle buttons
+        editBtn.classList.add('hidden');
+        saveBtn.classList.remove('hidden');
+        cancelBtn.classList.remove('hidden');
+        
+        // Remove URL parameter after enabling edit mode
+        if (urlParams.get('edit') === '1') {
+            const newUrl = window.location.pathname + window.location.search.replace(/[?&]edit=1/, '');
+            window.history.replaceState({}, '', newUrl);
+        }
+    }
+
+    function disableEditMode() {
+        if (!isEditing) return;
+        
+        isEditing = false;
+        
+        // Hide edit inputs and show display values
+        editableFields.forEach(field => {
+            const displayValue = field.querySelector('.display-value');
+            const editInputContainer = field.querySelector('.edit-input');
+            
+            if (displayValue && editInputContainer) {
+                displayValue.classList.remove('hidden');
+                editInputContainer.classList.add('hidden');
+            }
+        });
+        
+        // Toggle buttons
+        editBtn.classList.remove('hidden');
+        saveBtn.classList.add('hidden');
+        cancelBtn.classList.add('hidden');
+    }
+
+    function cancelEdit() {
+        // Restore original values
+        editableFields.forEach(field => {
+            const editInputContainer = field.querySelector('.edit-input');
+            const fieldName = field.getAttribute('data-field');
+            
+            if (editInputContainer && originalValues[fieldName] !== undefined) {
+                const actualInput = editInputContainer.querySelector('input, select, textarea');
+                if (actualInput) {
+                    actualInput.value = originalValues[fieldName];
+                }
+            }
+        });
+        
+        disableEditMode();
+    }
+
+    function saveChanges() {
+        const formData = new FormData();
+        const updatedData = {};
+        
+        // Collect updated values
+        editableFields.forEach(field => {
+            const editInputContainer = field.querySelector('.edit-input');
+            const fieldName = field.getAttribute('data-field');
+            
+            if (editInputContainer) {
+                // Find the actual input/select/textarea inside the container
+                const actualInput = editInputContainer.querySelector('input, select, textarea');
+                if (actualInput) {
+                    updatedData[fieldName] = actualInput.value;
+                    formData.append(fieldName, actualInput.value);
+                }
+            }
+        });
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            return;
+        }
+        
+        // Show loading state
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        // Debug: Log the data being sent
+        console.log('Sending data:', updatedData);
+        console.log('Quotation ID:', quotationId);
+        
+        // Send AJAX request
+        fetch(`/quotations/${quotationId}`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatedData)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    console.error('Server responded with error:', errorData);
+                    throw new Error(errorData.message || `Server error: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Update display values with new data
+                editableFields.forEach(field => {
+                    const displayValue = field.querySelector('.display-value');
+                    const editInput = field.querySelector('.edit-input');
+                    const fieldName = field.getAttribute('data-field');
+                    
+                    if (displayValue && editInput && updatedData[fieldName] !== undefined) {
+                        // Update display based on field type
+                        if (fieldName === 'client_name') {
+                            displayValue.textContent = `Client Name: ${updatedData[fieldName]}`;
+                        } else if (fieldName === 'status') {
+                            const statusSpan = displayValue.querySelector('#quotation-status');
+                            if (statusSpan) {
+                                statusSpan.textContent = updatedData[fieldName].charAt(0).toUpperCase() + updatedData[fieldName].slice(1);
+                            }
+                        } else if (fieldName === 'description') {
+                            const descSpan = displayValue.querySelector('span:last-child');
+                            if (descSpan) {
+                                descSpan.textContent = updatedData[fieldName] || 'No description';
+                            }
+                            // Also update the summary description
+                            const summaryDescSpan = document.getElementById('summary-description');
+                            if (summaryDescSpan) {
+                                summaryDescSpan.textContent = updatedData[fieldName] || '-';
+                            }
+                        } else if (fieldName === 'name') {
+                            displayValue.textContent = updatedData[fieldName];
+                        }
+                    }
+                });
+                
+                disableEditMode();
+                
+                // Show success message
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Quotation updated successfully!', 'success');
+                }
+            } else {
+                throw new Error(data.message || 'Failed to update quotation');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating quotation:', error);
+            if (typeof window.showToast === 'function') {
+                window.showToast('Failed to update quotation. Please try again.', 'error');
+            }
+        })
+        .finally(() => {
+            // Restore save button
+            saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+        });
+    }
+
+    // Event listeners
+    if (editBtn) editBtn.addEventListener('click', enableEditMode);
+    if (saveBtn) saveBtn.addEventListener('click', saveChanges);
+    if (cancelBtn) cancelBtn.addEventListener('click', cancelEdit);
+
+    locations.forEach((location) => {
+        const quotationId = window.quotationId;
+        
+        // Load records from localStorage with the correct key pattern
+        const savedRecords = localStorage.getItem(`quotation_${quotationId}selectedlocations${location.id}Records`);
+        
+        if (savedRecords) {
+            try {
+                const parsedRecords = JSON.parse(savedRecords);
+                if (Array.isArray(parsedRecords) && parsedRecords.length > 0) {
+                    records[location.id] = parsedRecords;
+                    console.log(
+                        `Loaded ${parsedRecords.length} records for quotation ${quotationId}, location ${location.id}`
+                    );
+                    // Don't render table here - it will be rendered when the form is shown
+                }
+            } catch (e) {
+                console.error(`Error parsing saved records for location ${location.id}:`, e);
+            }
+        }
+    });
+
 });

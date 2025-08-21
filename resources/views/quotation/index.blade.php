@@ -3,7 +3,7 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-[#2679b5]">Quotations  ({{ $locationsCount }})</h1>
+        <h1 class="text-2xl font-bold text-[#2679b5]">Quotations  </h1>
         <button type="button" id="openCreateModal" class="bg-[#87b87f] hover:bg-lime-700 text-white px-6 py-2 rounded">
             Create New Quotation
         </button>
@@ -30,20 +30,18 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($quotations as $quotation)
                         <tr class="hover:bg-gray-50 quotation-row" data-id="{{ $quotation->id }}">
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap group">
                                 <div class="group">
                                     <div class="editable-field" data-field="name">
                                         <span class="display-value text-sm font-medium text-gray-900">{{ $quotation->name }}</span>
                                         <input type="text" class="edit-input hidden mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500" value="{{ $quotation->name }}">
                                     </div>
-                                    @if($quotation->description)
                                     <div class="editable-field mt-1 opacity-0 max-h-0 overflow-hidden transition-all duration-500 ease-in-out group-hover:opacity-100 group-hover:max-h-40" data-field="description">
                                         <span class="display-value text-sm text-gray-500">
-                                            {{ Str::limit($quotation->description, 50) }}
+                                            {{ $quotation->description ? Str::limit($quotation->description, 50) : 'No description' }}
                                         </span>
-                                        <textarea class="edit-input hidden mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500" rows="2">{{ $quotation->description }}</textarea>
+                                        <textarea class="edit-input hidden mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500" rows="2">{{ $quotation->description ?? '' }}</textarea>
                                     </div>
-                                    @endif
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -69,11 +67,11 @@
                                 {{ $quotation->created_at->format('M d, Y') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('quotation.schedule', $quotation) }}" 
+                                <a href="{{ route('quotation.schedule', $quotation) }}?edit=1" 
                                    class="text-[#2679b5] hover:text-blue-900 mr-3">
-                                    Setup Schedule
+                                    Edit Quotation
                                 </a>
-
+{{-- 
                                 <button type="button" class="edit-btn text-blue-600 mr-3" title="Edit Row">
                                     <i class="fas fa-edit text-yellow-600"></i>
                                 </button>
@@ -84,7 +82,7 @@
                                 
                                 <button type="button" class="cancel-btn hidden text-gray-600 mr-3" title="Cancel Edit">
                                     <i class="fas fa-times text-gray-600"></i>
-                                </button>
+                                </button> --}}
                                 
                                 <button type="button" class="delete-btn text-red-600" title="Delete">
                                     <i class="fa-solid fa-trash-can text-[#cf4c3f]"></i>

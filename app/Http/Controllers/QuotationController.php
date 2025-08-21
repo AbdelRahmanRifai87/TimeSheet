@@ -63,6 +63,13 @@ class QuotationController extends Controller
     }
     public function update(Request $request, Quotation $quotation)
     {
+        // Add debugging to see what's being sent
+        \Log::info('Update quotation request received', [
+            'quotation_id' => $quotation->id,
+            'request_data' => $request->all(),
+            'original_description' => $quotation->description
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'client_name' => 'nullable|string|max:255',
@@ -70,7 +77,24 @@ class QuotationController extends Controller
             'status' => 'nullable|in:sent to client,in_progress,finalized'
         ]);
 
+        \Log::info('Validation passed', [
+            'validated_data' => $validated,
+            'description_in_validated' => isset($validated['description']) ? $validated['description'] : 'NOT_SET'
+        ]);
+
+        // Store original values before update
+        $originalDescription = $quotation->description;
+        
         $quotation->update($validated);
+
+        // Check if description actually changed
+        $quotation->refresh();
+        
+        \Log::info('After update', [
+            'original_description' => $originalDescription,
+            'new_description' => $quotation->description,
+            'description_changed' => $originalDescription !== $quotation->description
+        ]);
 
         return response()->json([
             'success' => true,
