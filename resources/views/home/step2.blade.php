@@ -822,7 +822,7 @@
                 </div>
             </div>
 
-            <!-- Modal for Adding Shift Type -->
+            {{-- <!-- Modal for Adding Shift Type -->
             <div id="addShiftTypeModal"
                 class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
                 <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
@@ -883,7 +883,7 @@
 
                     </form>
                 </div>
-            </div>
+            </div> --}}
         </div>
         <!-- Modal for Selecting Shifts -->
         <div id="selectShiftModal"
