@@ -750,7 +750,7 @@
 
                 <div class="space-y-6">
                     <!-- Export Type Selection -->
-                    <div>
+                    {{-- <div>
                         <label class="block text-sm font-medium text-gray-700 mb-3">Export Type:</label>
                         <div class="space-y-2">
                             <label class="flex items-center">
@@ -780,13 +780,23 @@
                                     location)</span>
                             </label>
                         </div>
-                    </div>
+                    </div> --}}
 
                     <!-- Specific Locations Selection -->
-                    <div id="specificLocationsOptions" class="border-l-4 border-green-500 pl-4 hidden">
+                    <div id="specificLocationsOptions" class="border-l-4 border-green-500 pl-4 ">
                         <label class="block text-sm font-medium text-gray-700 mb-3">Select Locations with Saved
                             Shifts:</label>
-                        <div id="availableLocationsContainer" class="space-y-2 max-h-48 overflow-y-auto">
+                        <div class="flex justify-end mb-2">
+                            <button type="button" id="selectAllSavedShiftLocationsBtn"
+                                class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition duration-200">
+                                Select All
+                            </button>
+                            <button type="button" id="deselectAllSavedShiftLocationsBtn"
+                                class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded transition duration-200 ml-2">
+                                Deselect All
+                            </button>
+                        </div>
+                        <div id="availableLocationsContainer" class="space-y-2 max-h-[30vh] overflow-y-auto">
                             <!-- Will be populated by JavaScript -->
                         </div>
                         <p class="text-xs text-gray-500 mt-2">Only locations with saved shift data are available for
@@ -1279,28 +1289,15 @@
                     reviewExportBtn.addEventListener('click', async function() {
 
 
-                        // Gather selected locations as in export logic
-                        // ... (same as export logic up to calculation)
-                        // 1. Determine export type and selected locations
-                        const exportType = document.querySelector(
-                                'input[name="exportType"]:checked')
-                            .value;
-                        let selectedLocations = [];
+                        // Gather selected locations from checked checkboxes
+                        const checkedBoxes = document.querySelectorAll(
+                            '#availableLocationsContainer input[name="specificLocations"]:checked'
+                        );
 
-                        if (exportType === "specific") {
-                            // Get checked checkboxes in the specific locations section
-                            const checkedBoxes = document.querySelectorAll(
-                                '#availableLocationsContainer input[name="specificLocations"]:checked'
-                            );
-                            const allWithData = getLocationsWithShiftData();
-                            selectedLocations = Array.from(checkedBoxes).map(cb => {
-                                return allWithData.find(loc => String(loc.id) === String(cb
-                                    .value));
-                            }).filter(Boolean);
-                        } else {
-                            // All locations with data
-                            selectedLocations = getLocationsWithShiftData();
-                        }
+                        const allWithData = getLocationsWithShiftData();
+                        const selectedLocations = Array.from(checkedBoxes)
+                            .map(cb => allWithData.find(loc => String(loc.id) === String(cb.value)))
+                            .filter(Boolean);
 
                         if (selectedLocations.length === 0) {
                             showToast("Please select at least one location with shift data.",
@@ -1308,17 +1305,18 @@
                             return;
                         }
 
+                        // Prepare locations data for calculation
                         const locationsData = selectedLocations.map(loc => ({
                             location_id: loc.id,
                             shifts: loc.shiftData.map(shift => {
-                                // Find the shift type by name
-                                const shiftTypeObj = shiftTypes.find(st => st
-                                    .name === shift.shiftType || st.id ===
-                                    shift.shiftTypeId || st.id === shift
-                                    .shift_type_id);
+                                const shiftTypeObj = shiftTypes.find(st =>
+                                    st.name === shift.shiftType ||
+                                    st.id === shift.shiftTypeId ||
+                                    st.id === shift.shift_type_id
+                                );
                                 return {
                                     shift_type_id: shiftTypeObj ? shiftTypeObj
-                                        .id : null, // must be integer
+                                        .id : null,
                                     from: shift.from,
                                     to: shift.to,
                                     employees: parseInt(shift.employees, 10),
@@ -1329,7 +1327,6 @@
                             })
                         }));
 
-
                         showLoading();
                         const calcResult = await calculateForMultipleLocations(locationsData);
                         hideLoading();
@@ -1338,66 +1335,35 @@
                             showToast("Failed to prepare preview data.", "error");
                             return;
                         }
-                        console.log("calc relsult:", calcResult);
-                        latestMultiCalculateResponses = calcResult;
+
+                        // Store the latest calculation result globally
+                        window.latestMultiCalculateResponses = calcResult;
 
 
-
-                        // Populate the preview table
-                        // If multiple locations, you may want to show tabs or a summary
-                        // If one location, just show the table as usual
-                        // Example for one location:
-                        // By default, select all columns
-                        // Store data locally
+                        // Prepare data for preview modal
                         const previewHeadings = calcResult.timesheet_headings;
                         const previewData = calcResult.timesheet_data;
-                        // const coreColumns = [
-                        //     "week_starting",
-                        //     "shift_type",
-                        //     "location",
-                        // ]; // match backend keys
-
-                        // By default, select all columns
                         const selectedColumnIds = new Set(
-                            previewHeadings.map((h) =>
-                                h.toLowerCase().replace(/[^a-z0-9]/g, "_")
-                            )
+                            previewHeadings.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, "_"))
                         );
-                        window.originalPreviewHeadings =
-                            previewHeadings; // Do this in your code where you first get the headings
+                        window.originalPreviewHeadings = previewHeadings;
 
                         const exportId = generateRecordId();
-                        // Pass all locations, not just selected ones
                         const allLocationIds = window.multiSelectDropdown ?
                             window.multiSelectDropdown.getSelectedValues() : [];
-                        // Get only the locations checked in the export modal
-                        let checkedExportLocationIds = [];
-                        if (exportType === "specific") {
-                            const checkedBoxes = document.querySelectorAll(
-                                '#availableLocationsContainer input[name="specificLocations"]:checked'
-                            );
-                            checkedExportLocationIds = Array.from(checkedBoxes).map(cb => String(cb
-                                .value));
-                        } else {
-                            checkedExportLocationIds = selectedLocations.map(loc => String(loc.id));
-                        }
+                        const checkedExportLocationIds = Array.from(checkedBoxes).map(cb => String(
+                            cb.value));
                         const selectedLocationIds = new Set(checkedExportLocationIds);
-                        console.log(selectedLocationIds);
-                        console.log(allLocationIds);
-
-
 
                         const allLocationData = {};
                         if (calcResult && calcResult.results) {
                             Object.entries(calcResult.results).forEach(([locationId, data]) => {
-                                console.log(data);
-                                console.log(locationId);
                                 allLocationData[locationId] = data;
                             });
                         }
                         window.allLocationData = allLocationData;
-                        console.log(window.allLocationData);
 
+                        // Show the preview modal
                         showPreviewTableModal({
                             headings: previewHeadings,
                             data: previewData,
@@ -1559,12 +1525,32 @@
                             <div class="text-xs text-gray-500">${location.address}</div>
                         </div>
                     </label>
-                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        ${recordCount} shift${recordCount !== 1 ? 's' : ''}
-                    </span>
+                   
                 `;
 
                     container.appendChild(div);
+                });
+            }
+            // Select All / Deselect All for Saved Shift Locations
+            const selectAllBtnEx = document.getElementById('selectAllSavedShiftLocationsBtn');
+            const deselectAllBtnEx = document.getElementById('deselectAllSavedShiftLocationsBtn');
+
+            if (selectAllBtnEx) {
+                selectAllBtnEx.addEventListener('click', function() {
+                    document.querySelectorAll(
+                        '#availableLocationsContainer input[name="specificLocations"]').forEach(
+                        cb => {
+                            cb.checked = true;
+                        });
+                });
+            }
+            if (deselectAllBtnEx) {
+                deselectAllBtnEx.addEventListener('click', function() {
+                    document.querySelectorAll(
+                        '#availableLocationsContainer input[name="specificLocations"]').forEach(
+                        cb => {
+                            cb.checked = false;
+                        });
                 });
             }
 

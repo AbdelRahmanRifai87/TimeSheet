@@ -868,52 +868,82 @@ public function map($row): array
 
     private function applyColumnStyles($sheet, $highestCol, $highestRow)
     {
-        // Get filtered headings (only visible columns)
-        $filteredHeadings = $this->headings();
-        $columns = range('A', $highestCol);
+    $filteredHeadings = $this->headings();
+    $columns = range('A', $highestCol);
 
-        foreach ($columns as $index => $col) {
-            $heading = $filteredHeadings[$index] ?? '';
+    // Find column indexes
+    $weekStartIdx = array_search('Week Starting', $filteredHeadings);
+    $empNumIdx = array_search('Emp. Numb', $filteredHeadings);
 
-            // Style basic info columns with light blue background
-            if (
-                strpos($heading, 'Week Starting') !== false ||
-                strpos($heading, 'Shift Type') !== false ||
-                strpos($heading, 'Location') !== false ||
-                strpos($heading, 'Date Range') !== false ||
-                strpos($heading, 'Start Date') !== false ||
-                strpos($heading, 'Scheduled Start') !== false ||
-                strpos($heading, 'Scheduled Finish') !== false ||
-                strpos($heading, 'Scheduled Hours') !== false ||
-                strpos($heading, 'Emp. Numb') !== false
-            ) {
-                $sheet->getStyle("{$col}1:{$col}{$highestRow}")
-                    ->getFill()->setFillType(Fill::FILL_SOLID)
-                    ->getStartColor()->setRGB('ADD8E6'); // Light blue
-            }
+    $dayIdx = array_search('Day (0600–1800)', $filteredHeadings);
+    $phIdx = array_search('PH', $filteredHeadings);
 
-            // Style Client Rate columns with light orange background
-            if (strpos($heading, 'Client') !== false) {
-                $sheet->getStyle("{$col}1:{$col}{$highestRow}")
-                    ->getFill()->setFillType(Fill::FILL_SOLID)
-                    ->getStartColor()->setRGB('FFE5B4'); // Light orange
-            }
+    $clientDayRateIdx = array_search('Client Day Rate', $filteredHeadings);
+    $clientBillableIdx = array_search('Client Billable', $filteredHeadings);
 
+    foreach ($columns as $index => $col) {
+        $heading = $filteredHeadings[$index] ?? '';
 
-            // Style hour columns with gray background
-            if (
-                strpos($heading, 'Day (0600–1800)') !== false ||
-                strpos($heading, 'Night (1800–0600)') !== false ||
-                strpos($heading, 'Saturday') !== false ||
-                strpos($heading, 'Sunday') !== false ||
-                strpos($heading, 'PH') !== false
-            ) {
-                $sheet->getStyle("{$col}1:{$col}{$highestRow}")
-                    ->getFill()->setFillType(Fill::FILL_SOLID)
-                    ->getStartColor()->setRGB('E5E5E5'); // Light gray
-            }
+        // 1. Week Starting to Emp. Numb
+        if ($index >= $weekStartIdx && $index <= $empNumIdx) {
+            // Heading background
+            $sheet->getStyle("{$col}1")->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('244163');
+                $sheet->getStyle("{$col}1")->getFont()->getColor()->setRGB('FFFFFF');
+            // No heading border
+            $sheet->getStyle("{$col}1")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE);
+
+            // Body: transparent (no fill), show borders
+            $sheet->getStyle("{$col}2:{$col}{$highestRow}")
+                ->getFill()->setFillType(Fill::FILL_NONE);
+            $sheet->getStyle("{$col}2:{$col}{$highestRow}")
+                ->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         }
+        // 2. Day (06-18) to PH
+        elseif ($index >= $dayIdx && $index <= $phIdx) {
+            // Heading background
+            $sheet->getStyle("{$col}1")->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('0D0D0D');
+            $sheet->getStyle("{$col}1")->getFont()->getColor()->setRGB('FFFFFF');
+            // No heading border
+            $sheet->getStyle("{$col}1")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE);
+
+            // Body: gray fill, no borders
+            $sheet->getStyle("{$col}2:{$col}{$highestRow}")
+                ->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('D9D9D9');
+            $sheet->getStyle("{$col}2:{$col}{$highestRow}")
+                ->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE);
+        }
+        // 3. Client Day Rate to Client Billable
+        elseif ($index >= $clientDayRateIdx && $index <= $clientBillableIdx) {
+            // Heading background
+            $sheet->getStyle("{$col}1")->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('944908');
+            $sheet->getStyle("{$col}1")->getFont()->getColor()->setRGB('FFFFFF');
+            // No heading border
+            $sheet->getStyle("{$col}1")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE);
+
+            // Body: orange fill, no borders
+            $sheet->getStyle("{$col}2:{$col}{$highestRow}")
+                ->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('FCE9DA');
+            $sheet->getStyle("{$col}2:{$col}{$highestRow}")
+                ->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE);
+        }
+        // All other headings: no border
+        else {
+            $sheet->getStyle("{$col}1")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE);
+        }
+
+        // Fixed column width for all columns
+if (strpos($heading, 'Start Date') !== false) {
+    $sheet->getColumnDimension($col)->setAutoSize(true);
+} else {
+    $sheet->getColumnDimension($col)->setWidth(18); // or your preferred fixed width
+}        // Adjust width as needed
     }
+}
 
     public function afterSheet(\Maatwebsite\Excel\Events\AfterSheet $event)
     {
@@ -922,7 +952,7 @@ public function map($row): array
         $columns = range('A', $highestCol);
 
         foreach ($columns as $col) {
-            $event->sheet->getDelegate()->getColumnDimension($col)->setAutoSize(true);
+            // $event->sheet->getDelegate()->getColumnDimension($col)->setAutoSize(true);
 
             // Set minimum width for better appearance
             $currentWidth = $event->sheet->getDelegate()->getColumnDimension($col)->getWidth();
