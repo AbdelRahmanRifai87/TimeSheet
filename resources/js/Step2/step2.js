@@ -1329,6 +1329,134 @@ window.loadLocationsTable = async function loadLocationTable() {
             reattachLocationCrudTableEvents();
         });
 };
+
+// Location search functionality
+function initializeLocationSearch() {
+    const searchInput = document.getElementById('locationSearchInput');
+    const clearButton = document.getElementById('clearLocationSearch');
+    
+    if (!searchInput) return;
+    
+    // Show/hide clear button based on input value
+    function toggleClearButton() {
+        if (searchInput.value.trim()) {
+            clearButton.classList.remove('hidden');
+        } else {
+            clearButton.classList.add('hidden');
+        }
+    }
+    
+    // Filter table rows based on search term
+    function filterLocations(searchTerm) {
+        const tbody = document.querySelector("#locationCrudTable tbody");
+        if (!tbody) return;
+        
+        const rows = tbody.querySelectorAll('tr:not(#locationCrudTableLoadingRow):not(.editing-row)');
+        const term = searchTerm.toLowerCase().trim();
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            if (!term) {
+                // Show all rows if no search term
+                row.style.display = '';
+                visibleCount++;
+                return;
+            }
+            
+            // Get text content from name, address, city, and state columns (skip checkbox and actions)
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 5) {
+                const name = cells[1].textContent.toLowerCase();
+                const address = cells[2].textContent.toLowerCase();
+                const city = cells[3].textContent.toLowerCase();
+                const state = cells[4].textContent.toLowerCase();
+                
+                // Check if search term matches any of the location fields
+                const matches = name.includes(term) || 
+                              address.includes(term) || 
+                              city.includes(term) || 
+                              state.includes(term);
+                
+                if (matches) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+        
+        // Show no results message if needed
+        showNoResultsMessage(visibleCount === 0 && term);
+    }
+    
+    // Show/hide no results message
+    function showNoResultsMessage(show) {
+        const tbody = document.querySelector("#locationCrudTable tbody");
+        let noResultsRow = document.getElementById('locationNoResultsRow');
+        
+        if (show && !noResultsRow) {
+            noResultsRow = document.createElement('tr');
+            noResultsRow.id = 'locationNoResultsRow';
+            noResultsRow.innerHTML = `
+                <td colspan="6" class="text-center py-8 text-gray-500">
+                    <div class="flex flex-col items-center">
+                        <i class="fas fa-search text-3xl mb-2 text-gray-300"></i>
+                        <p class="font-medium">No locations found</p>
+                        <p class="text-sm">Try adjusting your search terms</p>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(noResultsRow);
+        } else if (!show && noResultsRow) {
+            noResultsRow.remove();
+        }
+    }
+    
+    // Search input event listener with debouncing
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value;
+        toggleClearButton();
+        
+        // Debounce search to avoid too many filter calls
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            filterLocations(searchTerm);
+        }, 300);
+    });
+    
+    // Clear search button event listener
+    if (clearButton) {
+        clearButton.addEventListener('click', function() {
+            searchInput.value = '';
+            searchInput.focus();
+            toggleClearButton();
+            filterLocations('');
+        });
+    }
+    
+    // Clear search on escape key
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            this.value = '';
+            toggleClearButton();
+            filterLocations('');
+        }
+    });
+    
+    // Initialize clear button state
+    toggleClearButton();
+}
+
+// Enhance the loadLocationsTable function to initialize search after loading
+const originalLoadLocationsTable = window.loadLocationsTable;
+window.loadLocationsTable = async function loadLocationTable() {
+    await originalLoadLocationsTable();
+    // Initialize search functionality after locations are loaded
+    initializeLocationSearch();
+};
 // async function calculateForMultipleLocations(locationsData) {
 //     // locationsData: Array of { location_id, shifts: [...] }
 //     try {

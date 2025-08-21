@@ -129,22 +129,33 @@
 @endsection
 
 @section('content')
-    <div class="flex justify-end mt-2 mb-1 p-1">
+    <div class="flex justify-between items-center mt-2 mb-3 p-1">
+        <button type="button" id="toggleGuideBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold px-3 py-2 rounded-lg flex items-center gap-2 transition duration-200">
+            <i class="fas fa-question-circle"></i>
+            <span>User Guide</span>
+        </button>
         <a href="{{ route('quotation.index') }}"
-        class="bg-gray-500 hover:bg-gray-60 text-white p-1 rounded ">
+        class="bg-gray-500 hover:bg-gray-700 text-white text-lg font-semibold px-3 py-2 rounded-lg flex items-center gap-2 transition duration-200">
         Back to Quotations
         </a>
     </div>
+
     <div class="w-[100%]  overflow-y-auto bg-white-100">
 
 <!-- Quotation Summary Block -->
 <div class="mt-3 mb-4 p-1 bg-green-50 border border-green-200 rounded" id="quotation-summary">
 <!-- Quotation Header -->
-<div class="bg-green-50 p-4 mb-4 rounded" id="quotationHeader">
-    <div class="flex items-start justify-between">
-        <div class="flex-grow">
-            <div class="editable-field" data-field="name">
-                <h1 class="text-xl font-bold text-[#2679b5] display-value">{{ $quotation->name }}</h1>
+<div class="bg-green-50 p-4  rounded" id="quotationHeader">
+    <div class="flex items-center justify-between">
+        <!-- Professional single-line layout for quotation info -->
+        <div class="flex-grow flex items-center flex-wrap gap-x-6 gap-y-2">
+            <!-- Quotation Name -->
+            <div class="editable-field flex items-center" data-field="name">
+                <div class="display-value flex items-center">
+                    <i class="fas fa-file-alt text-[#2679b5] mr-2"></i>
+                    <span class="text-lg font-semibold text-[#2679b5] mr-2">Quotation name:</span>
+                    <h1 class="text-sm font-semibold text-gray-900">{{ $quotation->name }}</h1>
+                </div>
                 <div class="edit-input hidden">
                     <label class="block text-sm font-semibold text-[#2679b5] mb-1">
                         <i class="fas fa-file-alt mr-1"></i>Quotation Name
@@ -152,8 +163,18 @@
                     <input type="text" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" value="{{ $quotation->name }}" placeholder="Enter quotation name">
                 </div>
             </div>
-            <div class="editable-field mt-3" data-field="client_name">
-                <p class="text-gray-600 display-value">Client Name: {{ $quotation->client_name }}</p>
+
+            <!-- Separator -->
+            <div class="h-6 w-px bg-gray-300"></div>
+
+            <!-- Client Name -->
+            <div class="editable-field flex items-center" data-field="client_name">
+                <div class="display-value flex items-center">
+                    <i class="fas fa-user text-[#2679b5] mr-2"></i>
+                    {{-- <span class="text-lg font-bold text-[#2679b5] mr-1">Client Name:</span> --}}
+                    <span class="text-lg font-semibold text-[#2679b5] mr-2">Client Name:</span>
+                    <span class="text-sm font-semibold text-gray-900">{{ $quotation->client_name ?? 'Not specified' }}</span>
+                </div>
                 <div class="edit-input hidden">
                     <label class="block text-sm font-semibold text-[#2679b5] mb-1">
                         <i class="fas fa-user mr-1"></i>Client Name
@@ -161,13 +182,19 @@
                     <input type="text" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200" value="{{ $quotation->client_name }}" placeholder="Enter client name">
                 </div>
             </div>
-            <div class="editable-field mt-3" data-field="status">
-                <p class="text-gray-700 display-value">
-                    <span class="font-semibold">Status:</span>
-                    <span id="quotation-status" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $quotation->status === 'sent to client' ? 'bg-yellow-100 text-yellow-800' : ($quotation->status === 'finalized' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800') }}">
-                        {{ ucfirst($quotation->status) ?? '-' }}
+
+            <!-- Separator -->
+            <div class="h-6 w-px bg-gray-300"></div>
+
+            <!-- Status -->
+            <div class="editable-field flex items-center" data-field="status">
+                <div class="display-value flex items-center">
+                    <i class="fas fa-info-circle text-[#2679b5] mr-2"></i>
+                    <span class="text-lg font-semibold text-[#2679b5] mr-2">Status:</span>
+                    <span id="quotation-status" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $quotation->status === 'sent to client' ? 'bg-yellow-100 text-yellow-800' : ($quotation->status === 'finalized' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800') }}">
+                        {{ ucfirst($quotation->status) ?? 'In Progress' }}
                     </span>
-                </p>
+                </div>
                 <div class="edit-input hidden">
                     <label class="block text-sm font-semibold text-[#2679b5] mb-1">
                         <i class="fas fa-info-circle mr-1"></i>Status
@@ -179,11 +206,19 @@
                     </select>
                 </div>
             </div>
-            <div class="editable-field mt-3" data-field="description">
-                <p class="text-gray-700 display-value">
-                    <span class="font-semibold">Description:</span>
-                    <span class="text-gray-600">{{ $quotation->description ?? 'No description' }}</span>
-                </p>
+
+            <!-- Separator -->
+            <div class="h-6 w-px bg-gray-300"></div>
+
+            <!-- Description -->
+            <div class="editable-field flex items-center" data-field="description">
+                <div class="display-value flex items-center">
+                    <i class="fas fa-align-left text-[#2679b5] mr-2"></i>
+                    <span class="text-lg font-semibold text-[#2679b5] mr-2">Description:</span>
+                    <span class="text-sm font-semibold text-gray-900" title="{{ $quotation->description ?? 'No description' }}">
+                        {{ $quotation->description ?? 'No description' }}
+                    </span>
+                </div>
                 <div class="edit-input hidden">
                     <label class="block text-sm font-semibold text-[#2679b5] mb-1">
                         <i class="fas fa-align-left mr-1"></i>Description
@@ -192,84 +227,154 @@
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+
+        <!-- Action buttons on the right -->
+        <div class="flex items-center gap-2 ml-4">
             <!-- Edit/Save/Cancel Buttons -->
-            <button type="button" id="editQuotationBtn" class="text-blue-600 hover:text-blue-800" title="Edit Quotation">
+            <button type="button" id="editQuotationBtn" class="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition duration-200" title="Edit Quotation">
                 <i class="fas fa-edit"></i>
             </button>
-            <button type="button" id="saveQuotationBtn" class="hidden text-green-600 hover:text-green-800" title="Save Changes">
+            <button type="button" id="saveQuotationBtn" class="hidden text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-50 transition duration-200" title="Save Changes">
                 <i class="fas fa-check"></i>
             </button>
-            <button type="button" id="cancelQuotationBtn" class="hidden text-gray-600 hover:text-gray-800" title="Cancel Edit">
+            <button type="button" id="cancelQuotationBtn" class="hidden text-gray-600 hover:text-gray-800 p-2 rounded-full hover:bg-gray-50 transition duration-200" title="Cancel Edit">
                 <i class="fas fa-times"></i>
             </button>
             
             <!-- Toggle Summary Button -->
             <button type="button" id="toggleQuotationSummaryBtn"
-                    class="text-[#2679b5] hover:underline flex items-center gap-1">
+                    class="text-[#2679b5] hover:text-[#1e5ca6] p-2 rounded-full hover:bg-blue-50 transition duration-200 flex items-center gap-1" title="Toggle Summary Details">
                 <i id="quotation-summary-chevron" class="fas fa-chevron-down transition-transform duration-200"></i>
             </button>
         </div>
     </div>
-    
-        <!-- Collapsible summary details (collapsed by default) -->
-        <div id="quotation-summary-details" class="mt-3 grid gap-2 sm:grid-cols-2 hidden">
-            <div class="flex items-center gap-2">
-                <span class="text-blue-600"><i class="fas fa-map-marker-alt"></i></span>
-                <span class="font-semibold">Locations:</span>
-                <span id="summary-locations">
-                    @php
-                        $names = [];
-                        if (isset($selectedLocations) && !empty($selectedLocations)) {
-                            $locMap = collect($locations ?? [])->pluck('name', 'id');
-                            foreach ((array) $selectedLocations as $item) {
-                                if (is_object($item) && isset($item->name)) {
-                                    $names[] = $item->name;
-                                } elseif (is_array($item) && isset($item['name'])) {
-                                    $names[] = $item['name'];
-                                } elseif (is_scalar($item)) {
-                                    $id = (string) $item;
-                                    $names[] = $locMap[$id] ?? $locMap[(int) $id] ?? (string) $item;
-                                }
-                            }
-                        }
-                    @endphp
-                    {{ !empty($names) ? implode(', ', $names) : 'None selected' }}
-                </span>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <span class="text-green-600"><i class="fas fa-calendar-alt"></i></span>
-                <span class="font-semibold">Date Range:</span>
-                <span id="summary-date-range">{{ $dateRange ?? 'N/A' }}</span>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <span class="text-yellow-600"><i class="fas fa-list-ol"></i></span>
-                <span class="font-semibold">Total Shifts:</span>
-                <span id="summary-total-shifts">{{ $totalShifts ?? 0 }}</span>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <span class="text-purple-600"><i class="fas fa-coins"></i></span>
-                <span class="font-semibold">Total Billable:</span>
-                <span id="summary-total-billable">
-                    {{ number_format($totalBillable ?? 0, 2) }} {{ $quotation->currency ?? 'USD' }}
-                </span>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <span class="text-pink-600"><i class="fas fa-calendar-day"></i></span>
-                <span class="font-semibold">Unique Days:</span>
-                <span id="summary-unique-days">{{ $uniqueDays ?? 0 }}</span>
-            </div>
-
-            {{-- <div class="w-full mt-2 text-gray-700 sm:col-span-2">
-                <span class="font-semibold">Description:</span>
-                <span id="summary-description">{{ $quotation->description ?? '-' }}</span>
-            </div> --}}
-        </div>
+    <!-- Collapsible summary details (collapsed by default) -->
+<div
+  id="quotation-summary-details"
+  role="region"
+  aria-labelledby="quotation-summary-title"
+  class="mt-4 hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+>
+  <!-- Header -->
+  <div class="rounded-t-2xl bg-gradient-to-r from-[#2679b5] to-[#1e5ca6] px-4 py-3 text-black">
+    <div class="flex items-center gap-2">
+      <i class="fas fa-chart-line opacity-90"></i>
+        <h3 id="quotation-summary-title"
+            class="text-lg sm:text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+        Quotation Summary
+        </h3>
     </div>
+  </div>
+
+  <!-- Content -->
+  <div class="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+
+    <!-- Card: Locations -->
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition-shadow hover:shadow-md border-l-4 border-l-sky-500">
+      <div class="mb-2 flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-sky-600">
+          <i class="fas fa-map-marker-alt"></i>
+        </span>
+        <span class="font-semibold text-slate-800">Locations</span>
+      </div>
+      <div id="summary-locations" class="text-sm leading-relaxed text-slate-700">
+        @php
+          $names = [];
+          if (isset($selectedLocations) && !empty($selectedLocations)) {
+              $locMap = collect($locations ?? [])->pluck('name', 'id');
+              foreach ((array) $selectedLocations as $item) {
+                  if (is_object($item) && isset($item->name)) {
+                      $names[] = $item->name;
+                  } elseif (is_array($item) && isset($item['name'])) {
+                      $names[] = $item['name'];
+                  } elseif (is_scalar($item)) {
+                      $id = (string) $item;
+                      $names[] = $locMap[$id] ?? $locMap[(int) $id] ?? (string) $item;
+                  }
+              }
+          }
+        @endphp
+        {{ !empty($names) ? implode(', ', $names) : 'None selected' }}
+      </div>
+    </section>
+
+    <!-- Card: Date Range -->
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition-shadow hover:shadow-md border-l-4 border-l-emerald-500">
+      <div class="mb-2 flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <i class="fas fa-calendar-alt"></i>
+        </span>
+        <span class="font-semibold text-slate-800">Date Range</span>
+      </div>
+      <div id="summary-date-range" class="text-sm text-slate-700">{{ $dateRange ?? 'N/A' }}</div>
+    </section>
+
+    <!-- Card: Total Shifts -->
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition-shadow hover:shadow-md border-l-4 border-l-amber-500">
+      <div class="mb-2 flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+          <i class="fas fa-list-ol"></i>
+        </span>
+        <span class="font-semibold text-slate-800">Total Shifts</span>
+      </div>
+      <div id="summary-total-shifts" class="text-2xl font-semibold tracking-tight text-slate-900">
+        {{ $totalShifts ?? 0 }}
+      </div>
+    </section>
+
+    <!-- Card: Total Billable -->
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition-shadow hover:shadow-md border-l-4 border-l-violet-500">
+      <div class="mb-2 flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-violet-50 text-violet-600">
+          <i class="fas fa-coins"></i>
+        </span>
+        <span class="font-semibold text-slate-800">Total Billable</span>
+      </div>
+      <div id="summary-total-billable" class="text-2xl font-extrabold tracking-tight text-slate-900">
+        {{ number_format($totalBillable ?? 0, 2) }} {{ $quotation->currency ?? 'USD' }}
+      </div>
+    </section>
+
+    <!-- Card: Unique Days -->
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition-shadow hover:shadow-md border-l-4 border-l-rose-500">
+      <div class="mb-2 flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+          <i class="fas fa-calendar-day"></i>
+        </span>
+        <span class="font-semibold text-slate-800">Unique Days</span>
+      </div>
+      <div id="summary-unique-days" class="text-2xl font-semibold tracking-tight text-slate-900">
+        {{ $uniqueDays ?? 0 }}
+      </div>
+    </section>
+
+    <!-- Card: Current Status -->
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition-shadow hover:shadow-md border-l-4 border-l-slate-500">
+      <div class="mb-2 flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-700">
+          <i class="fas fa-info-circle"></i>
+        </span>
+        <span class="font-semibold text-slate-800">Current Status</span>
+      </div>
+
+      @php
+        $statusRaw = $quotation->status ?? 'in progress';
+        $status = strtolower($statusRaw);
+        $statusClasses = match ($status) {
+          'sent to client' => 'bg-amber-100 text-amber-800',
+          'finalized'      => 'bg-emerald-100 text-emerald-800',
+          default          => 'bg-blue-100 text-blue-800',
+        };
+        $statusLabel = ucwords(str_replace('_', ' ', $statusRaw));
+      @endphp
+
+      <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {{ $statusClasses }}">
+        {{ $statusLabel }}
+      </span>
+    </section>
+
+  </div>
+</div>
 </div>
             <!-- End Quotation Summary Block -->
         </div>
@@ -335,8 +440,28 @@
             <div id="locationDropdownContent" class="transition-all duration-700 overflow-hidden max-h-0 mt-1">
                 <div class=" w-[100%] p-6 pt-0 relative" style="max-height:80vh;overflow-y:auto;">
 
-                    <div class="flex justify-end mb-2">
-                        <button id="addLocationBtn" class="bg-blue-600 text-white px-2 py-1 rounded">Add Location</button>
+                    <div class="flex justify-between items-center mb-2 gap-3">
+                        <!-- Search Input -->
+                        <div class="flex-1">
+                            <div class="relative">
+                                <input type="text" id="locationSearchInput" 
+                                       placeholder="Search locations by name, address, city, or state..." 
+                                       class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <!-- Clear search button -->
+                                <button type="button" id="clearLocationSearch" 
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Add Location Button -->
+                        <button id="addLocationBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center gap-2">
+                            <i class="fas fa-plus"></i>
+                            Add Location
+                        </button>
                     </div>
                     <table id="locationCrudTable" class="min-w-full border">
                     <thead>
@@ -432,7 +557,7 @@
                     <div class="flex gap-4">
 
                         <button type="button" id="exportBtn"
-                            class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded border">
+                            class="bg-green-600 hover:bg-green-700 text-white text-lg font-semibold px-3 py-2 rounded-lg flex items-center gap-2 transition duration-200">
                             <i class="fas fa-download mr-1"></i> Export Options
                         </button>
                     </div>
@@ -877,6 +1002,228 @@
                     <span class="text-blue-600 font-semibold">Loading...</span>
                 </div>
             </div>
+
+        <!-- User Guide Modal -->
+        <div id="userGuideModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9998] hidden">
+            <div id="userGuideModalContent" class="bg-white rounded-2xl shadow-2xl w-[95vw] h-[90vh] max-w-7xl mx-4 overflow-hidden transform transition-all duration-300 ease-out scale-95 opacity-0 flex flex-col">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-graduation-cap text-xl"></i>
+                        <h2 class="text-xl font-bold">Quotation Management System - User Guide</h2>
+                    </div>
+                    <button type="button" id="closeGuideModal" class="text-white hover:text-gray-200 transition duration-200 text-2xl">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- Modal Body - Scrollable Content -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <p class="text-lg font-semibold text-gray-600 mr-2 mb-6">Follow these steps to create and manage your quotations efficiently</p>
+
+                    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+                        
+                        <!-- Step 1 -->
+                        <div class="bg-white rounded-lg border border-green-200 shadow-sm overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:scale-105">
+                            <div class="bg-green-500 text-white px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-white text-green-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">1</span>
+                                    <h3 class="font-semibold">Create Quotation</h3>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <div class="space-y-3">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-plus-circle text-green-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Initial Setup</p>
+                                            <p class="text-xs text-gray-600">Create new quotation with basic information</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-edit text-green-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Fill Details</p>
+                                            <p class="text-xs text-gray-600">Enter quotation name, client name, and description</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-save text-green-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Save & Continue</p>
+                                            <p class="text-xs text-gray-600">Proceed to Step 2 for configuration</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="bg-white rounded-lg border border-blue-200 shadow-sm overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:scale-105 ring-2 ring-blue-400 ring-opacity-50">
+                            <div class="bg-blue-500 text-white px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-white text-blue-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">2</span>
+                                    <h3 class="font-semibold">Setup Configuration</h3>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <div class="space-y-3">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-cogs text-blue-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Shift Types</p>
+                                            <p class="text-xs text-gray-600">Define shift types with rates (day, night, weekend, PH)</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-map-marker-alt text-blue-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Locations</p>
+                                            <p class="text-xs text-gray-600">Add and select work locations for the quotation</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-check-circle text-blue-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium text-blue-600">Current Step</p>
+                                            <p class="text-xs text-blue-700 font-medium">You are here - Configure your settings</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="bg-white rounded-lg border border-yellow-200 shadow-sm overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:scale-105">
+                            <div class="bg-yellow-500 text-white px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-white text-yellow-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">3</span>
+                                    <h3 class="font-semibold">Add Shift Entries</h3>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <div class="space-y-3">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-calendar-plus text-yellow-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Schedule Shifts</p>
+                                            <p class="text-xs text-gray-600">Add shift entries for each location and date</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-clock text-yellow-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Set Times</p>
+                                            <p class="text-xs text-gray-600">Define start/end times and shift types</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-calculator text-yellow-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Auto Calculate</p>
+                                            <p class="text-xs text-gray-600">System calculates hours and costs automatically</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="bg-white rounded-lg border border-purple-200 shadow-sm overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:scale-105">
+                            <div class="bg-purple-500 text-white px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-white text-purple-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">4</span>
+                                    <h3 class="font-semibold">Review & Export</h3>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <div class="space-y-3">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-eye text-purple-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Preview Data</p>
+                                            <p class="text-xs text-gray-600">Review all shifts and calculations</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-file-export text-purple-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Export Options</p>
+                                            <p class="text-xs text-gray-600">Export as Excel, PDF, or print timesheet</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-paper-plane text-purple-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm font-medium">Send to Client</p>
+                                            <p class="text-xs text-gray-600">Finalize and send quotation to client</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Tips Section -->
+                    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="bg-yellow-100 p-2 rounded-full">
+                                <i class="fas fa-lightbulb text-yellow-600 text-lg"></i>
+                            </div>
+                            <h4 class="text-xl font-semibold text-yellow-800">Quick Tips for Step 2</h4>
+                        </div>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div class="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm">
+                                <div class="bg-blue-100 p-1 rounded-full mt-1">
+                                    <i class="fas fa-cogs text-blue-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">Shift Types</p>
+                                    <p class="text-sm text-gray-600">Set up different shift types with appropriate rates before adding entries</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm">
+                                <div class="bg-green-100 p-1 rounded-full mt-1">
+                                    <i class="fas fa-map-marker-alt text-green-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">Locations</p>
+                                    <p class="text-sm text-gray-600">Use the search feature to quickly find and select multiple locations</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm">
+                                <div class="bg-purple-100 p-1 rounded-full mt-1">
+                                    <i class="fas fa-edit text-purple-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">Editing</p>
+                                    <p class="text-sm text-gray-600">Click the edit button to modify quotation details inline</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm">
+                                <div class="bg-indigo-100 p-1 rounded-full mt-1">
+                                    <i class="fas fa-chart-line text-indigo-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">Summary</p>
+                                    <p class="text-sm text-gray-600">Toggle the summary to view current quotation statistics</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer with Action Button -->
+                <div class="flex-shrink-0 border-t border-gray-200 bg-gray-50 px-6 py-4">
+                    <div class="flex justify-center">
+                        <button type="button" id="gotItBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-medium transition duration-200 transform hover:scale-105 shadow-lg">
+                            <i class="fas fa-rocket mr-2"></i>
+                            Got it! Let's Start
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 
 
@@ -1544,6 +1891,65 @@
             console.log("tttttttttttttttttttttttttttttttttt");
 
             document.addEventListener('DOMContentLoaded', function() {
+                // Initialize guide modal functionality
+                const toggleGuideBtn = document.getElementById('toggleGuideBtn');
+                const userGuideModal = document.getElementById('userGuideModal');
+                const userGuideModalContent = document.getElementById('userGuideModalContent');
+                const closeGuideModal = document.getElementById('closeGuideModal');
+                const gotItBtn = document.getElementById('gotItBtn');
+
+                // Open modal function
+                function openGuideModal() {
+                    userGuideModal.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                    
+                    // Trigger animation after modal is visible
+                    setTimeout(() => {
+                        userGuideModalContent.classList.remove('scale-95', 'opacity-0');
+                        userGuideModalContent.classList.add('scale-100', 'opacity-100');
+                    }, 10);
+                }
+
+                // Close modal function
+                function closeGuideModalFunc() {
+                    userGuideModalContent.classList.remove('scale-100', 'opacity-100');
+                    userGuideModalContent.classList.add('scale-95', 'opacity-0');
+                    
+                    setTimeout(() => {
+                        userGuideModal.classList.add('hidden');
+                        document.body.style.overflow = 'auto';
+                    }, 300);
+                }
+
+                // Event listeners
+                if (toggleGuideBtn) {
+                    toggleGuideBtn.addEventListener('click', openGuideModal);
+                }
+
+                if (closeGuideModal) {
+                    closeGuideModal.addEventListener('click', closeGuideModalFunc);
+                }
+
+                if (gotItBtn) {
+                    gotItBtn.addEventListener('click', closeGuideModalFunc);
+                }
+
+                // Close modal when clicking outside
+                if (userGuideModal) {
+                    userGuideModal.addEventListener('click', function(e) {
+                        if (e.target === userGuideModal) {
+                            closeGuideModalFunc();
+                        }
+                    });
+                }
+
+                // Close modal with Escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && !userGuideModal.classList.contains('hidden')) {
+                        closeGuideModalFunc();
+                    }
+                });
+
                 if (typeof window.loadShiftTypesTable === 'function') {
                     window.loadShiftTypesTable();
                 } else {
